@@ -1,0 +1,15 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-multipart==0.0.19
+anthropic==0.40.0
+
+# Postgres in anything but local dev. SQLite is the default so the API runs
+# with no services to start.
+psycopg[binary]==3.2.3
+
+# Optional. The cost engine caches per project version; without Redis it
+# falls back to an in-process dict, which is correct but not shared.
+redis==5.2.1

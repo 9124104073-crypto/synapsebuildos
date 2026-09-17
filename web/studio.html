@@ -1,0 +1,1294 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synapse Studio — Design</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --background:#fafaf8; --surface:#ffffff; --surface-2:#f1f2ee; --surface-3:#e8ece4;
+  --ink:#2d2d2a; --muted-foreground:#6b6f63; --muted-2:#8d9186;
+  --border:#dedcd3; --border-strong:#c8c6ba;
+  --sage:#8a9a82; --sage-soft:#e8ece4; --primary:#5c6b54; --primary-foreground:#fff;
+  --success:#6b8f5c; --warning:#b8823c; --error:#b8564a;
+  --error-soft:#b8564a1f; --warning-soft:#b8823c1f; --success-soft:#6b8f5c1f;
+  --display:Fraunces,ui-serif,Georgia,serif;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --s--2:.7rem; --s--1:.8rem; --s-0:.93rem; --s-1:1.15rem; --s-2:1.6rem;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --background:#1a1a18; --surface:#212120; --surface-2:#282826; --surface-3:#31352d;
+  --ink:#eceae4; --muted-foreground:#a3a79a; --muted-2:#878b7e;
+  --border:#3a3a36; --border-strong:#4e4e48;
+  --sage:#a3b39a; --sage-soft:#31352d; --primary:#a3b39a; --primary-foreground:#1a1a18;
+  --success:#8cb37b; --warning:#d6a05c; --error:#d97b6d;
+  --error-soft:#d97b6d26; --warning-soft:#d6a05c26; --success-soft:#8cb37b26;
+}}
+:root[data-theme="dark"]{
+  --background:#1a1a18; --surface:#212120; --surface-2:#282826; --surface-3:#31352d;
+  --ink:#eceae4; --muted-foreground:#a3a79a; --muted-2:#878b7e;
+  --border:#3a3a36; --border-strong:#4e4e48;
+  --sage:#a3b39a; --sage-soft:#31352d; --primary:#a3b39a; --primary-foreground:#1a1a18;
+  --success:#8cb37b; --warning:#d6a05c; --error:#d97b6d;
+  --error-soft:#d97b6d26; --warning-soft:#d6a05c26; --success-soft:#8cb37b26;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--background);color:var(--ink);font-family:var(--sans);font-size:var(--s-0);
+  line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;letter-spacing:-.02em}
+button{font-family:var(--sans);cursor:pointer}
+:focus-visible{outline:1.5px solid var(--sage);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:var(--s--2);letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:52px 1fr;height:100vh}
+.bar{display:flex;align-items:center;gap:.7rem;padding:0 .9rem;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none}
+.bar::-webkit-scrollbar{display:none}
+.bar>*{flex:none}
+@media(max-width:1180px){#undoBtn,#redoBtn{display:none}}
+@media(max-width:1020px){.brand span{display:none}}
+.brand{display:flex;align-items:center;gap:.5rem;font-family:var(--display);font-size:1rem}
+.brand i{width:8px;height:8px;background:var(--sage);transform:rotate(45deg);display:block}
+.bar .sp{flex:1}
+.btn{font-size:var(--s--1);font-weight:500;border:1px solid var(--border-strong);background:transparent;
+  color:var(--ink);padding:.36rem .7rem;border-radius:0;display:inline-flex;align-items:center;gap:.4rem;transition:.18s}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.btn.primary:hover{opacity:.88}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:flex;border:1px solid var(--border)}
+.seg button{font-size:var(--s--2);padding:.3rem .6rem;background:transparent;border:0;border-right:1px solid var(--border);color:var(--muted-foreground)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--primary);color:var(--primary-foreground)}
+.threeonly{display:flex;align-items:center;gap:.7rem}
+.threeonly[hidden]{display:none}
+#walkBtn[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.chk{display:flex;align-items:center;gap:.3rem;font-size:var(--s--2);color:var(--muted-foreground);white-space:nowrap}
+.chk input{accent-color:var(--primary)}
+.sun{display:flex;align-items:center;gap:.4rem}
+.sun input[type=range]{-webkit-appearance:none;appearance:none;width:92px;height:2px;background:var(--border-strong);cursor:pointer}
+.sun input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;background:var(--warning);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--warning)}
+.sun input[type=range]::-moz-range-thumb{width:9px;height:9px;background:var(--warning);border:2px solid var(--surface)}
+.sun .num{font-size:var(--s--2);color:var(--muted-foreground);min-width:2.6rem}
+
+.main{display:grid;grid-template-columns:168px 1fr 296px;overflow:hidden}
+@media(max-width:1000px){.main{grid-template-columns:1fr}.rail,.side{display:none}}
+
+/* ---------- rail ---------- */
+.rail{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:.9rem .75rem;display:grid;gap:1.1rem;align-content:start}
+.group{display:grid;gap:.35rem}
+.addbtn{text-align:left;font-size:var(--s--1);padding:.38rem .5rem;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);display:flex;justify-content:space-between;gap:.5rem;transition:.18s}
+.addbtn:hover{border-color:var(--primary);color:var(--ink)}
+.addbtn span:last-child{font-family:var(--mono);font-size:var(--s--2);color:var(--muted-2)}
+.floorbtn{text-align:left;font-size:var(--s--1);padding:.35rem .5rem;border:0;border-left:2px solid transparent;background:transparent;color:var(--muted-foreground);width:100%;display:flex;justify-content:space-between}
+.floorbtn[aria-pressed=true]{border-left-color:var(--primary);color:var(--ink);background:var(--surface-2);font-weight:500}
+.floorbtn span:last-child{font-family:var(--mono);font-size:var(--s--2)}
+
+/* ---------- stage ---------- */
+.stage{position:relative;overflow:hidden;background:var(--surface-2);display:grid}
+#canvas2d{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+#wrap3d{position:absolute;inset:0;display:none}
+#wrap3d.on{display:block}
+#canvas3d{width:100%;height:100%;display:block;cursor:grab}
+#canvas3d:active{cursor:grabbing}
+.stage-hud{position:absolute;left:.75rem;bottom:.7rem;font-family:var(--mono);font-size:var(--s--2);
+  color:var(--muted-2);pointer-events:none;background:color-mix(in srgb,var(--background) 80%,transparent);padding:.2rem .45rem}
+.stage-warn{position:absolute;left:.75rem;top:.75rem;font-size:var(--s--1);background:var(--error-soft);
+  color:var(--error);padding:.4rem .7rem;border-left:2px solid var(--error);max-width:340px}
+.stage-warn.hide{display:none}
+
+/* svg pieces */
+.plot-fill{fill:var(--surface)}
+.plot-line{fill:none;stroke:var(--border-strong);stroke-width:1.5}
+.setback-line{fill:none;stroke:var(--sage);stroke-width:1;stroke-dasharray:5 4;opacity:.75}
+.grid-line{stroke:var(--border);stroke-width:.5;opacity:.5}
+.room rect.body{fill:var(--surface-2);stroke:var(--muted-2);stroke-width:1.2;cursor:move}
+.room.sel rect.body{fill:var(--sage-soft);stroke:var(--primary);stroke-width:2}
+.room.bad rect.body{fill:var(--error-soft);stroke:var(--error);stroke-dasharray:4 3}
+.room.ghost rect.body{opacity:.28;stroke-dasharray:3 3;cursor:default}
+.room text{font-family:var(--mono);pointer-events:none}
+.room .nm{font-size:1.7px;fill:var(--ink)}
+.room .dm{font-size:1.25px;fill:var(--muted-2)}
+.handle{fill:var(--surface);stroke:var(--primary);stroke-width:1.5}
+.dimtext{font-family:var(--mono);font-size:2px;fill:var(--sage)}
+
+/* ---------- side ---------- */
+.side{border-left:1px solid var(--border);background:var(--surface);overflow-y:auto}
+.panel{border-bottom:1px solid var(--border);padding:.9rem}
+.panel h3{font-size:var(--s-1);margin-bottom:.5rem}
+.row{display:flex;justify-content:space-between;gap:.7rem;font-size:var(--s--1);color:var(--muted-foreground);
+  padding:.26rem 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:0}
+.row b{font-family:var(--mono);font-weight:400;font-variant-numeric:tabular-nums;color:var(--ink);font-size:var(--s--2)}
+.row b.up{color:var(--error)}.row b.down{color:var(--success)}
+.big{font-family:var(--display);font-size:var(--s-2);letter-spacing:-.03em;font-variant-numeric:tabular-nums;transition:color .35s}
+.big.flash{color:var(--warning)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.field{display:grid;gap:.15rem}
+.field label{font-size:var(--s--2);color:var(--muted-2);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.field input,.field select{font-family:var(--mono);font-size:var(--s--1);padding:.3rem .4rem;border:1px solid var(--border);
+  background:var(--background);color:var(--ink);width:100%;border-radius:0}
+.field input:focus{border-color:var(--primary)}
+.bars{display:grid;gap:.4rem;margin-top:.5rem}
+.bar{display:grid;grid-template-columns:5.4rem 1fr 1.9rem;gap:.5rem;align-items:center;font-size:var(--s--2);color:var(--muted-foreground)}
+.track{height:4px;background:var(--surface-2);overflow:hidden}
+.track b{display:block;height:100%;width:0;background:var(--sage);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.track b.mid{background:var(--warning)}.track b.bad{background:var(--error)}
+.finding{font-size:var(--s--1);padding:.5rem .6rem;border-left:2px solid var(--border);background:var(--surface-2);margin-bottom:.4rem}
+.finding.fail{border-left-color:var(--error);background:var(--error-soft)}
+.finding.pass{border-left-color:var(--success)}
+.finding .t{font-weight:500;color:var(--ink)}
+.finding .e{color:var(--muted-foreground);font-size:var(--s--2);margin-top:.15rem}
+.hint{font-size:var(--s--2);color:var(--muted-2);line-height:1.5}
+.empty{font-size:var(--s--1);color:var(--muted-2);padding:.4rem 0}
+.status{font-family:var(--mono);font-size:var(--s--2);color:var(--muted-2)}
+.status.ok{color:var(--success)}.status.err{color:var(--error)}
+
+@media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important}}
+</style>
+
+<div class="app">
+  <div class="bar">
+    <div class="brand"><i></i>Synapse Studio</div>
+    <div class="seg" id="viewSeg">
+      <button data-v="2d" aria-pressed="true">Plan</button>
+      <button data-v="3d" aria-pressed="false">3D</button>
+    </div>
+    <div class="threeonly" id="threeTools" hidden>
+      <button class="btn" id="walkBtn" aria-pressed="false" title="First-person walkthrough">Walk</button>
+      <label class="chk"><input type="checkbox" id="showFurniture" checked> Furniture</label>
+      <label class="sun">
+        <span class="eyebrow">Sun</span>
+        <input type="range" id="sunTime" min="6" max="18" step="0.5" value="12">
+        <span class="num" id="sunLabel">12:00</span>
+      </label>
+    </div>
+    <button class="btn" id="undoBtn" title="Ctrl+Z">Undo</button>
+    <button class="btn" id="redoBtn" title="Ctrl+Shift+Z">Redo</button>
+    <div class="sp"></div>
+    <span class="status" id="apiStatus">local</span>
+    <button class="btn" id="exportObj">.obj</button>
+    <button class="btn" id="exportJson">.json</button>
+    <button class="btn" id="themeBtn" aria-label="Theme">◐</button>
+    <a class="btn primary" href="index.html">Back to overview</a>
+  </div>
+
+  <div class="main">
+    <!-- rail -->
+    <aside class="rail">
+      <div class="group">
+        <span class="eyebrow">Add room</span>
+        <button class="addbtn" data-add="bedroom"><span>Bedroom</span><span>130 sf</span></button>
+        <button class="addbtn" data-add="bath"><span>Bathroom</span><span>45 sf</span></button>
+        <button class="addbtn" data-add="living"><span>Living</span><span>220 sf</span></button>
+        <button class="addbtn" data-add="kitchen"><span>Kitchen</span><span>110 sf</span></button>
+        <button class="addbtn" data-add="dining"><span>Dining</span><span>100 sf</span></button>
+        <button class="addbtn" data-add="office"><span>Office</span><span>100 sf</span></button>
+        <button class="addbtn" data-add="pooja"><span>Pooja</span><span>36 sf</span></button>
+        <button class="addbtn" data-add="utility"><span>Utility</span><span>50 sf</span></button>
+        <button class="addbtn" data-add="parking"><span>Parking</span><span>150 sf</span></button>
+      </div>
+      <div class="group">
+        <span class="eyebrow">Floors</span>
+        <div id="floorList"></div>
+        <button class="addbtn" id="addFloor"><span>Add floor</span><span>+</span></button>
+      </div>
+      <div class="group">
+        <span class="eyebrow">Plot</span>
+        <div class="fields">
+          <div class="field"><label for="plotW">Width ft</label><input class="num" type="number" id="plotW" min="15" max="300" step="1"></div>
+          <div class="field"><label for="plotH">Depth ft</label><input class="num" type="number" id="plotH" min="15" max="300" step="1"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- stage -->
+    <div class="stage">
+      <svg id="canvas2d" role="application" aria-label="Floor plan editor. Click a room to select, drag to move, drag a handle to resize."></svg>
+      <div id="wrap3d"><canvas id="canvas3d"></canvas></div>
+      <div class="stage-warn hide" id="stageWarn"></div>
+      <div class="stage-hud" id="hud">drag to move · handles to resize · arrows nudge · Del removes</div>
+    </div>
+
+    <!-- side -->
+    <aside class="side">
+      <div class="panel">
+        <span class="eyebrow">Selected room</span>
+        <div id="inspector"><p class="empty">Nothing selected. Click a room on the plan.</p></div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">Design</span>
+        <div class="big" id="vArea">—</div>
+        <div class="row"><span>Built-up</span><b id="vBuilt">—</b></div>
+        <div class="row"><span>Ground coverage</span><b id="vCover">—</b></div>
+        <div class="row"><span>FSI</span><b id="vFsi">—</b></div>
+        <div class="row"><span>Rooms</span><b id="vRooms">—</b></div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">Cost</span>
+        <div class="big" id="vCost">—</div>
+        <div class="row"><span>Structure &amp; civil</span><b id="vCivil">—</b></div>
+        <div class="row"><span>Finishes &amp; services</span><b id="vFinish">—</b></div>
+        <div class="row"><span>Overheads + contingency</span><b id="vOh">—</b></div>
+        <div class="row"><span>Against budget</span><b id="vBudget">—</b></div>
+        <div class="field" style="margin-top:.5rem"><label for="budget">Budget ₹L</label><input class="num" type="number" id="budget" min="10" max="500" step="0.5"></div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">Readiness</span>
+        <div class="big" id="vReady">—</div>
+        <div class="status" id="vVerdict">—</div>
+        <div class="bars">
+          <div class="bar"><span>Budget</span><span class="track"><b id="bBudget"></b></span><span class="num" id="nBudget">—</span></div>
+          <div class="bar"><span>Compliance</span><span class="track"><b id="bComp"></b></span><span class="num" id="nComp">—</span></div>
+          <div class="bar"><span>Buildability</span><span class="track"><b id="bBuild"></b></span><span class="num" id="nBuild">—</span></div>
+          <div class="bar"><span>Sustainability</span><span class="track"><b id="bSus"></b></span><span class="num" id="nSus">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">Preliminary bylaw checks</span>
+        <div id="findings" style="margin-top:.5rem"></div>
+        <p class="hint">Advisory only. Your municipality approves plans, not this tool.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+/* =====================================================================
+   SYNAPSE STUDIO
+   Direct manipulation over the same room model the API stores. Every
+   engine below mirrors api/app/engines/*.py exactly, so the studio
+   works offline and agrees with the server when it is reachable.
+   ===================================================================== */
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+
+const $ = id => document.getElementById(id);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const inr = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const lakh = n => "₹" + (n / 100000).toFixed(1) + "L";
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/* ---------- constants mirrored from geometry.py ---------- */
+const FLOOR_H = 10, OPENING = 0.12, SNAP = 0.5;
+const POINTS = {                     // doors, windows, electrical points
+  bedroom:[1,2,8], living:[1,3,10], kitchen:[1,2,12], bath:[1,1,3],
+  dining:[0,2,6], office:[1,1,8], pooja:[1,0,3], parking:[0,0,2], utility:[1,1,4]
+};
+const DEFAULT_SIZE = {
+  bedroom:[13,10], bath:[7,6.5], living:[18,12], kitchen:[11,10],
+  dining:[11,9], office:[10,10], pooja:[6,6], utility:[8,6.5], parking:[15,10]
+};
+const MIN_SIZE = { bath:[4,4], pooja:[4,4], default:[5,5] };
+const LABEL = { bedroom:"Bedroom", bath:"Bathroom", living:"Living room", kitchen:"Kitchen",
+  dining:"Dining", office:"Office", pooja:"Pooja room", utility:"Utility", parking:"Parking" };
+
+/* rate card — mirrors seed.py; replaced by /rate-cards/{region} when online */
+const RATES = {
+  construction:{ budget:1500, standard:1900, premium:2600 }, tier:"standard",
+  labor:350, wall_finish:180, flooring_base:95, door:9400, window:11200,
+  electrical_point:1250, plumbing_set:68000, overhead_pct:15, contingency_pct:5,
+  source:"Kerala PWD — Schedule of Rates 2024-25 (representative placeholder)"
+};
+const RULE = {
+  version:"KMBR-2019.v1", front:10, rear:6, side:4,
+  max_fsi:1.5, max_cover:0.65, max_height:45, min_parking:1
+};
+const WEIGHTS = { budget:.35, compliance:.25, buildability:.25, sustainability:.15 };
+
+/* ---------- state ---------- */
+const state = {
+  plot:{ w:40, h:50 },
+  budget:45,
+  floor:0,
+  selected:null,
+  rooms:[
+    {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
+    {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
+    {id:"dining",  name:"Dining",         type:"dining",  floor:0, x:4,  y:36, w:13, h:8},
+    {id:"kitchen", name:"Kitchen",        type:"kitchen", floor:0, x:18, y:36, w:10, h:8},
+    {id:"bed_1",   name:"Master bedroom", type:"bedroom", floor:0, x:23, y:10, w:13, h:13},
+    {id:"bath_1",  name:"Bathroom 1",     type:"bath",    floor:0, x:23, y:24, w:7,  h:7},
+    {id:"bed_2",   name:"Bedroom 2",      type:"bedroom", floor:1, x:4,  y:10, w:13, h:12},
+    {id:"bed_3",   name:"Bedroom 3",      type:"bedroom", floor:1, x:18, y:10, w:13, h:12},
+    {id:"bath_2",  name:"Bathroom 2",     type:"bath",    floor:1, x:4,  y:23, w:7,  h:7}
+  ]
+};
+
+/* undo/redo over whole-geometry snapshots — cheap at this scale and
+   impossible to get subtly wrong, unlike a command log */
+const undo = [], redo = [];
+const snapshot = () => JSON.stringify({ rooms: state.rooms, plot: state.plot, budget: state.budget });
+const restore = s => { const o = JSON.parse(s); state.rooms = o.rooms; state.plot = o.plot; state.budget = o.budget; };
+let lastPushed = snapshot();
+function commit() {
+  const now = snapshot();
+  if (now === lastPushed) return;
+  undo.push(lastPushed); lastPushed = now; redo.length = 0;
+  if (undo.length > 80) undo.shift();
+  syncButtons();
+}
+function syncButtons(){ $("undoBtn").disabled = !undo.length; $("redoBtn").disabled = !redo.length; }
+
+/* =====================================================================
+   ENGINES — mirrors of the Python ones
+   ===================================================================== */
+function measure() {
+  const r = state.rooms, P = state.plot, plotArea = P.w * P.h;
+  const t = { built:0, footprint:0, wall:0, floorArea:0, doors:1, windows:0, elec:6,
+              bedrooms:0, baths:0, parking:0, overlaps:[], outside:[],
+              floors: r.length ? Math.max(...r.map(x=>x.floor)) + 1 : 1 };
+  for (const x of r) {
+    const area = x.w * x.h;
+    if (x.type !== "parking") { t.built += area; t.floorArea += area; }
+    if (x.floor === 0) t.footprint += area;
+    t.wall += 2 * (x.w + x.h) * FLOOR_H * (1 - OPENING) * 0.5;
+    const [d, wdw, e] = POINTS[x.type] || [1,1,5];
+    t.doors += d; t.windows += wdw; t.elec += e;
+    if (x.type === "bedroom") t.bedrooms++;
+    else if (x.type === "bath") t.baths++;
+    else if (x.type === "parking") t.parking++;
+    if (x.x < -0.01 || x.y < -0.01 || x.x + x.w > P.w + 0.01 || x.y + x.h > P.h + 0.01) t.outside.push(x.id);
+  }
+  for (let i = 0; i < r.length; i++)
+    for (let j = i + 1; j < r.length; j++) {
+      const a = r[i], b = r[j];
+      if (a.floor !== b.floor) continue;
+      if (!(a.x + a.w <= b.x + .05 || b.x + b.w <= a.x + .05 ||
+            a.y + a.h <= b.y + .05 || b.y + b.h <= a.y + .05)) t.overlaps.push([a.id, b.id]);
+    }
+  t.plotArea = plotArea;
+  t.fsi = plotArea ? t.built / plotArea : 0;
+  t.cover = plotArea ? t.footprint / plotArea : 0;
+  return t;
+}
+
+function cost(t) {
+  const base = RATES.construction[RATES.tier];
+  const civil = t.built * base + t.built * RATES.labor;
+  const finish = t.wall * RATES.wall_finish + t.floorArea * RATES.flooring_base
+    + t.doors * RATES.door + t.windows * RATES.window
+    + t.elec * RATES.electrical_point + (t.baths + 1) * RATES.plumbing_set;
+  const subtotal = civil + finish;
+  const oh = subtotal * RATES.overhead_pct / 100;
+  const cont = subtotal * RATES.contingency_pct / 100;
+  return { civil, finish, subtotal, oh, cont, total: subtotal + oh + cont };
+}
+
+function compliance(t) {
+  const P = state.plot, out = [];
+  const add = (title, ok, why, sev="BLOCKER") =>
+    out.push({ title, ok, why, sev, outcome: ok === null ? "UNDETERMINED" : ok ? "LIKELY_PASS" : "LIKELY_FAIL" });
+
+  add("Floor Space Index", t.fsi <= RULE.max_fsi,
+      `FSI ${t.fsi.toFixed(2)} against a permitted ${RULE.max_fsi.toFixed(2)}.`);
+  add("Ground coverage", t.cover <= RULE.max_cover,
+      `${(t.cover*100).toFixed(0)}% of the plot covered, limit ${(RULE.max_cover*100).toFixed(0)}%.`);
+
+  const g = state.rooms.filter(r => r.floor === 0);
+  if (g.length) {
+    const front = Math.min(...g.map(r=>r.y));
+    const rear  = P.h - Math.max(...g.map(r=>r.y + r.h));
+    const side  = Math.min(Math.min(...g.map(r=>r.x)), P.w - Math.max(...g.map(r=>r.x + r.w)));
+    add("Front setback", front >= RULE.front - .01, `${front.toFixed(1)} ft provided, ${RULE.front} ft required.`);
+    add("Rear setback",  rear  >= RULE.rear  - .01, `${rear.toFixed(1)} ft provided, ${RULE.rear} ft required.`);
+    add("Side setback",  side  >= RULE.side  - .01, `${side.toFixed(1)} ft provided, ${RULE.side} ft required.`);
+  } else {
+    add("Setbacks", null, "No ground-floor rooms placed yet.");
+  }
+  add("Parking", t.parking >= RULE.min_parking,
+      `${t.parking} bay(s); ${RULE.min_parking} required.`, "WARNING");
+  const height = t.floors * FLOOR_H;
+  add("Building height", height <= RULE.max_height,
+      `${t.floors} floor(s) at ${FLOOR_H} ft is roughly ${height} ft, against a permitted `
+      + `${RULE.max_height} ft. Parapets and stair headroom are not modelled here.`, "WARNING");
+  if (t.overlaps.length)
+    add("Overlapping rooms", false,
+        `${t.overlaps.length} pair(s) share the same space — quantities above are double-counting.`);
+  if (t.outside.length)
+    add("Rooms outside the plot", false, `${t.outside.length} room(s) cross the boundary.`);
+  return out;
+}
+
+function readiness(t, c, f) {
+  const budget = state.budget * 100000, over = c.total - budget;
+  const bFit = over <= 0 ? clamp(100 - (Math.abs(over)/budget)*20, 82, 100)
+                         : clamp(100 - (over/budget)*320, 0, 100);
+  const graded = f.filter(x => x.outcome !== "UNDETERMINED");
+  const failed = graded.filter(x => !x.ok);
+  const comp = graded.length ? clamp(100 - (failed.length/graded.length)*100, 0, 100) : 100;
+  let build = 100 - (t.floors-1)*8 - Math.max(0,t.bedrooms-4)*7 - Math.max(0,t.baths-3)*5;
+  if (t.overlaps.length) build -= 25;
+  const slivers = state.rooms.filter(r => Math.max(r.w/r.h, r.h/r.w) > 3.2).length;
+  build = clamp(build - slivers*4, 35, 100);
+  let sus = 70 + (t.cover <= .5 ? 12 : 0)
+              + (t.bedrooms && t.built/t.bedrooms <= 520 ? 12 : 0)
+              - (t.built > 2600 ? 14 : 0);
+  sus = clamp(sus, 30, 100);
+  const composite = Math.round(WEIGHTS.budget*bFit + WEIGHTS.compliance*comp
+                             + WEIGHTS.buildability*build + WEIGHTS.sustainability*sus);
+  return { bFit:Math.round(bFit), comp:Math.round(comp), build:Math.round(build),
+           sus:Math.round(sus), composite, over,
+           verdict: composite >= 80 ? "ready to detail" : composite >= 55 ? "needs decisions" : "not yet viable" };
+}
+
+/* =====================================================================
+   2D EDITOR
+   ===================================================================== */
+const svg = $("canvas2d");
+const NS = "http://www.w3.org/2000/svg";
+let VB = { x:0, y:0, w:100, h:100 };   // viewBox in feet
+
+function layoutViewBox() {
+  const pad = 8, P = state.plot;
+  const r = svg.getBoundingClientRect();
+  const aspect = (r.width || 800) / (r.height || 600);
+  let w = P.w + pad*2, h = P.h + pad*2;
+  if (w / h < aspect) w = h * aspect; else h = w / aspect;
+  VB = { x: P.w/2 - w/2, y: P.h/2 - h/2, w, h };
+  svg.setAttribute("viewBox", `${VB.x} ${VB.y} ${VB.w} ${VB.h}`);
+}
+
+const el = (tag, attrs={}) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [k,v] of Object.entries(attrs)) n.setAttribute(k, v);
+  return n;
+};
+
+function drawPlan(t, f) {
+  layoutViewBox();
+  svg.textContent = "";
+  const P = state.plot;
+  const bad = new Set([...t.overlaps.flat(), ...t.outside]);
+
+  // grid every 5 ft
+  const grid = el("g");
+  for (let x = 0; x <= P.w; x += 5) grid.appendChild(el("line",{x1:x,y1:0,x2:x,y2:P.h,class:"grid-line"}));
+  for (let y = 0; y <= P.h; y += 5) grid.appendChild(el("line",{x1:0,y1:y,x2:P.w,y2:y,class:"grid-line"}));
+
+  svg.appendChild(el("rect",{x:0,y:0,width:P.w,height:P.h,class:"plot-fill"}));
+  svg.appendChild(grid);
+  svg.appendChild(el("rect",{x:0,y:0,width:P.w,height:P.h,class:"plot-line"}));
+  svg.appendChild(el("rect",{
+    x:RULE.side, y:RULE.front, width:Math.max(P.w-RULE.side*2,0),
+    height:Math.max(P.h-RULE.front-RULE.rear,0), class:"setback-line"}));
+
+  // plot dimension labels
+  const dw = el("text",{x:P.w/2, y:-2.2, class:"dimtext","text-anchor":"middle"});
+  dw.textContent = P.w + " ft"; svg.appendChild(dw);
+  const dh = el("text",{x:-2.2, y:P.h/2, class:"dimtext","text-anchor":"middle",
+    transform:`rotate(-90 ${-2.2} ${P.h/2})`});
+  dh.textContent = P.h + " ft"; svg.appendChild(dh);
+
+  // rooms on other floors, ghosted for alignment
+  for (const r of state.rooms) {
+    if (r.floor === state.floor) continue;
+    const g = el("g",{class:"room ghost"});
+    g.appendChild(el("rect",{x:r.x,y:r.y,width:r.w,height:r.h,class:"body"}));
+    svg.appendChild(g);
+  }
+
+  for (const r of state.rooms) {
+    if (r.floor !== state.floor) continue;
+    const sel = r.id === state.selected;
+    const g = el("g",{ class:"room" + (sel?" sel":"") + (bad.has(r.id)?" bad":"") });
+    g.dataset.id = r.id;
+
+    const body = el("rect",{x:r.x,y:r.y,width:r.w,height:r.h,class:"body"});
+    g.appendChild(body);
+
+    if (r.w >= 6.5 && r.h >= 4.5) {
+      const nm = el("text",{x:r.x+1.2, y:r.y+2.9, class:"nm"});
+      nm.textContent = r.name; g.appendChild(nm);
+      const dm = el("text",{x:r.x+1.2, y:r.y+4.8, class:"dm"});
+      dm.textContent = `${r.w.toFixed(1)} × ${r.h.toFixed(1)} · ${Math.round(r.w*r.h)} sf`;
+      g.appendChild(dm);
+    }
+
+    if (sel) {
+      const hs = 1.3;
+      for (const [hx,hy,cur,kind] of [
+        [r.x, r.y,"nwse-resize","nw"], [r.x+r.w, r.y,"nesw-resize","ne"],
+        [r.x, r.y+r.h,"nesw-resize","sw"], [r.x+r.w, r.y+r.h,"nwse-resize","se"],
+        [r.x+r.w/2, r.y,"ns-resize","n"], [r.x+r.w/2, r.y+r.h,"ns-resize","s"],
+        [r.x, r.y+r.h/2,"ew-resize","w"], [r.x+r.w, r.y+r.h/2,"ew-resize","e"]
+      ]) {
+        const h = el("rect",{x:hx-hs/2, y:hy-hs/2, width:hs, height:hs, class:"handle"});
+        h.style.cursor = cur; h.dataset.handle = kind; h.dataset.id = r.id;
+        g.appendChild(h);
+      }
+    }
+    svg.appendChild(g);
+  }
+}
+
+/* ---------- pointer interaction ---------- */
+let drag = null;
+
+const toFeet = ev => {
+  const r = svg.getBoundingClientRect();
+  return {
+    x: VB.x + ((ev.clientX - r.left) / r.width) * VB.w,
+    y: VB.y + ((ev.clientY - r.top) / r.height) * VB.h
+  };
+};
+const snap = v => Math.round(v / SNAP) * SNAP;
+const minFor = type => MIN_SIZE[type] || MIN_SIZE.default;
+
+svg.addEventListener("pointerdown", ev => {
+  const handle = ev.target.dataset?.handle;
+  const group = ev.target.closest(".room:not(.ghost)");
+  if (!handle && !group) { state.selected = null; render(); return; }
+
+  const id = handle ? ev.target.dataset.id : group.dataset.id;
+  const room = state.rooms.find(r => r.id === id);
+  if (!room) return;
+
+  state.selected = id;
+  // Capture keeps a fast drag from escaping the SVG, but it is an optimisation,
+  // not a requirement — never let it take the selection down with it.
+  try { svg.setPointerCapture(ev.pointerId); } catch { /* no active pointer */ }
+  drag = { id, handle: handle || null, start: toFeet(ev), orig: { ...room } };
+  render();
+});
+
+svg.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  const room = state.rooms.find(r => r.id === drag.id);
+  if (!room) return;
+  const p = toFeet(ev), o = drag.orig, P = state.plot;
+  const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+  const [minW, minH] = minFor(room.type);
+
+  if (!drag.handle) {
+    room.x = clamp(snap(o.x + dx), 0, Math.max(P.w - o.w, 0));
+    room.y = clamp(snap(o.y + dy), 0, Math.max(P.h - o.h, 0));
+  } else {
+    const k = drag.handle;
+    if (k.includes("w")) { const nx = clamp(snap(o.x + dx), 0, o.x + o.w - minW); room.w = o.x + o.w - nx; room.x = nx; }
+    if (k.includes("e")) { room.w = clamp(snap(o.w + dx), minW, P.w - o.x); }
+    if (k.includes("n")) { const ny = clamp(snap(o.y + dy), 0, o.y + o.h - minH); room.h = o.y + o.h - ny; room.y = ny; }
+    if (k.includes("s")) { room.h = clamp(snap(o.h + dy), minH, P.h - o.y); }
+  }
+  render();
+});
+
+const endDrag = () => { if (drag) { drag = null; commit(); pushToApi(); } };
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+
+/* ---------- keyboard ---------- */
+addEventListener("keydown", ev => {
+  if (/input|select|textarea/i.test(ev.target.tagName)) return;
+  const mod = ev.ctrlKey || ev.metaKey;
+  if (mod && ev.key.toLowerCase() === "z") {
+    ev.preventDefault();
+    if (ev.shiftKey) { if (redo.length) { undo.push(snapshot()); restore(redo.pop()); } }
+    else if (undo.length) { redo.push(snapshot()); restore(undo.pop()); }
+    lastPushed = snapshot(); syncButtons(); render(); pushToApi();
+    return;
+  }
+  const room = state.rooms.find(r => r.id === state.selected);
+  if (!room) return;
+  const step = ev.shiftKey ? 1 : SNAP;
+  const P = state.plot;
+  const nudge = (ax, ay) => {
+    room.x = clamp(snap(room.x + ax*step), 0, Math.max(P.w - room.w, 0));
+    room.y = clamp(snap(room.y + ay*step), 0, Math.max(P.h - room.h, 0));
+  };
+  const keys = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+  if (keys[ev.key]) { ev.preventDefault(); nudge(...keys[ev.key]); render(); commit(); pushToApi(); }
+  if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); removeRoom(room.id); }
+});
+
+/* ---------- mutations ---------- */
+let seq = 100;
+function addRoom(type) {
+  const [w, h] = DEFAULT_SIZE[type] || [10, 10];
+  const P = state.plot;
+  // first free spot on a coarse scan, so a new room never lands on another
+  let placed = null;
+  outer:
+  for (let y = RULE.front; y + h <= P.h - RULE.rear; y += 1)
+    for (let x = RULE.side; x + w <= P.w - RULE.side; x += 1) {
+      const hit = state.rooms.some(r => r.floor === state.floor &&
+        !(x + w <= r.x + .05 || r.x + r.w <= x + .05 || y + h <= r.y + .05 || r.y + r.h <= y + .05));
+      if (!hit) { placed = { x, y }; break outer; }
+    }
+  if (!placed) { warn(`No free space on this floor for a ${LABEL[type].toLowerCase()}. Make room first.`); return; }
+
+  const n = state.rooms.filter(r => r.type === type).length + 1;
+  const id = `${type}_${seq++}`;
+  state.rooms.push({ id, name: `${LABEL[type]}${type==="bedroom"||type==="bath"?" "+n:""}`,
+                     type, floor: state.floor, x: placed.x, y: placed.y, w, h });
+  state.selected = id;
+  render(); commit(); pushToApi();
+}
+
+function removeRoom(id) {
+  state.rooms = state.rooms.filter(r => r.id !== id);
+  if (state.selected === id) state.selected = null;
+  render(); commit(); pushToApi();
+}
+
+let warnTimer;
+function warn(msg) {
+  const w = $("stageWarn");
+  w.textContent = msg; w.classList.remove("hide");
+  clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => w.classList.add("hide"), 4200);
+}
+
+/* =====================================================================
+   PANELS
+   ===================================================================== */
+let prevCost = null;
+function flash(node) {
+  if (reduce) return;
+  node.classList.add("flash");
+  setTimeout(() => node.classList.remove("flash"), 800);
+}
+
+function renderPanels(t, c, f, rd) {
+  $("vArea").textContent = Math.round(t.built).toLocaleString("en-IN") + " sf";
+  $("vBuilt").textContent = Math.round(t.built).toLocaleString("en-IN") + " sf";
+  $("vCover").textContent = (t.cover*100).toFixed(0) + "%";
+  $("vFsi").textContent = t.fsi.toFixed(2);
+  $("vFsi").className = t.fsi <= RULE.max_fsi ? "" : "up";
+  $("vRooms").textContent = state.rooms.length;
+
+  const cn = $("vCost");
+  cn.textContent = lakh(c.total);
+  if (prevCost !== null && Math.round(prevCost) !== Math.round(c.total)) flash(cn);
+  prevCost = c.total;
+  $("vCivil").textContent = lakh(c.civil);
+  $("vFinish").textContent = lakh(c.finish);
+  $("vOh").textContent = lakh(c.oh + c.cont);
+  const b = $("vBudget");
+  b.textContent = rd.over > 0 ? "over by " + lakh(rd.over) : lakh(-rd.over) + " left";
+  b.className = rd.over > 0 ? "up" : "down";
+
+  const band = v => v >= 80 ? "" : v >= 55 ? "mid" : "bad";
+  $("vReady").textContent = rd.composite;
+  $("vReady").style.color = rd.composite >= 80 ? "var(--success)"
+    : rd.composite >= 55 ? "var(--warning)" : "var(--error)";
+  $("vVerdict").textContent = rd.verdict;
+  for (const [key, val] of [["Budget",rd.bFit],["Comp",rd.comp],["Build",rd.build],["Sus",rd.sus]]) {
+    const bar = $("b" + key), num = $("n" + key);
+    bar.style.width = val + "%"; bar.className = band(val); num.textContent = val;
+  }
+
+  const box = $("findings"); box.textContent = "";
+  for (const x of f) {
+    const d = document.createElement("div");
+    d.className = "finding " + (x.outcome === "LIKELY_FAIL" ? "fail" : x.outcome === "LIKELY_PASS" ? "pass" : "");
+    d.innerHTML = `<div class="t">${x.title}</div><div class="e">${x.why}</div>`;
+    box.appendChild(d);
+  }
+
+  renderInspector();
+  renderFloors(t);
+}
+
+function renderInspector() {
+  const box = $("inspector");
+  const r = state.rooms.find(x => x.id === state.selected);
+  if (!r) { box.innerHTML = `<p class="empty">Nothing selected. Click a room on the plan.</p>`; return; }
+  box.innerHTML = `
+    <div class="field" style="margin-bottom:.45rem">
+      <label for="iName">Name</label>
+      <input id="iName" type="text" value="${r.name.replace(/"/g,"&quot;")}">
+    </div>
+    <div class="fields">
+      <div class="field"><label for="iType">Type</label>
+        <select id="iType">${Object.keys(LABEL).map(k =>
+          `<option value="${k}"${k===r.type?" selected":""}>${LABEL[k]}</option>`).join("")}</select></div>
+      <div class="field"><label for="iFloor">Floor</label>
+        <input id="iFloor" class="num" type="number" min="0" max="3" step="1" value="${r.floor}"></div>
+      <div class="field"><label for="iW">Width ft</label>
+        <input id="iW" class="num" type="number" min="4" step="0.5" value="${r.w}"></div>
+      <div class="field"><label for="iH">Depth ft</label>
+        <input id="iH" class="num" type="number" min="4" step="0.5" value="${r.h}"></div>
+      <div class="field"><label for="iX">X ft</label>
+        <input id="iX" class="num" type="number" min="0" step="0.5" value="${r.x}"></div>
+      <div class="field"><label for="iY">Y ft</label>
+        <input id="iY" class="num" type="number" min="0" step="0.5" value="${r.y}"></div>
+    </div>
+    <div class="row" style="margin-top:.5rem"><span>Area</span><b>${Math.round(r.w*r.h)} sq ft</b></div>
+    <button class="btn" id="delRoom" style="margin-top:.55rem;width:100%;justify-content:center;
+      border-color:var(--error);color:var(--error)">Delete room</button>`;
+
+  const bind = (id, key, cast = Number) =>
+    $(id).addEventListener("change", e => {
+      const v = cast(e.target.value);
+      if (key === "name" || key === "type") r[key] = v;
+      else r[key] = clamp(v, 0, 400);
+      if (key === "type") r.name = LABEL[r.type];
+      render(); commit(); pushToApi();
+    });
+  bind("iName","name",String); bind("iType","type",String); bind("iFloor","floor");
+  bind("iW","w"); bind("iH","h"); bind("iX","x"); bind("iY","y");
+  $("delRoom").addEventListener("click", () => removeRoom(r.id));
+}
+
+function renderFloors(t) {
+  const box = $("floorList"); box.textContent = "";
+  for (let i = 0; i < t.floors; i++) {
+    const count = state.rooms.filter(r => r.floor === i).length;
+    const b = document.createElement("button");
+    b.className = "floorbtn";
+    b.setAttribute("aria-pressed", String(i === state.floor));
+    b.innerHTML = `<span>${i === 0 ? "Ground" : i === 1 ? "First" : i === 2 ? "Second" : "Floor " + i}</span><span>${count}</span>`;
+    b.addEventListener("click", () => { state.floor = i; state.selected = null; render(); });
+    box.appendChild(b);
+  }
+}
+
+/* =====================================================================
+   3D — walls, openings, furniture, sun study, walkthrough.
+   Not a renderer. The point is to read the house: wall thickness so rooms
+   feel enclosed, door gaps so circulation is legible, window bands so you
+   can see where light gets in, and a sun that moves so orientation stops
+   being an abstraction.
+   ===================================================================== */
+let renderer, scene, camera, controls, walkControls, shell, sun, sunTarget,
+    ray, ptr, live = false, ready3d = false, dirty3d = true, walking = false;
+let drag3d = null;
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const WALL_EXT = 0.75, WALL_INT = 0.5, DOOR_W = 3, DOOR_H = 7, SILL = 3, HEAD = 7, EYE = 5.5;
+
+function init3d() {
+  const canvas = $("canvas3d");
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+  catch { return false; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, 1, .1, 2000);
+  camera.position.set(58, 48, 64);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = !reduce;
+  controls.maxPolarAngle = Math.PI / 2.08;
+  controls.target.set(0, 5, 0);
+
+  walkControls = new PointerLockControls(camera, canvas);
+  walkControls.addEventListener("unlock", () => { if (walking) setWalking(false); });
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a4, 2.0));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  sun = new THREE.DirectionalLight(0xfff2dd, 2.4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  const d = 80;
+  sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
+  sun.shadow.camera.top = d;  sun.shadow.camera.bottom = -d;
+  sun.shadow.camera.near = 1; sun.shadow.camera.far = 320;
+  sunTarget = new THREE.Object3D();
+  scene.add(sun, sunTarget);
+  sun.target = sunTarget;
+
+  shell = new THREE.Group();
+  scene.add(shell);
+  ray = new THREE.Raycaster();
+  ptr = new THREE.Vector2();
+
+  canvas.addEventListener("pointerdown", on3dDown);
+  canvas.addEventListener("pointermove", on3dMove);
+  addEventListener("pointerup", on3dUp);
+
+  new ResizeObserver(size3d).observe(canvas.parentElement);
+  ready3d = true;
+  updateSun();
+  return true;
+}
+
+function size3d() {
+  if (!ready3d) return;
+  const c = $("canvas3d");
+  const w = c.clientWidth || 800, h = c.clientHeight || 600;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+/* ---------- sun ----------
+   Kochi is about 9.9 degrees north, so the sun runs high and close to
+   overhead at noon. A simplified arc, not an ephemeris, and the UI says so —
+   enough to answer "which rooms bake in the afternoon", not enough to size
+   a shading device. */
+function updateSun() {
+  if (!ready3d) return;
+  const hour = Number($("sunTime").value);
+  const t = (hour - 6) / 12;
+  const alt = Math.sin(Math.max(t, 0) * Math.PI) * 78 * Math.PI / 180;
+  const azi = (-95 + t * 190) * Math.PI / 180;
+  const r = 130;
+  sun.position.set(
+    Math.sin(azi) * Math.cos(alt) * r,
+    Math.max(Math.sin(alt) * r, 3),
+    Math.cos(azi) * Math.cos(alt) * r
+  );
+  const low = 1 - Math.sin(Math.max(t, 0) * Math.PI);
+  sun.color.setRGB(1, 0.95 - low * 0.16, 0.88 - low * 0.28);
+  sun.intensity = 0.7 + Math.sin(Math.max(t, 0) * Math.PI) * 2.0;
+  const hh = Math.floor(hour), mm = hour % 1 ? "30" : "00";
+  $("sunLabel").textContent = String(hh).padStart(2, "0") + ":" + mm;
+}
+
+/* ---------- geometry helpers ---------- */
+function box(w, h, d, x, y, z, mat, cast = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = cast;
+  m.receiveShadow = true;
+  return m;
+}
+
+/* One wall run, optionally punched with a door or a window band. Rooms are
+   axis-aligned, so every edge runs along X or Z and no rotation maths is
+   needed — which is most of why this stays readable. */
+function wallRun(group, ax, az, bx, bz, thick, mat, opening, baseY) {
+  const horiz = Math.abs(bx - ax) > Math.abs(bz - az);
+  const len = horiz ? Math.abs(bx - ax) : Math.abs(bz - az);
+  if (len < 0.2) return;
+  const midX = (ax + bx) / 2, midZ = (az + bz) / 2, H = FLOOR_H;
+
+  const seg = (from, to, y0, y1) => {
+    const segLen = to - from;
+    if (segLen <= 0.05 || y1 - y0 <= 0.05) return;
+    const off = from + segLen / 2 - len / 2;
+    group.add(box(
+      horiz ? segLen : thick, y1 - y0, horiz ? thick : segLen,
+      horiz ? midX + off : midX, baseY + (y0 + y1) / 2, horiz ? midZ : midZ + off,
+      mat));
+  };
+
+  if (!opening || len < DOOR_W + 2) { seg(0, len, 0, H); return; }
+
+  if (opening === "door") {
+    const a = len / 2 - DOOR_W / 2, b = a + DOOR_W;
+    seg(0, a, 0, H); seg(b, len, 0, H);
+    seg(a, b, DOOR_H, H);                         // lintel over the opening
+  } else {
+    const winW = Math.min(len * 0.45, 7);
+    const a = len / 2 - winW / 2, b = a + winW;
+    seg(0, a, 0, H); seg(b, len, 0, H);
+    seg(a, b, 0, SILL);                           // sill below the glass
+    seg(a, b, HEAD, H);                           // header above it
+  }
+}
+
+/* Blocks, deliberately. Real glTF furniture is a sourcing problem, not a
+   rendering one, and blocks are enough to tell a bedroom from an office. */
+function furnish(group, r, mat, baseY, cx, cz) {
+  const rx = r.x + r.w / 2 - cx, rz = r.y + r.h / 2 - cz;
+  const put = (w, h, d, dx, dz) => group.add(box(w, h, d, rx + dx, baseY + h / 2, rz + dz, mat));
+  const fit = (want, avail, pad) => Math.max(Math.min(want, avail - pad), 1);
+  switch (r.type) {
+    case "bedroom":
+      put(fit(6.5, r.w, 2), 1.8, fit(5, r.h, 2), 0, 0.5);
+      put(fit(4, r.w, 2), 6, 2, 0, -(r.h / 2 - 1.4));
+      break;
+    case "living":
+      put(fit(7, r.w, 3), 2.4, 3, -1, r.h / 2 - 2.5);
+      put(3.5, 1.3, 2, -1, 0);
+      put(fit(5, r.w, 4), 1.6, 1.4, -1, -(r.h / 2 - 1.2));
+      break;
+    case "kitchen":
+      put(fit(r.w, r.w, 1.5), 3, 2, 0, -(r.h / 2 - 1.2));
+      put(2, 3, fit(r.h, r.h, 4), -(r.w / 2 - 1.2), 0.6);
+      break;
+    case "dining":
+      put(fit(5.5, r.w, 3), 2.5, fit(3, r.h, 2), 0, 0);
+      break;
+    case "bath":
+      put(1.6, 2.5, 2, -(r.w / 2 - 1.3), r.h / 2 - 1.4);
+      put(2.2, 2.8, 1.4, r.w / 2 - 1.5, -(r.h / 2 - 1));
+      break;
+    case "office":
+      put(fit(5, r.w, 2), 2.5, 2.2, 0, -(r.h / 2 - 1.8));
+      break;
+    case "parking":
+      put(fit(6, r.w, 2), 4.6, fit(13, r.h, 1.5), 0, 0);
+      break;
+  }
+}
+
+function build3d() {
+  if (!ready3d) return;
+  scene.background = new THREE.Color(cssVar("--background") || "#fafaf8");
+
+  while (shell.children.length) {
+    const c = shell.children.pop();
+    c.traverse?.(n => {
+      n.geometry?.dispose();
+      (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => m?.dispose());
+    });
+  }
+
+  /* Building materials are FIXED, not theme tokens. Plaster does not turn
+     black because the interface went dark — tying them to --surface made the
+     model unreadable in dark mode. Only the ground and sky follow the theme. */
+  const dark = getComputedStyle(document.body).backgroundColor.match(/\d+/g)?.[0] < 100;
+  const M = {
+    wall:  new THREE.MeshLambertMaterial({ color: 0xece8e0 }),   // plaster
+    sel:   new THREE.MeshLambertMaterial({ color: 0x8a9a82 }),   // sage
+    bad:   new THREE.MeshLambertMaterial({ color: 0xc46355 }),
+    floor: new THREE.MeshLambertMaterial({ color: 0xd6d0c4 }),   // screed
+    furn:  new THREE.MeshLambertMaterial({ color: 0x9c9689 }),
+    site:  new THREE.MeshLambertMaterial({ color: dark ? 0x4a5245 : 0xc3cbba })
+  };
+
+  const P = state.plot, cx = P.w / 2, cz = P.h / 2;
+  const t = measure();
+  const bad = new Set([...t.overlaps.flat(), ...t.outside]);
+  const showFurn = $("showFurniture").checked;
+
+  const site = box(P.w + 16, .8, P.h + 16, 0, -.4, 0, M.site, false);
+  shell.add(site);
+
+  // centroid of the building, used to decide which edge faces circulation
+  let sx = 0, sz = 0;
+  for (const r of state.rooms) { sx += r.x + r.w / 2; sz += r.y + r.h / 2; }
+  const gx = state.rooms.length ? sx / state.rooms.length : cx;
+  const gz = state.rooms.length ? sz / state.rooms.length : cz;
+
+  for (const r of state.rooms) {
+    const baseY = r.floor * FLOOR_H;
+    const isBad = bad.has(r.id), isSel = r.id === state.selected;
+    const mat = isBad ? M.bad : isSel ? M.sel : M.wall;
+
+    const g = new THREE.Group();
+    g.userData = { id: r.id, floor: r.floor };
+
+    // floor slab doubles as the pick target for selection and dragging
+    const slab = box(r.w, .4, r.h,
+      r.x + r.w / 2 - cx, baseY + .2, r.y + r.h / 2 - cz,
+      isSel ? M.sel : M.floor, false);
+    slab.userData = { id: r.id, floor: r.floor, pickable: true };
+    g.add(slab);
+
+    if (r.type !== "parking") {
+      const x0 = r.x - cx, x1 = r.x + r.w - cx, z0 = r.y - cz, z1 = r.y + r.h - cz;
+      const dxc = (r.x + r.w / 2) - gx, dzc = (r.y + r.h / 2) - gz;
+      const doorEdge = Math.abs(dxc) > Math.abs(dzc) ? (dxc > 0 ? "w" : "e")
+                                                     : (dzc > 0 ? "n" : "s");
+      const outward = { n: dzc < 0, s: dzc > 0, w: dxc < 0, e: dxc > 0 };
+      const open = side => side === doorEdge ? "door" : (outward[side] ? "window" : null);
+      const th = side => outward[side] ? WALL_EXT : WALL_INT;
+
+      wallRun(g, x0, z0, x1, z0, th("n"), mat, open("n"), baseY);
+      wallRun(g, x0, z1, x1, z1, th("s"), mat, open("s"), baseY);
+      wallRun(g, x0, z0, x0, z1, th("w"), mat, open("w"), baseY);
+      wallRun(g, x1, z0, x1, z1, th("e"), mat, open("e"), baseY);
+    }
+
+    if (showFurn) furnish(g, r, M.furn, baseY + .4, cx, cz);
+    shell.add(g);
+  }
+
+  dirty3d = false;
+}
+
+/* ---------- picking and dragging in 3D ---------- */
+function setPointer(ev) {
+  const c = $("canvas3d"), b = c.getBoundingClientRect();
+  ptr.x = ((ev.clientX - b.left) / b.width) * 2 - 1;
+  ptr.y = -((ev.clientY - b.top) / b.height) * 2 + 1;
+  ray.setFromCamera(ptr, camera);
+}
+
+function on3dDown(ev) {
+  if (walking || !live) return;
+  setPointer(ev);
+  const hit = ray.intersectObjects(shell.children, true)
+    .find(h => h.object.userData?.id || h.object.parent?.userData?.id);
+  if (!hit) return;
+  const id = hit.object.userData?.id || hit.object.parent?.userData?.id;
+  const room = state.rooms.find(r => r.id === id);
+  if (!room) return;
+
+  state.selected = id;
+  state.floor = room.floor;
+  groundPlane.constant = -(room.floor * FLOOR_H);
+  const p = new THREE.Vector3();
+  if (ray.ray.intersectPlane(groundPlane, p)) {
+    drag3d = { id, startX: p.x, startZ: p.z, ox: room.x, oy: room.y };
+    controls.enabled = false;
+  }
+  render();
+}
+
+function on3dMove(ev) {
+  if (!drag3d) return;
+  const room = state.rooms.find(r => r.id === drag3d.id);
+  if (!room) return;
+  setPointer(ev);
+  const p = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(groundPlane, p)) return;
+  const P = state.plot;
+  room.x = clamp(snap(drag3d.ox + (p.x - drag3d.startX)), 0, Math.max(P.w - room.w, 0));
+  room.y = clamp(snap(drag3d.oy + (p.z - drag3d.startZ)), 0, Math.max(P.h - room.h, 0));
+  render();
+}
+
+function on3dUp() {
+  if (!drag3d) return;
+  drag3d = null;
+  controls.enabled = !walking;
+  commit();
+  pushToApi();
+}
+
+/* ---------- walkthrough ---------- */
+const keys = {};
+addEventListener("keydown", e => { keys[e.code] = true; });
+addEventListener("keyup", e => { keys[e.code] = false; });
+
+function setWalking(on) {
+  walking = on;
+  if (controls) controls.enabled = !on;
+  $("walkBtn").setAttribute("aria-pressed", String(on));
+  $("hud").textContent = on
+    ? "W A S D to move · shift to jog · mouse to look · Esc to exit"
+    : "drag a room to move it · click to select · scroll to zoom";
+  if (on) {
+    const start = state.rooms.find(r => r.floor === 0 && r.type === "living")
+               || state.rooms.find(r => r.floor === 0) || state.rooms[0];
+    if (start) {
+      camera.position.set(
+        start.x + start.w / 2 - state.plot.w / 2, EYE,
+        start.y + start.h / 2 - state.plot.h / 2);
+      camera.lookAt(0, EYE, 0);
+    }
+    walkControls.lock();
+  } else {
+    walkControls.unlock();
+    camera.position.set(58, 48, 64);
+    if (controls) controls.target.set(0, 5, 0);
+  }
+}
+
+const fwd = new THREE.Vector3(), side = new THREE.Vector3();
+function walkStep(dt) {
+  const speed = (keys.ShiftLeft ? 17 : 9) * dt;
+  camera.getWorldDirection(fwd);
+  fwd.y = 0; fwd.normalize();
+  side.crossVectors(fwd, camera.up).normalize();
+  if (keys.KeyW) camera.position.addScaledVector(fwd, speed);
+  if (keys.KeyS) camera.position.addScaledVector(fwd, -speed);
+  if (keys.KeyD) camera.position.addScaledVector(side, speed);
+  if (keys.KeyA) camera.position.addScaledVector(side, -speed);
+  camera.position.y = EYE;          // eye height; no stairs modelled yet
+}
+
+let lastT = 0;
+function loop3d(now = 0) {
+  if (!live) return;
+  requestAnimationFrame(loop3d);
+  const dt = Math.min((now - lastT) / 1000, .05);
+  lastT = now;
+  if (dirty3d) build3d();
+  if (walking) walkStep(dt); else controls.update();
+  renderer.render(scene, camera);
+}
+
+/* =====================================================================
+   API SYNC — optional. The studio is fully usable with no server.
+   ===================================================================== */
+const API = new URLSearchParams(location.search).get("api");
+let projectId = new URLSearchParams(location.search).get("project");
+let pushTimer = null;
+
+function setStatus(text, cls="") { const s = $("apiStatus"); s.textContent = text; s.className = "status " + cls; }
+
+function pushToApi() {
+  if (!API || !projectId) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API}/projects/${projectId}`, {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rooms: state.rooms, plot: state.plot,
+                               budget_max: Math.round(state.budget * 100000) })
+      });
+      setStatus(res.ok ? "synced" : "sync failed", res.ok ? "ok" : "err");
+    } catch { setStatus("offline", "err"); }
+  }, 400);
+}
+
+async function loadFromApi() {
+  if (!API || !projectId) { setStatus("local"); return; }
+  try {
+    const p = await (await fetch(`${API}/projects/${projectId}`)).json();
+    if (p.rooms?.length) state.rooms = p.rooms;
+    if (p.plot?.w) state.plot = { w: p.plot.w, h: p.plot.h };
+    if (p.budget_max) state.budget = p.budget_max / 100000;
+    setStatus("synced", "ok");
+    render();
+  } catch { setStatus("offline", "err"); }
+}
+
+/* =====================================================================
+   EXPORTS
+   ===================================================================== */
+async function save(filename, text, mime) {
+  try {
+    const cap = window.claude?.use ? await window.claude.use("downloads") : null;
+    if (cap) { await cap.save({ filename, data: text }); return; }
+  } catch (e) {
+    if (e?.code === "rejected_extension") {
+      warn(`This preview cannot save ${filename.split(".").pop().toUpperCase()} files. Open the deployed page.`);
+      return;
+    }
+  }
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+}
+
+function buildObj() {
+  const FT = 0.3048, P = state.plot, cx = P.w/2, cz = P.h/2;
+  const out = ["# Synapse Studio massing export", "# units: metres", ""];
+  let v = 1;
+  for (const r of state.rooms) {
+    const h = FLOOR_H * (r.type === "parking" ? .62 : .92);
+    const x0=(r.x-cx)*FT, x1=(r.x+r.w-cx)*FT, z0=(r.y-cz)*FT, z1=(r.y+r.h-cz)*FT;
+    const y0=r.floor*FLOOR_H*FT, y1=y0+h*FT;
+    out.push(`g ${r.name.replace(/\s+/g,"_")}_F${r.floor}`);
+    for (const p of [[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]])
+      out.push(`v ${p[0].toFixed(4)} ${p[1].toFixed(4)} ${p[2].toFixed(4)}`);
+    for (const f of [[0,1,2,3],[4,7,6,5],[0,4,5,1],[1,5,6,2],[2,6,7,3],[3,7,4,0]])
+      out.push(`f ${v+f[0]} ${v+f[1]} ${v+f[2]} ${v+f[3]}`);
+    v += 8; out.push("");
+  }
+  return out.join("\n");
+}
+
+function buildJson() {
+  const t = measure(), c = cost(t), f = compliance(t), rd = readiness(t, c, f);
+  return JSON.stringify({
+    schema:"synapse.project/v1", exported_at:new Date().toISOString(),
+    plot:state.plot, budget_max:Math.round(state.budget*100000), rooms:state.rooms,
+    derived:{ built_up_sqft:Math.round(t.built), footprint_sqft:Math.round(t.footprint),
+      fsi:+t.fsi.toFixed(3), ground_coverage:+t.cover.toFixed(3), floors:t.floors,
+      doors:t.doors, windows:t.windows, electrical_points:t.elec,
+      wall_area_sqft:Math.round(t.wall), total_cost:Math.round(c.total) },
+    compliance:{ ruleset_version:RULE.version, findings:f,
+      disclaimer:"Preliminary automated checks. Not a municipal approval." },
+    readiness:rd, rate_source:RATES.source
+  }, null, 2);
+}
+
+/* =====================================================================
+   WIRING
+   ===================================================================== */
+function render() {
+  const t = measure(), c = cost(t), f = compliance(t), rd = readiness(t, c, f);
+  drawPlan(t, f);
+  renderPanels(t, c, f, rd);
+  dirty3d = true;
+  if (live) build3d();
+
+  const problems = t.overlaps.length + t.outside.length;
+  if (problems) warn(t.overlaps.length
+    ? `${t.overlaps.length} overlapping room pair(s). Quantities are double-counting until you separate them.`
+    : `${t.outside.length} room(s) outside the plot boundary.`);
+}
+
+document.querySelectorAll("[data-add]").forEach(b =>
+  b.addEventListener("click", () => addRoom(b.dataset.add)));
+
+$("addFloor").addEventListener("click", () => {
+  const t = measure();
+  state.floor = Math.min(t.floors, 3);
+  render();
+});
+
+for (const [id, key] of [["plotW","w"],["plotH","h"]]) {
+  const inp = $(id);
+  inp.value = state.plot[key];
+  inp.addEventListener("change", e => {
+    state.plot[key] = clamp(Number(e.target.value), 15, 300);
+    e.target.value = state.plot[key];
+    render(); commit(); pushToApi();
+  });
+}
+$("budget").value = state.budget;
+$("budget").addEventListener("input", e => { state.budget = Number(e.target.value); render(); });
+$("budget").addEventListener("change", () => { commit(); pushToApi(); });
+
+$("undoBtn").addEventListener("click", () => {
+  if (!undo.length) return;
+  redo.push(snapshot()); restore(undo.pop()); lastPushed = snapshot();
+  syncButtons(); render(); pushToApi();
+});
+$("redoBtn").addEventListener("click", () => {
+  if (!redo.length) return;
+  undo.push(snapshot()); restore(redo.pop()); lastPushed = snapshot();
+  syncButtons(); render(); pushToApi();
+});
+
+$("viewSeg").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  [...ev.currentTarget.children].forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  const is3d = b.dataset.v === "3d";
+  $("wrap3d").classList.toggle("on", is3d);
+  $("threeTools").hidden = !is3d;
+  $("hud").textContent = is3d
+    ? "drag a room to move it · click to select · scroll to zoom"
+    : "drag to move · handles to resize · arrows nudge · Del removes";
+  if (is3d) {
+    if (!ready3d && !init3d()) { warn("3D needs WebGL, which is unavailable on this device."); return; }
+    live = true; size3d(); build3d(); loop3d();
+  } else {
+    if (walking) setWalking(false);
+    live = false;
+  }
+});
+
+$("walkBtn").addEventListener("click", () => setWalking(!walking));
+$("sunTime").addEventListener("input", updateSun);
+$("showFurniture").addEventListener("change", () => { dirty3d = true; if (live) build3d(); });
+
+$("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = root.getAttribute("data-theme") || (dark ? "dark" : "light");
+  root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  dirty3d = true; if (live) build3d(); render();
+});
+
+$("exportObj").addEventListener("click", () => save("synapse-massing.obj", buildObj(), "text/plain"));
+$("exportJson").addEventListener("click", () => save("synapse-project.json", buildJson(), "application/json"));
+
+addEventListener("resize", () => { render(); size3d(); });
+
+syncButtons();
+render();
+loadFromApi();
+</script>
