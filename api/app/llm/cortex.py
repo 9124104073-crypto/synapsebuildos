@@ -42,6 +42,16 @@ class GeneratedLayout(BaseModel):
     )
 
 
+class EditedLayout(BaseModel):
+    rooms: list[GeneratedRoom]
+    changes: list[str] = Field(
+        default_factory=list,
+        description="One plain-language line per actual change made.")
+    assumptions: list[str] = Field(default_factory=list)
+    refusal: str | None = Field(
+        None, description="Set only when the instruction is impossible on this plot.")
+
+
 class StructuralNote(BaseModel):
     room_ids: list[str] = Field(default_factory=list)
     concern: str
@@ -85,7 +95,7 @@ def _client():
         ) from e
 
 
-def _parse(system: str, user: str, output_model: type[BaseModel]):
+def _parse_messages(system: str, messages: list[dict], output_model: type[BaseModel]):
     cfg = settings()
     client = _client()
     try:
@@ -95,7 +105,7 @@ def _parse(system: str, user: str, output_model: type[BaseModel]):
             system=system,
             thinking={"type": "adaptive"},
             output_config={"effort": cfg.effort},
-            messages=[{"role": "user", "content": user}],
+            messages=messages,
             output_format=output_model,
         )
     except Exception as e:
@@ -104,8 +114,12 @@ def _parse(system: str, user: str, output_model: type[BaseModel]):
 
     # Safety classifiers can decline; the response is a 200 with empty content.
     if getattr(resp, "stop_reason", None) == "refusal":
-        raise CortexUnavailable("The request was declined. Try rephrasing the brief.")
+        raise CortexUnavailable("The request was declined. Try rephrasing it.")
     return resp.parsed_output
+
+
+def _parse(system: str, user: str, output_model: type[BaseModel]):
+    return _parse_messages(system, [{"role": "user", "content": user}], output_model)
 
 
 # --------------------------------------------------------------------------
@@ -126,6 +140,92 @@ def architecture(brief: dict, plot: dict, setbacks: dict) -> GeneratedLayout:
         f"Notes: {brief.get('notes') or 'none'}."
     )
     return _parse(prompts.ARCHITECTURE, user, GeneratedLayout)
+
+
+def _room_lines(rooms: list[dict]) -> str:
+    return "\n".join(
+        f"- id={r.get('id')} \"{r.get('name')}\" ({r.get('type')}, floor {r.get('floor', 0)}): "
+        f"{r.get('w')} x {r.get('h')} ft at ({r.get('x')}, {r.get('y')})"
+        for r in rooms) or "- (the plan is empty)"
+
+
+def _violations(rooms: list[dict], plot: dict, setbacks: dict) -> list[str]:
+    """Geometric rules the model is required to satisfy.
+
+    Checked with the same engine that prices and grades the project, so the
+    model is held to the product's own definition of a valid plan rather than
+    a second, looser one written for the prompt.
+    """
+    from ..engines.geometry import measure, parse_rooms
+
+    parsed = parse_rooms(rooms)
+    t = measure(parsed, float(plot.get("w") or 0), float(plot.get("h") or 0))
+    by_id = {r.id: r for r in parsed}
+    out: list[str] = []
+
+    for a, b in t.overlaps:
+        out.append(f"{a} and {b} overlap; they must not share floor area.")
+    for rid in t.out_of_bounds:
+        out.append(f"{rid} extends past the plot boundary.")
+
+    ground = [r for r in parsed if r.floor == 0]
+    if ground:
+        front = min(r.y for r in ground)
+        rear = t.plot_h - max(r.y + r.h for r in ground)
+        side = min(min(r.x for r in ground), t.plot_w - max(r.x + r.w for r in ground))
+        if front < setbacks["front"] - 0.01:
+            out.append(f"Front setback is {front:.1f} ft; {setbacks['front']} ft is required.")
+        if rear < setbacks["rear"] - 0.01:
+            out.append(f"Rear setback is {rear:.1f} ft; {setbacks['rear']} ft is required.")
+        if side < setbacks["side"] - 0.01:
+            out.append(f"Side setback is {side:.1f} ft; {setbacks['side']} ft is required.")
+
+    if t.floors > 1 and not any(r.type == "stairs" for r in parsed):
+        out.append("There is more than one floor but no staircase.")
+
+    for r in parsed:
+        if r.w < 3 or r.h < 3:
+            out.append(f"{r.id} is {r.w} x {r.h} ft, which is too small to build.")
+    _ = by_id
+    return out
+
+
+def edit_layout(
+    rooms: list[dict], plot: dict, setbacks: dict, instruction: str, max_repairs: int = 1
+) -> tuple[EditedLayout, list[str]]:
+    """Apply one natural-language instruction to an existing plan.
+
+    The model proposes geometry; the geometry engine judges it. When the
+    proposal breaks a rule we hand the specific violations back once and ask
+    for a fix, rather than accepting a broken plan or failing outright.
+    Returns the layout plus any violations that survived the repair round.
+    """
+    user = (
+        f"Plot: {plot.get('w')} ft wide by {plot.get('h')} ft deep.\n"
+        f"Setbacks required: front {setbacks['front']} ft, rear {setbacks['rear']} ft, "
+        f"side {setbacks['side']} ft.\n\n"
+        f"Current rooms:\n{_room_lines(rooms)}\n\n"
+        f"Instruction: {instruction}"
+    )
+    messages = [{"role": "user", "content": user}]
+    result: EditedLayout = _parse_messages(prompts.EDIT, messages, EditedLayout)
+
+    for _ in range(max_repairs):
+        proposed = [r.model_dump() for r in result.rooms]
+        bad = _violations(proposed, plot, setbacks)
+        if not bad or result.refusal:
+            return result, bad
+        messages += [
+            {"role": "assistant", "content": result.model_dump_json()},
+            {"role": "user", "content":
+                "That layout breaks these rules:\n"
+                + "\n".join(f"- {b}" for b in bad)
+                + "\n\nFix them and return the complete room list again. Change as "
+                  "little else as possible."},
+        ]
+        result = _parse_messages(prompts.EDIT, messages, EditedLayout)
+
+    return result, _violations([r.model_dump() for r in result.rooms], plot, setbacks)
 
 
 def structural(rooms: list[dict], floors: int) -> StructuralReview:

@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_project, rule_for
+from ..deps import get_project, rate_card_for, rule_for
+from ..engines import analysis as analysis_engine
 from ..llm import cortex
 from ..models import Decision, Project
 
@@ -39,6 +40,64 @@ def generate_layout(p: Project = Depends(get_project), db: Session = Depends(get
         "rooms": p.rooms,
         "adjacency_notes": layout.adjacency_notes,
         "assumptions": layout.assumptions,
+    }
+
+
+@router.post("/edit")
+def edit_layout(
+    body: dict,
+    p: Project = Depends(get_project),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Change the plan from one natural-language instruction.
+
+    Returns a preview by default. The client shows the proposed change and the
+    cost and compliance impact, and only commits when the user accepts — the
+    same discipline as the what-if engine, because a model editing someone's
+    house without confirmation is not a feature.
+    """
+    instruction = str(body.get("instruction") or "").strip()
+    if not instruction:
+        raise HTTPException(400, "An instruction is required.")
+    apply = bool(body.get("apply"))
+
+    rule = rule_for(db, p.region)
+    setbacks = {"front": rule.min_setback_front_ft, "rear": rule.min_setback_rear_ft,
+                "side": rule.min_setback_side_ft}
+
+    layout, violations = _guard(
+        cortex.edit_layout, p.rooms or [], p.plot or {}, setbacks, instruction)
+
+    if layout.refusal:
+        return {"applied": False, "refusal": layout.refusal,
+                "rooms": p.rooms, "changes": [], "assumptions": []}
+
+    proposed = [r.model_dump() for r in layout.rooms]
+
+    # Impact, computed by the engines rather than described by the model.
+    card = rate_card_for(db, p.region)
+    before = analysis_engine.analyse(p, card, rule)
+    ghost = analysis_engine.apply_change(p, {"type": "noop"})
+    ghost.rooms = proposed
+    after = analysis_engine.analyse(ghost, card, rule)
+
+    if apply and not violations:
+        p.rooms = proposed
+        db.add(Decision(project_id=p.id, actor="client",
+                        summary=f'Prompt: "{instruction}" — '
+                                + ("; ".join(layout.changes) or "layout updated.")))
+        db.commit()
+
+    return {
+        "applied": bool(apply and not violations),
+        "instruction": instruction,
+        "rooms": proposed,
+        "changes": layout.changes,
+        "assumptions": layout.assumptions,
+        "violations": violations,
+        "impact": analysis_engine.diff(before, after),
+        "note": "Nothing was applied." if not (apply and not violations)
+                else "Applied and recorded in the decision history.",
     }
 
 

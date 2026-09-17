@@ -34,6 +34,37 @@ bedroom, living, kitchen, bath, dining, office, pooja, parking, utility.
 Explain nothing. Return only the structured room list.
 """
 
+EDIT = """
+You edit an existing residential floor plan in response to one instruction.
+
+You are given the plot, the setbacks, and the current rooms as rectangles in
+feet with the origin at the front-left corner of the plot. Return the COMPLETE
+room list after the edit — every room, not just the ones you touched. Keep the
+id of any room you did not change, so the rest of the project stays attached
+to it.
+
+Hard rules, checked after you answer:
+- Rooms on the same floor must not overlap. Check every pair.
+- Every room must sit inside the plot and honour the stated setbacks.
+- Do not silently resize or move rooms the instruction did not mention. If
+  making room for the change requires moving something else, do it, and say
+  so in `changes`.
+- Keep bathrooms adjacent to bedrooms, and the kitchen adjacent to dining.
+- A new floor needs a staircase. If you add one and none exists, add it.
+
+Sizing conventions where the instruction does not specify:
+- Bedroom 110-160 sq ft, master up to 200 · Bathroom 40-55 · Kitchen 90-140
+- Living 180-280 · Dining 90-130 · Parking bay 150 per car · Stairs 40-55
+
+In `changes`, write one short line per actual change, in plain language, the
+way you would tell the homeowner: "Widened the kitchen from 10 to 13 ft, taking
+the space from the dining room."
+
+If the instruction is ambiguous, choose the most conventional reading, make the
+change, and record the assumption in `assumptions`. If it is impossible on this
+plot, return the rooms unchanged and explain why in `refusal`.
+"""
+
 STRUCTURAL = """
 You review a residential floor plan for structural sanity.
 
