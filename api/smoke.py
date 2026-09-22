@@ -17,10 +17,10 @@ print("recommend:", r.status_code, [(x["name"], x["match_score"], x["why"][:1]) 
 
 # 2. create project from the top plan
 r = c.post("/projects", json={
-    "name": "Kochi demo", "plan_id": recs[0]["plan_id"],
+    "name": "Chennai demo", "plan_id": recs[0]["plan_id"],
     "brief": {"plot": {"w": 40, "h": 50}, "budget_max": 4500000, "family_members": 4,
               "elderly_residents": 1, "children": 2, "theme": "warm contemporary",
-              "region": "Kochi", "required_spaces": ["living","kitchen","dining"]}})
+              "region": "Chennai", "required_spaces": ["living","kitchen","dining"]}})
 print("create:", r.status_code)
 pid = r.json()["id"]
 

@@ -329,7 +329,7 @@ Same rectangles, extruded.
    tiles of a 10 ft one.
 4. **Stairs** — 14 treads rising one storey, and a **ramp volume** the
    walkthrough camera climbs.
-5. **Sun** — a simplified arc for Kochi (~9.9°N): altitude `sin(t·π)·78°`,
+5. **Sun** — a simplified arc for Chennai (~13°N): altitude `sin(t·π)·78°`,
    azimuth east→west, driving a shadow-casting directional light whose colour
    warms at the ends of the day. An arc, not an ephemeris, and the UI says so.
 6. **Walkthrough** — pointer lock, eye height 5.6 ft, **axis-separated AABB
@@ -389,9 +389,9 @@ declares a plan approved.
 ## 9. Known gaps
 
 - Rate figures are representative **placeholders**, labelled as such in
-  `seed.py` and echoed in every response. Load the real Kerala PWD schedule
+  `seed.py` and echoed in every response. The Tamil Nadu PWD plinth-area rates are loaded; load the item-rate schedule
   before anyone treats a number as bankable.
-- The compliance ruleset is an encoded subset of KMBR, Kochi pilot only.
+- The compliance ruleset is an encoded subset of TNCDBR 2019 for Tamil Nadu.
 - The takeoff still measures walls per room; the 3D shares them. Quantities
   from the 3D would be more accurate but are not used yet.
 - Furniture is parametric blocks, not glTF. The loader is trivial; sourcing
@@ -399,10 +399,9 @@ declares a plan approved.
 - Exterior items are lump sums, not measured quantities.
 - The walkthrough has no stair *headroom* modelling.
 - Cost uses published **plinth-area rates** (₹/sq m) from `api/app/regions.py`:
-  Tamil Nadu PWD PAR 2025-26 (circular 30.07.2025) and, for Kerala, CPWD PAR
-  2025. Foundation, roof and anti-termite on the ground-floor plinth area,
+  Tamil Nadu PWD PAR 2025-26 (circular 30.07.2025). Foundation, roof and anti-termite on the ground-floor plinth area,
   superstructure on every enclosed floor, parking and balconies at the stilt
-  rate, services per sq m (TN) or as a % of building cost (CPWD). Schedule
+  rate, services per sq m. Schedule
   rates include contractor's profit, so overhead is 0; contingency 5%.
   Chosen finishes and catalogue items are added on top. The old per-sq-ft
   item method remains in `cost.py` for any rate card without a `par` block.

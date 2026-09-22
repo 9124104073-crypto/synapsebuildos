@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from .models import ComplianceRule, Plan, RateCard
 from .regions import REGIONS
 
-REGION = "Kochi"
+REGION = "Chennai"
 
 INTERIOR_CATALOG = [
     # id, room type, category, name, price
@@ -164,11 +164,11 @@ def run(db: Session) -> dict:
 
     if not db.scalar(select(Plan).where(Plan.region == REGION)):
         db.add_all([
-            Plan(id="plan_kochi_3bhk", name="Kochi Courtyard 3BHK", theme="warm contemporary",
+            Plan(id="plan_chennai_3bhk", name="Chennai Courtyard 3BHK", theme="warm contemporary",
                  region=REGION, plot_min_sqft=1600, plot_max_sqft=2400, budget_band="50L_1CR",
                  bedrooms=3, floors=2, family_fit_tags=["small_family", "elderly_friendly"],
                  rooms=_rooms_3bhk(), base_cost_estimate=6_800_000),
-            Plan(id="plan_kochi_compact", name="Kochi Compact 2BHK", theme="minimal",
+            Plan(id="plan_chennai_compact", name="Chennai Compact 2BHK", theme="minimal",
                  region=REGION, plot_min_sqft=1200, plot_max_sqft=1800, budget_band="under_50L",
                  bedrooms=2, floors=1, family_fit_tags=["small_family", "elderly_friendly"],
                  rooms=_rooms_compact(), base_cost_estimate=4_200_000),

@@ -21,8 +21,8 @@ critique. Updated 2026-09-22.
 | Cost, compliance, readiness, what-if, versions, decisions, outcomes | FastAPI engines |
 | Prompt and voice design, furniture, finishes, exterior, suggestions | studio |
 
-| Published rates: Tamil Nadu PWD Plinth Area Rates 2025-26 (Chennai/Coimbatore/Madurai, Trichy/Salem group, other towns); CPWD Plinth Area Rates 2025 for Kerala | `api/app/regions.py`, studio `REGIONS` |
-| Tamil Nadu bylaws (TNCDBR 2019 subset) alongside Kerala (KMBR 2019) | same |
+| Published rates: Tamil Nadu PWD Plinth Area Rates 2025-26 (Chennai/Coimbatore/Madurai, Trichy/Salem group, other towns) | `api/app/regions.py`, studio `REGIONS` |
+| Tamil Nadu bylaws (TNCDBR 2019 subset) | same |
 | Section, preliminary column layout, schematic services per floor | studio › Report |
 | IFC4 export: storeys, spaces, slabs, walls, doors and windows in real openings | studio top bar `.ifc` |
 
@@ -30,14 +30,11 @@ critique. Updated 2026-09-22.
 
 1. **Real login and permissions.** Roles change the screen only. Real access
    control needs accounts and sign-in, which is a product decision.
-2. **Kerala location cost index.** Kerala prices from the CPWD schedule at the
-   Delhi base (index 100). The CPWD cost index for Kochi/Thiruvananthapuram
-   goes in `location_index` in `regions.py` (and the studio mirror).
-3. **Coastal extra (TN note 13)** is not applied automatically; it needs the
+2. **Coastal extra (TN note 13)** is not applied automatically; it needs the
    distance from the sea on the brief.
-4. **Structural design.** The column layout, footing depth and section are
+3. **Structural design.** The column layout, footing depth and section are
    preliminary; sizes and reinforcement need a structural engineer and a soil
    test. Services are schematic for the MEP engineer.
-5. **Redis cache.** Not needed at this scale.
-6. `index.html` and `studio.html` still keep separate models and meet only
+4. **Redis cache.** Not needed at this scale.
+5. `index.html` and `studio.html` still keep separate models and meet only
    through the API.

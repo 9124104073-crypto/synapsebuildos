@@ -14,7 +14,7 @@ uvicorn app.main:app --reload
 ```
 
 SQLite by default, so there is nothing else to start. Open
-<http://127.0.0.1:8000/docs>. The Kochi rate card, bylaw ruleset and two
+<http://127.0.0.1:8000/docs>. The Tamil Nadu rate cards, bylaw ruleset and two
 library plans are seeded on first boot.
 
 Postgres and Redis when you want them:
@@ -94,6 +94,6 @@ detection → decisions → the 503 path when Claude has no key.
   fast enough at this scale that caching would be premature.
 - Rate-card figures are representative placeholders. They are labelled as such
   in `seed.py` and in every API response via `rate_source`.
-- The compliance ruleset is an encoded subset of KMBR for the Kochi pilot only.
+- The compliance ruleset is an encoded subset of TNCDBR 2019 for Tamil Nadu.
 - The Spring Boot service under `../src` is superseded by this and can be
   deleted once you are happy with the port.

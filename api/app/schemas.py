@@ -40,7 +40,7 @@ class BriefIn(BaseModel):
     children: int = 0
     required_spaces: list[str] = Field(default_factory=list)
     theme: str | None = None
-    region: str = "Kochi"
+    region: str = "Chennai"
     notes: str | None = None
 
 

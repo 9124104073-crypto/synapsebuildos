@@ -18,7 +18,7 @@ def recommend(
     family_members: int = 4,
     elderly_residents: int = 0,
     theme: str | None = None,
-    region: str = "Kochi",
+    region: str = "Chennai",
     limit: int = Query(3, ge=1, le=10),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -47,7 +47,7 @@ def recommend(
 
 
 @router.get("")
-def list_plans(region: str = "Kochi", db: Session = Depends(get_db)) -> list[dict]:
+def list_plans(region: str = "Chennai", db: Session = Depends(get_db)) -> list[dict]:
     plans = db.scalars(select(Plan).where(Plan.region == region)).all()
     return [{"id": p.id, "name": p.name, "theme": p.theme, "bedrooms": p.bedrooms,
              "floors": p.floors, "base_cost_estimate": p.base_cost_estimate} for p in plans]

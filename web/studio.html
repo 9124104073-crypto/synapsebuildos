@@ -548,27 +548,16 @@ const UNCONDITIONED = new Set(["parking", "balcony"]);
 /* Published plinth-area rates (₹ per sq m) and bylaws per region. Mirrors
    api/app/regions.py — change both together.
    Tamil Nadu: TN PWD Plinth Area Rates 2025-26, Circular Memo HDO(A)/48518/2003
-   dated 30.07.2025, residential framed, effective 01.08.2025.
-   Kerala: CPWD Plinth Area Rates 2025 (base 01.04.2025 = 100), residential
-   quarters, RCC framed; the Kerala cost index is not yet applied (index 100). */
+   dated 30.07.2025, residential framed, effective 01.08.2025. */
 const TN_SERVICES = { "Internal water supply":767, "Internal sanitary arrangements":597,
                       "Internal electrical arrangements":1269 };
 const tnPar = (foundation, superstructure, roof, nonres) => ({ foundation, superstructure, roof,
   stilt: Math.round(.65 * nonres * 100) / 100, anti_termite:144, services_per_sqm:TN_SERVICES,
   services_pct:{}, location_index:100 });
 const TN_DOC = "Tamil Nadu PWD — Plinth Area Rates 2025-26, Circular Memo HDO(A)/48518/2003 dated 30.07.2025 (Annexure I, III)";
-const KL_DOC = "Kerala PWD (CPWD schedules) — CPWD Plinth Area Rates 2025 (base 01.04.2025 = 100), items 1.1.2, 1.8.1, 2.1-2.4";
-const KERALA_PAR = { foundation:0, superstructure:24410, roof:0, stilt:9870, anti_termite:0,
-  services_per_sqm:{}, location_index:100, services_pct:{
-    "Internal water supply and sanitary":9, "Internal electrical installations":12.5,
-    "Power wiring and plugs":4, "External electrical connections":3.75,
-    "External civil connections":1.25, "Local body approvals":1.25 } };
-const KMBR = { version:"KMBR-2019.v1", front:10, rear:6, side:4, max_fsi:1.5, max_cover:0.65, max_height:45, min_parking:1 };
 const TNCDBR = { version:"TNCDBR-2019.v1", front:4.92, rear:4.92, side:3.28, max_fsi:2.0, max_cover:1.0, max_height:39.4, min_parking:1 };
 const TN_BIG = tnPar(6420, 17455, 2170, 13110), TN_MID = tnPar(6255, 17070, 2135, 12820), TN_MOF = tnPar(5955, 16260, 2025, 12215);
 const REGIONS = {
-  "Kochi":              { state:"Kerala", par:KERALA_PAR, rule:KMBR, source:KL_DOC },
-  "Thiruvananthapuram": { state:"Kerala", par:KERALA_PAR, rule:KMBR, source:KL_DOC },
   "Chennai":            { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
   "Coimbatore":         { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
   "Madurai":            { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
@@ -577,10 +566,10 @@ const REGIONS = {
   "Tamil Nadu (other towns)": { state:"Tamil Nadu", par:TN_MOF, rule:TNCDBR, source:TN_DOC }
 };
 const SQM = 0.09290304;
-let RATES = { overhead_pct:0, contingency_pct:5, tier:"pwd", par:KERALA_PAR, source:KL_DOC };
-let RULE = KMBR;
+let RATES = { overhead_pct:0, contingency_pct:5, tier:"pwd", par:TN_BIG, source:TN_DOC };
+let RULE = TNCDBR;
 function setRegion(name) {
-  const R = REGIONS[name] || REGIONS.Kochi;
+  const R = REGIONS[name] || REGIONS.Chennai;
   RATES = { ...RATES, par:R.par, source:R.source };
   RULE = R.rule;
 }
@@ -749,7 +738,7 @@ const state = {
   plot:{ w:40, h:50 }, budget:45, floor:0, selected:null,
   interiors:{},          // roomId -> [catalogue ids]; "exterior" -> [ids]
   name:"Untitled house",
-  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Kochi", notes:"" },
+  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", notes:"" },
   rooms:[
     {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
     {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
@@ -1406,7 +1395,7 @@ function suggestions(t, c, rd) {
   if (!hasFacing()) {
     out.push({ t:"Set the road direction", why:"Choose which way the road faces under Plot. Sun, shading and placement advice depends on it." });
     if (!hasItem("exterior", "x-chajja"))
-      out.push({ t:"Add window sunshades", why:"In Kerala, west and east windows without chajjas take the full sun and monsoon rain.",
+      out.push({ t:"Add window sunshades", why:"In Tamil Nadu, west and east windows without chajjas take the full sun and monsoon rain.",
         fix:() => toggleItem("exterior", "x-chajja") });
   } else {
     const hot = new Set();
@@ -1626,7 +1615,7 @@ function size3d() {
   camera.aspect = w / h; camera.updateProjectionMatrix();
 }
 
-/* Kochi is about 9.9°N, so the sun runs high and close to overhead at noon.
+/* Chennai is about 13°N, so the sun runs high and close to overhead at noon.
    A simplified arc, not an ephemeris — enough to answer "which rooms bake in
    the afternoon", not enough to size a shading device. */
 function updateSun() {
@@ -1718,7 +1707,7 @@ function wallRun(group, ax, az, bx, bz, thick, mat, opening, baseY, opts = {}) {
     group.add(box(horiz ? fT : fT, HEAD - SILL, horiz ? fT : fT,
                   horiz ? midX : midX, baseY + (SILL+HEAD)/2, horiz ? midZ : midZ, FRAME)); // mullion
     if (opts.chajja && opts.outward) {
-      // a Kerala sunshade: a thin concrete shelf over the window, on the outside
+      // a chajja sunshade: a thin concrete shelf over the window, on the outside
       const sgn = opts.outward[0] === "+" ? 1 : -1, off = thick/2 + 1;
       const x = horiz ? midX : midX + sgn*off, z = horiz ? midZ + sgn*off : midZ;
       group.add(box(horiz ? winW + 1.6 : 2, .3, horiz ? 2 : winW + 1.6,
@@ -2843,14 +2832,14 @@ $("facing").addEventListener("change", e => {
    ===================================================================== */
 const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 const pick = (o, keys) => Object.fromEntries(keys.filter(k => o[k] != null).map(k => [k, o[k]]));
-const THEMES = ["", "warm contemporary", "minimal", "kerala traditional", "colonial"];
+const THEMES = ["", "warm contemporary", "minimal", "chettinad traditional", "colonial"];
 function renderBrief() {
   const B = state.brief;
-  if (!REGIONS[B.region]) B.region = "Kochi";
+  if (!REGIONS[B.region]) B.region = "Chennai";
   setRegion(B.region);
   $("brief").innerHTML = `
     <div class="field" style="margin-top:.6rem"><label for="bRegion">Location — sets rates and bylaws</label>
-      <select id="bRegion">${["Kerala", "Tamil Nadu"].map(st => `<optgroup label="${st}">${
+      <select id="bRegion">${["Tamil Nadu"].map(st => `<optgroup label="${st}">${
         Object.entries(REGIONS).filter(([, r]) => r.state === st).map(([n]) =>
           `<option${n === B.region ? " selected" : ""}>${n}</option>`).join("")}</optgroup>`).join("")}</select></div>
     <div class="fields">
@@ -2986,7 +2975,7 @@ async function loadLibrary() {
   if (!API) { library = []; warn("The plan library lives on the API. Open the studio with ?api=…"); renderOptions(); return; }
   const B = state.brief, q = new URLSearchParams({
     plot_size_sqft: state.plot.w * state.plot.h, budget_max: Math.round(state.budget * 100000),
-    family_members: B.family_members, elderly_residents: B.elderly_residents, region: B.region || "Kochi", limit: 3 });
+    family_members: B.family_members, elderly_residents: B.elderly_residents, region: B.region || "Chennai", limit: 3 });
   if (B.theme) q.set("theme", B.theme);
   try { library = (await (await fetch(`${API}/plans/recommend?${q}`)).json()).results || []; }
   catch { library = []; }
@@ -3007,7 +2996,7 @@ function interiorLines() {
   return out;
 }
 /* Indicative only: a duration from size and floors, and the stage split most
-   Kerala residential contracts use. The contractor's own schedule replaces it. */
+   Tamil Nadu residential contracts use. The contractor's own schedule replaces it. */
 const STAGES = [["Mobilisation and foundation", .15], ["Plinth and columns", .15], ["Structure and roof slab", .25],
                 ["Masonry and plaster", .15], ["Electrical and plumbing", .10], ["Finishes", .15], ["Handover and snagging", .05]];
 function schedule(t, c) {
@@ -3119,7 +3108,7 @@ function elevationSheet() {
 /* ---------- engineering sheets ----------
    Preliminary: they give the structural and MEP engineers a coordinated
    starting point, and every sheet says it is not for construction. */
-const FOUNDATION_FT = () => (RATES.par === KERALA_PAR ? 1.2 : 2.0) / .3048;  // PAR basis depth
+const FOUNDATION_FT = () => 2.0 / .3048;  // TN PAR note 14(e): framed, 2.0 m below GL
 const PLINTH_FT = 1.5;
 const sheetOpen = (vb) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" font-size="1.3">`;
 const sheetFoot = (x, y, w, title, note) =>
@@ -3363,7 +3352,7 @@ function buildReport() {
         <tr><td>Furniture, fittings and exterior (${ints.length} items)</td><td></td><td></td><td class="n">${inr(c.interiors)}</td></tr></tbody>
       <tfoot><tr><td>Total</td><td></td><td></td><td class="n">${inr(c.total)}</td></tr></tfoot></table>
     <p class="basis">Rates: ${escH(RATES.source)}. Plinth-area rates are for rough cost estimates; a detailed
-      item-rate estimate replaces them at tender.${RATES.par === KERALA_PAR ? " Kerala: CPWD Delhi base (index 100); apply the CPWD cost index for the location." : ""}</p>
+      item-rate estimate replaces them at tender.</p>
   </section>
 
   <section>

@@ -48,7 +48,7 @@ class Project(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(160), default="Untitled project")
-    region: Mapped[str] = mapped_column(String(64), default="Kochi")
+    region: Mapped[str] = mapped_column(String(64), default="Chennai")
     brief: Mapped[dict] = mapped_column(JSON, default=dict)
     selected_plan_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
