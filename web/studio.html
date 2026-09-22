@@ -350,6 +350,7 @@ body.present .present-cap{display:block}
     <button class="btn" id="presentBtn" aria-pressed="false">Present</button>
     <button class="btn" id="exportBoq">BOQ</button>
     <button class="btn" id="exportDxf">.dxf</button>
+    <button class="btn" id="exportIfc">.ifc</button>
     <button class="btn" id="exportObj">.obj</button>
     <button class="btn" id="exportJson">.json</button>
     <button class="btn" id="themeBtn" aria-label="Theme">◐</button>
@@ -544,14 +545,45 @@ const LABEL = { bedroom:"Bedroom", bath:"Bathroom", living:"Living room", kitche
    excluded from built-up the way a municipality would exclude them. */
 const UNCONDITIONED = new Set(["parking", "balcony"]);
 
-const RATES = {
-  construction:{ budget:1500, standard:1900, premium:2600 }, tier:"standard",
-  labor:350, wall_finish:180, flooring_base:95, door:9400, window:11200,
-  electrical_point:1250, plumbing_set:68000, overhead_pct:15, contingency_pct:5,
-  source:"Kerala PWD — Schedule of Rates 2024-25 (representative placeholder)"
+/* Published plinth-area rates (₹ per sq m) and bylaws per region. Mirrors
+   api/app/regions.py — change both together.
+   Tamil Nadu: TN PWD Plinth Area Rates 2025-26, Circular Memo HDO(A)/48518/2003
+   dated 30.07.2025, residential framed, effective 01.08.2025.
+   Kerala: CPWD Plinth Area Rates 2025 (base 01.04.2025 = 100), residential
+   quarters, RCC framed; the Kerala cost index is not yet applied (index 100). */
+const TN_SERVICES = { "Internal water supply":767, "Internal sanitary arrangements":597,
+                      "Internal electrical arrangements":1269 };
+const tnPar = (foundation, superstructure, roof, nonres) => ({ foundation, superstructure, roof,
+  stilt: Math.round(.65 * nonres * 100) / 100, anti_termite:144, services_per_sqm:TN_SERVICES,
+  services_pct:{}, location_index:100 });
+const TN_DOC = "Tamil Nadu PWD — Plinth Area Rates 2025-26, Circular Memo HDO(A)/48518/2003 dated 30.07.2025 (Annexure I, III)";
+const KL_DOC = "Kerala PWD (CPWD schedules) — CPWD Plinth Area Rates 2025 (base 01.04.2025 = 100), items 1.1.2, 1.8.1, 2.1-2.4";
+const KERALA_PAR = { foundation:0, superstructure:24410, roof:0, stilt:9870, anti_termite:0,
+  services_per_sqm:{}, location_index:100, services_pct:{
+    "Internal water supply and sanitary":9, "Internal electrical installations":12.5,
+    "Power wiring and plugs":4, "External electrical connections":3.75,
+    "External civil connections":1.25, "Local body approvals":1.25 } };
+const KMBR = { version:"KMBR-2019.v1", front:10, rear:6, side:4, max_fsi:1.5, max_cover:0.65, max_height:45, min_parking:1 };
+const TNCDBR = { version:"TNCDBR-2019.v1", front:4.92, rear:4.92, side:3.28, max_fsi:2.0, max_cover:1.0, max_height:39.4, min_parking:1 };
+const TN_BIG = tnPar(6420, 17455, 2170, 13110), TN_MID = tnPar(6255, 17070, 2135, 12820), TN_MOF = tnPar(5955, 16260, 2025, 12215);
+const REGIONS = {
+  "Kochi":              { state:"Kerala", par:KERALA_PAR, rule:KMBR, source:KL_DOC },
+  "Thiruvananthapuram": { state:"Kerala", par:KERALA_PAR, rule:KMBR, source:KL_DOC },
+  "Chennai":            { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
+  "Coimbatore":         { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
+  "Madurai":            { state:"Tamil Nadu", par:TN_BIG, rule:TNCDBR, source:TN_DOC },
+  "Trichy":             { state:"Tamil Nadu", par:TN_MID, rule:TNCDBR, source:TN_DOC },
+  "Salem":              { state:"Tamil Nadu", par:TN_MID, rule:TNCDBR, source:TN_DOC },
+  "Tamil Nadu (other towns)": { state:"Tamil Nadu", par:TN_MOF, rule:TNCDBR, source:TN_DOC }
 };
-const RULE = { version:"KMBR-2019.v1", front:10, rear:6, side:4,
-  max_fsi:1.5, max_cover:0.65, max_height:45, min_parking:1 };
+const SQM = 0.09290304;
+let RATES = { overhead_pct:0, contingency_pct:5, tier:"pwd", par:KERALA_PAR, source:KL_DOC };
+let RULE = KMBR;
+function setRegion(name) {
+  const R = REGIONS[name] || REGIONS.Kochi;
+  RATES = { ...RATES, par:R.par, source:R.source };
+  RULE = R.rule;
+}
 const WEIGHTS = { budget:.35, compliance:.25, buildability:.25, sustainability:.15 };
 
 /* ---------- finishes ----------
@@ -765,12 +797,13 @@ function measure() {
   const t = { built:0, footprint:0, wall:0, floorArea:0, doors:1, windows:0, elec:6,
               bedrooms:0, baths:0, parking:0, overlaps:[], outside:[], stairs:0,
               floors: r.length ? Math.max(...r.map(x => x.floor)) + 1 : 1,
-              wallCost:0, floorCost:0 };
+              wallCost:0, floorCost:0, openArea:0 };
   for (const x of r) {
     const area = x.w * x.h;
     const conditioned = !UNCONDITIONED.has(x.type);
     if (conditioned) { t.built += area; t.floorArea += area; }
     if (x.floor === 0) t.footprint += area;
+    if (!conditioned) t.openArea += area;
 
     const wallArea = 2 * (x.w + x.h) * FLOOR_H * (1 - OPENING) * 0.5;
     t.wall += wallArea;
@@ -801,19 +834,33 @@ function measure() {
   return t;
 }
 
-/* Mirrors api/app/engines/cost.py line for line. Masonry-and-plaster and the
-   base screed are ALWAYS charged; the chosen finish sits on top of them. An
-   earlier version let a paint choice replace masonry, which made painted walls
-   cheaper than bare ones — the server was right and this was wrong. */
+/* Mirrors api/app/engines/cost.py (par_lines) line for line: a plinth-area-
+   rate estimate the way a PWD engineer writes one, with the chosen finishes
+   charged on top of the schedule's base specification. */
+function costLines(t) {
+  const P = RATES.par, idx = (P.location_index ?? 100) / 100;
+  const ground = t.footprint * SQM, cond = t.built * SQM, open = t.openArea * SQM;
+  const L = (item, code, unit, qty, rate, basis, amount = qty * rate) => ({ item, code, unit, qty, rate, amount, basis });
+  const building = [
+    ["Foundation", "PAR-F", ground, "foundation", "Ground-floor plinth area, all rooms on the ground floor."],
+    ["Superstructure", "PAR-S", cond, "superstructure", "Plinth area of every enclosed floor."],
+    ["Stilt, parking and balconies", "PAR-ST", open, "stilt", "Open and stilt areas at the reduced rate."],
+    ["Roof finishing", "PAR-R", ground, "roof", "Ground-floor plinth area, as the schedule specifies."],
+    ["Anti-termite treatment", "PAR-AT", ground, "anti_termite", "Ground-floor plinth area."]
+  ].filter(([, , , k]) => P[k]).map(([n, c, q, k, b]) => L(n, c, "sqm", q, P[k] * idx, b));
+  const base = building.reduce((s, l) => s + l.amount, 0);
+  const services = [
+    ...Object.entries(P.services_per_sqm || {}).map(([n, r]) => L(n, "PAR-SV", "sqm", cond, r * idx, "Per square metre of enclosed plinth area.")),
+    ...Object.entries(P.services_pct || {}).map(([n, pct]) => L(n, "PAR-SV", "%", pct, Math.round(base), `${pct}% of the building cost above.`, base * pct / 100))
+  ];
+  return [...building, ...services,
+    L("Wall finishes", "F-8.0", "LS", 1, t.wallCost, "Paint, paper or cladding chosen per room, over the plastered wall."),
+    L("Floor finishes", "F-9.0", "LS", 1, t.floorCost, "Tile, wood or stone chosen per room, over the base floor.")];
+}
 function cost(t) {
-  const base = RATES.construction[RATES.tier];
-  const civil = t.built * base + t.built * RATES.labor;
-  const finish = t.wall * RATES.wall_finish            // masonry and plaster
-    + t.floorArea * RATES.flooring_base                // base screed, conditioned only
-    + t.wallCost + t.floorCost                         // chosen surface finishes
-    + t.doors * RATES.door + t.windows * RATES.window
-    + t.elec * RATES.electrical_point
-    + (t.baths + (state.rooms.length ? 1 : 0)) * RATES.plumbing_set;
+  const lines = costLines(t);
+  const civil = lines.filter(l => l.code !== "PAR-SV" && !l.code.startsWith("F-")).reduce((s, l) => s + l.amount, 0);
+  const finish = lines.filter(l => l.code === "PAR-SV" || l.code.startsWith("F-")).reduce((s, l) => s + l.amount, 0);
   const subtotal = civil + finish;
   const interiors = catalogTotal();
   const oh = subtotal * RATES.overhead_pct / 100;     // overheads on construction only,
@@ -2239,6 +2286,7 @@ async function loadFromApi() {
     state.interiors = p.interiors || {};
     state.name = p.name || state.name;
     if (p.brief) Object.assign(state.brief, pick(p.brief, Object.keys(state.brief)));
+    if (p.region) state.brief.region = p.region;
     if (p.plot?.w) state.plot = { w:p.plot.w, h:p.plot.h,
                                   ...(p.plot.facing != null ? { facing:p.plot.facing } : {}) };
     options = loadOptions(); renderBrief();
@@ -2798,7 +2846,13 @@ const pick = (o, keys) => Object.fromEntries(keys.filter(k => o[k] != null).map(
 const THEMES = ["", "warm contemporary", "minimal", "kerala traditional", "colonial"];
 function renderBrief() {
   const B = state.brief;
+  if (!REGIONS[B.region]) B.region = "Kochi";
+  setRegion(B.region);
   $("brief").innerHTML = `
+    <div class="field" style="margin-top:.6rem"><label for="bRegion">Location — sets rates and bylaws</label>
+      <select id="bRegion">${["Kerala", "Tamil Nadu"].map(st => `<optgroup label="${st}">${
+        Object.entries(REGIONS).filter(([, r]) => r.state === st).map(([n]) =>
+          `<option${n === B.region ? " selected" : ""}>${n}</option>`).join("")}</optgroup>`).join("")}</select></div>
     <div class="fields">
       <div class="field"><label for="bFam">People</label><input id="bFam" class="num" type="number" min="1" max="20" value="${B.family_members}"></div>
       <div class="field"><label for="bOld">Elderly</label><input id="bOld" class="num" type="number" min="0" max="10" value="${B.elderly_residents}"></div>
@@ -2816,6 +2870,10 @@ function renderBrief() {
   });
   bind("bFam","family_members",1); bind("bOld","elderly_residents",1); bind("bKid","children",1);
   bind("bTheme","theme"); bind("bNotes","notes");
+  $("bRegion").addEventListener("change", e => {
+    B.region = e.target.value; setRegion(B.region);
+    render(); pushBrief();
+  });
   $("bGen").addEventListener("click", generateFromBrief);
 }
 async function pushBrief() {
@@ -2940,22 +2998,6 @@ async function loadLibrary() {
    Everything here is derived from the same engines as the side panels, so
    the printed report can never disagree with the screen.
    ===================================================================== */
-function costLines(t) {
-  const base = RATES.construction[RATES.tier];
-  const L = (item, code, unit, qty, rate, basis) => ({ item, code, unit, qty, rate, amount: qty * rate, basis });
-  return [
-    L("Structure and civil works", "C-1.0", "sqft", t.built, base, `Built-up area measured from ${state.rooms.length} room rectangles.`),
-    L("Labour", "L-1.0", "sqft", t.built, RATES.labor, "Built-up area at the published labour rate."),
-    L("Masonry and plaster", "M-3.1", "sqft", t.wall, RATES.wall_finish, "Room perimeters at 10 ft floor-to-floor, less 12% for openings, half-weighted for shared walls."),
-    L("Flooring, base", "F-6.2", "sqft", t.floorArea, RATES.flooring_base, "Conditioned floor area, excluding parking and balconies."),
-    L("Doors and frames", "J-1.1", "nos", t.doors, RATES.door, "One per enclosed room, plus the main entrance."),
-    L("Windows", "J-2.1", "nos", t.windows, RATES.window, "Per-room-type allowance for a schematic design."),
-    L("Electrical points", "E-4.2", "nos", t.elec, RATES.electrical_point, "Per-room-type allowance plus circulation."),
-    L("Plumbing, per wet area", "S-2.1", "set", t.baths + (state.rooms.length ? 1 : 0), RATES.plumbing_set, "One set per bathroom, plus the kitchen."),
-    L("Wall finishes", "F-8.0", "LS", 1, t.wallCost, "Paint, paper or cladding chosen per room, over the plaster."),
-    L("Floor finishes", "F-9.0", "LS", 1, t.floorCost, "Tile, wood or stone chosen per room, over the base screed.")
-  ];
-}
 function interiorLines() {
   const live = new Map(state.rooms.map(r => [r.id, r.name]));
   live.set("exterior", "Exterior");
@@ -3074,13 +3116,224 @@ function elevationSheet() {
   return S.join("");
 }
 
+/* ---------- engineering sheets ----------
+   Preliminary: they give the structural and MEP engineers a coordinated
+   starting point, and every sheet says it is not for construction. */
+const FOUNDATION_FT = () => (RATES.par === KERALA_PAR ? 1.2 : 2.0) / .3048;  // PAR basis depth
+const PLINTH_FT = 1.5;
+const sheetOpen = (vb) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" font-size="1.3">`;
+const sheetFoot = (x, y, w, title, note) =>
+  `<text x="${x}" y="${y}" fill="#111" font-size="1.6">${title}</text>` +
+  `<text x="${x}" y="${y + 1.7}" fill="#b33" font-size="1.05">${note}</text>`;
+
+/* Columns at room corners, and along any edge longer than 15 ft (about a
+   4.5 m span), merged where rooms share a corner. Every floor is projected
+   onto the ground so the columns stack. */
+function columnGrid() {
+  const MAX = 15, pts = [];
+  const split = (a, b) => { const n = Math.max(1, Math.ceil((b - a) / MAX));
+    return Array.from({ length: n + 1 }, (_, i) => a + (b - a) * i / n); };
+  for (const r of state.rooms) {
+    if (!WALLED(r.type) && r.type !== "parking") continue;
+    const xs = split(r.x, r.x + r.w), ys = split(r.y, r.y + r.h);
+    for (const x of xs) for (const y of ys) {
+      const edge = x === r.x || x === r.x + r.w || y === r.y || y === r.y + r.h;
+      if (edge && !pts.some(p => Math.hypot(p[0] - x, p[1] - y) < 1.6)) pts.push([x, y]);
+    }
+  }
+  return pts;
+}
+function structuralSheet() {
+  const P = state.plot, pts = columnGrid(), S = [sheetOpen(`-10 -10 ${P.w + 20} ${P.h + 22}`)];
+  S.push(`<rect x="0" y="0" width="${P.w}" height="${P.h}" fill="#fafaf7" stroke="#111" stroke-width=".15"/>`);
+  for (const s of wallPlan().filter(s => s.floor === 0)) {
+    const [x1, y1, x2, y2] = s.horiz ? [s.a, s.coord, s.b, s.coord] : [s.coord, s.a, s.coord, s.b];
+    S.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9aa" stroke-width=".9" stroke-opacity=".5"/>`,
+           `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#444" stroke-width=".08" stroke-dasharray=".8 .4"/>`);
+  }
+  // one grid line per cluster of column positions within 2 ft of each other
+  const axis = vals => vals.sort((a, b) => a - b).reduce((acc, v) => {
+    const last = acc[acc.length - 1];
+    if (last && v - last.max < 2) { last.max = v; last.sum += v; last.n++; } else acc.push({ max:v, sum:v, n:1 });
+    return acc; }, []).map(c => Math.round(c.sum / c.n * 2) / 2);
+  const xs = axis(pts.map(p => p[0])), ys = axis(pts.map(p => p[1]));
+  xs.forEach((x, i) => S.push(`<line x1="${x}" y1="-4" x2="${x}" y2="${P.h + 1}" stroke="#bbb" stroke-width=".05"/>`,
+    `<circle cx="${x}" cy="-5.2" r="1.1" fill="#fff" stroke="#333" stroke-width=".1"/><text x="${x}" y="-4.8" text-anchor="middle" font-size="1.1">${String.fromCharCode(65 + (i % 26))}</text>`));
+  ys.forEach((y, i) => S.push(`<line x1="-4" y1="${y}" x2="${P.w + 1}" y2="${y}" stroke="#bbb" stroke-width=".05"/>`,
+    `<circle cx="-5.2" cy="${y}" r="1.1" fill="#fff" stroke="#333" stroke-width=".1"/><text x="-5.2" y="${y + .4}" text-anchor="middle" font-size="1.1">${i + 1}</text>`));
+  for (const [x, y] of pts) S.push(`<rect x="${x - .38}" y="${y - .5}" width=".75" height="1" fill="#111"/>`);
+  S.push(sheetFoot(0, P.h + 5, P.w, `Preliminary column layout · ${pts.length} columns`,
+    "Indicative only · to be designed by a structural engineer"));
+  S.push(`<text x="0" y="${P.h + 8.6}" fill="#555" font-size="1.05">Columns about 230 × 300 mm at room corners, spans kept under 4.5 m; beams follow the dashed walls.</text>`,
+         `<text x="0" y="${P.h + 10.2}" fill="#555" font-size="1.05">Isolated footings about ${(FOUNDATION_FT() * .3048).toFixed(1)} m deep, the depth the rate schedule assumes. Soil test decides.</text>`);
+  S.push(`</svg>`);
+  return S.join("");
+}
+function servicesSheet(floor) {
+  const P = state.plot, S = [sheetOpen(`-10 -10 ${P.w + 20} ${P.h + 20}`)];
+  const rooms = state.rooms.filter(r => r.floor === floor);
+  S.push(`<rect x="0" y="0" width="${P.w}" height="${P.h}" fill="#fafaf7" stroke="#111" stroke-width=".15"/>`);
+  for (const r of rooms) S.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="#fff" stroke="#999" stroke-width=".12"/>`,
+    `<text x="${r.x + .6}" y="${r.y + 1.6}" fill="#777" font-size="1">${escH(r.name)}</text>`);
+  const main = wallPlan().find(s => s.main && s.floor === floor);
+  const stair = rooms.find(r => r.type === "stairs");
+  const db = main ? (main.horiz ? [(main.a + main.b) / 2 + 2.6, main.coord + 1] : [main.coord + 1, (main.a + main.b) / 2 + 2.6])
+           : stair ? [stair.x + stair.w / 2, stair.y + 1] : rooms[0] ? [rooms[0].x + 1, rooms[0].y + 1] : [2, 2];
+  for (const r of rooms) {
+    const c = [r.x + r.w / 2, r.y + r.h / 2];
+    S.push(`<path d="M ${db[0]} ${db[1]} L ${c[0]} ${db[1]} L ${c[0]} ${c[1]}" fill="none" stroke="#c78a1a" stroke-width=".1" stroke-dasharray=".5 .3"/>`,
+           `<circle cx="${c[0]}" cy="${c[1]}" r=".55" fill="#fff" stroke="#c78a1a" stroke-width=".15"/><path d="M ${c[0] - .39} ${c[1] - .39} L ${c[0] + .39} ${c[1] + .39} M ${c[0] + .39} ${c[1] - .39} L ${c[0] - .39} ${c[1] + .39}" stroke="#c78a1a" stroke-width=".1"/>`);
+  }
+  S.push(`<rect x="${db[0] - .7}" y="${db[1] - .45}" width="1.4" height=".9" fill="#c78a1a"/><text x="${db[0] + 1}" y="${db[1] + .4}" font-size="1" fill="#c78a1a">DB</text>`);
+  const oht = stair ? [stair.x + stair.w / 2, stair.y + stair.h / 2] : [P.w - 3, P.h - 3];
+  const wet = rooms.filter(r => ["bath", "kitchen", "utility"].includes(r.type));
+  for (const r of wet) {
+    // shaft at the corner nearest the plot edge, where stacks can run outside
+    const corners = [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]];
+    const d = ([x, y]) => Math.min(x, P.w - x, P.h - y);
+    const [sx, sy] = corners.sort((a, b) => d(a) - d(b))[0];
+    const ix = sx === r.x ? sx : sx - 1.4, iy = sy === r.y ? sy : sy - 1.4;
+    S.push(`<rect x="${ix}" y="${iy}" width="1.4" height="1.4" fill="#e3eef6" stroke="#2a6f9e" stroke-width=".12"/>`,
+           `<path d="M ${oht[0]} ${oht[1]} L ${ix + .7} ${oht[1]} L ${ix + .7} ${iy + .7}" fill="none" stroke="#2a6f9e" stroke-width=".12" stroke-dasharray=".7 .3"/>`);
+    if (floor === 0) S.push(`<path d="M ${ix + .7} ${iy + .7} L ${ix + .7} -1.5" fill="none" stroke="#7a5230" stroke-width=".12" stroke-dasharray="1 .3 .2 .3"/>`);
+  }
+  S.push(`<circle cx="${oht[0]}" cy="${oht[1]}" r="1" fill="#fff" stroke="#2a6f9e" stroke-width=".15"/><text x="${oht[0] + 1.3}" y="${oht[1] + .4}" font-size="1" fill="#2a6f9e">${floor === 0 ? "rising main" : "from OHT"}</text>`);
+  if (floor === 0 && wet.length) S.push(`<text x="1" y="-2.2" font-size="1" fill="#7a5230">to sewer / septic tank at the road side</text>`);
+  S.push(sheetFoot(0, P.h + 5, P.w, `${floor === 0 ? "Ground" : "Floor " + floor} floor services`, "Schematic · MEP engineer to design"));
+  S.push(`<text x="0" y="${P.h + 8.6}" fill="#555" font-size="1.05"><tspan fill="#c78a1a">— light point and home run from the DB</tspan> · <tspan fill="#2a6f9e">— water from the overhead tank to each wet-area shaft</tspan> · <tspan fill="#7a5230">— soil and waste stacks</tspan></text>`);
+  S.push(`</svg>`);
+  return S.join("");
+}
+function sectionSheet() {
+  const P = state.plot, t = measure(), H = FLOOR_H, D = FOUNDATION_FT();
+  const g = state.rooms.filter(r => r.floor === 0);
+  if (!g.length) return "";
+  // cut where it passes through the most rooms, across all floors
+  const cands = state.rooms.map(r => r.y + r.h / 2);
+  const hits = y => state.rooms.filter(r => r.y < y && y < r.y + r.h).length;
+  const cy = cands.sort((a, b) => hits(b) - hits(a))[0];
+  const roof = itemsFor("exterior").find(i => i.group === "roof");
+  const top = t.floors * H + (roof ? 9 : 3.5);
+  const S = [sheetOpen(`-8 ${-top - 4} ${P.w + 20} ${top + D + PLINTH_FT + 12}`)];
+  const Y = z => -z;   // svg y from height above floor level 0
+  S.push(`<rect x="-6" y="${PLINTH_FT}" width="${P.w + 12}" height="${D + 2}" fill="#efe9dd"/>`,
+         `<line x1="-6" y1="${PLINTH_FT}" x2="${P.w + 6}" y2="${PLINTH_FT}" stroke="#111" stroke-width=".2"/>`,
+         `<text x="${P.w + 6.5}" y="${PLINTH_FT + .4}" font-size="1">GL</text>`);
+  let minX = Infinity, maxX = -Infinity;
+  for (let f = 0; f < t.floors; f++) {
+    const cut = state.rooms.filter(r => r.floor === f && r.y < cy && cy < r.y + r.h).sort((a, b) => a.x - b.x);
+    for (const r of cut) {
+      minX = Math.min(minX, r.x); maxX = Math.max(maxX, r.x + r.w);
+      const z0 = f * H;
+      S.push(`<rect x="${r.x}" y="${Y(z0 + H) }" width="${r.w}" height="${H}" fill="#fff" stroke="none"/>`,
+             `<rect x="${r.x}" y="${Y(z0 + H)}" width="${r.w}" height=".5" fill="#555"/>`,
+             `<rect x="${r.x}" y="${Y(z0)}" width="${r.w}" height=".45" fill="#777"/>`);
+      if (WALLED(r.type))
+        for (const x of [r.x, r.x + r.w]) S.push(`<rect x="${x - .3}" y="${Y(z0 + H)}" width=".6" height="${H}" fill="#111"/>`);
+      if (r.type === "stairs") S.push(`<path d="M ${r.x + .5} ${Y(z0)} L ${r.x + r.w - .5} ${Y(z0 + H)}" stroke="#111" stroke-width=".25"/>`);
+      if (r.w > 5) S.push(`<text x="${r.x + r.w / 2}" y="${Y(z0 + H / 2)}" text-anchor="middle" font-size="1.1">${escH(r.name)}</text>`);
+      if (f === 0 && WALLED(r.type))
+        for (const x of [r.x, r.x + r.w])
+          S.push(`<rect x="${x - .3}" y="${Y(0)}" width=".6" height="${PLINTH_FT + D - 1}" fill="#666"/>`,
+                 `<path d="M ${x - 2} ${PLINTH_FT + D} L ${x + 2} ${PLINTH_FT + D} L ${x + 1} ${PLINTH_FT + D - 1} L ${x - 1} ${PLINTH_FT + D - 1} Z" fill="#888"/>`);
+    }
+    S.push(`<text x="${P.w + 6.5}" y="${Y(f * H) + .4}" font-size="1">+${f * H}′-0″</text>`,
+           `<line x1="${P.w + 2}" y1="${Y(f * H)}" x2="${P.w + 6}" y2="${Y(f * H)}" stroke="#111" stroke-width=".06"/>`);
+  }
+  if (Number.isFinite(minX)) {
+    const zt = t.floors * H;
+    S.push(roof ? `<path d="M ${minX - 1.5} ${Y(zt)} L ${(minX + maxX) / 2} ${Y(zt + Math.min(9, (maxX - minX) * .28))} L ${maxX + 1.5} ${Y(zt)} Z" fill="#c9a58a" stroke="#111" stroke-width=".15"/>`
+                : `<rect x="${minX}" y="${Y(zt + 3)}" width=".5" height="3" fill="#111"/><rect x="${maxX - .5}" y="${Y(zt + 3)}" width=".5" height="3" fill="#111"/>`);
+    S.push(`<text x="${P.w + 6.5}" y="${Y(zt) + .4}" font-size="1">+${zt}′-0″ roof</text>`);
+  }
+  S.push(`<text x="${P.w + 6.5}" y="${PLINTH_FT + D + .4}" font-size="1">footing −${(D * .3048).toFixed(1)} m</text>`);
+  S.push(sheetFoot(0, PLINTH_FT + D + 5, P.w, `Section at ${cy.toFixed(1)} ft from the road`, "Schematic · structure by engineer"));
+  S.push(`</svg>`);
+  return S.join("");
+}
+
+/* ---------- IFC4 ----------
+   Storeys, spaces, floor slabs, walls from the shared-wall plan, and doors
+   and windows set in real openings (IfcOpeningElement voiding the wall).
+   Opens in Revit, ArchiCAD, BlenderBIM and any IFC viewer. */
+function buildIfc() {
+  const FT = .3048, H = FLOOR_H * FT;
+  const L = []; let n = 0;
+  const add = s => { L.push(`#${++n}=${s};`); return `#${n}`; };
+  const f = v => { let s = (+v).toFixed(4).replace(/0+$/, ""); return s.endsWith(".") ? s : s.includes(".") ? s : s + "."; };
+  const C64 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
+  const gid = () => "'" + C64[Math.floor(Math.random() * 4)] + Array.from({ length: 21 }, () => C64[Math.floor(Math.random() * 64)]).join("") + "'";
+  const str = s => "'" + String(s).replace(/[^\x20-\x7e]/g, "").replace(/'/g, "''") + "'";
+  const dz = add("IFCDIRECTION((0.,0.,1.))"), dx = add("IFCDIRECTION((1.,0.,0.))");
+  const ax = (x, y, z) => add(`IFCAXIS2PLACEMENT3D(${add(`IFCCARTESIANPOINT((${f(x)},${f(y)},${f(z)}))`)},${dz},${dx})`);
+  const place = (rel, x, y, z) => add(`IFCLOCALPLACEMENT(${rel},${ax(x, y, z)})`);
+  const ctx = add(`IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,${ax(0, 0, 0)},$)`);
+  const body = add(`IFCGEOMETRICREPRESENTATIONSUBCONTEXT('Body','Model',*,*,*,*,${ctx},$,.MODEL_VIEW.,$)`);
+  const shape = (w, d, h) => {
+    const prof = add(`IFCRECTANGLEPROFILEDEF(.AREA.,$,${add(`IFCAXIS2PLACEMENT2D(${add(`IFCCARTESIANPOINT((${f(w / 2)},${f(d / 2)}))`)},$)`)},${f(w)},${f(d)})`);
+    const solid = add(`IFCEXTRUDEDAREASOLID(${prof},${ax(0, 0, 0)},${dz},${f(h)})`);
+    return add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${add(`IFCSHAPEREPRESENTATION(${body},'Body','SweptSolid',(${solid}))`)}))`);
+  };
+  const units = add(`IFCUNITASSIGNMENT((${add("IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.)")},${add("IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.)")},${add("IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.)")},${add("IFCSIUNIT(*,.PLANEANGLEUNIT.,$,.RADIAN.)")}))`);
+  const project = add(`IFCPROJECT(${gid()},$,${str(state.name)},$,$,$,$,(${ctx}),${units})`);
+  const lpSite = place("$", 0, 0, 0);
+  const site = add(`IFCSITE(${gid()},$,'Site',$,$,${lpSite},$,$,.ELEMENT.,$,$,$,$,$)`);
+  const lpBldg = place(lpSite, 0, 0, 0);
+  const bldg = add(`IFCBUILDING(${gid()},$,${str(state.name)},$,$,${lpBldg},$,$,.ELEMENT.,$,$,$)`);
+  add(`IFCRELAGGREGATES(${gid()},$,$,$,${project},(${site}))`);
+  add(`IFCRELAGGREGATES(${gid()},$,$,$,${site},(${bldg}))`);
+  const storeys = [];
+  const floors = measure().floors, segs = wallPlan();
+  for (let fl = 0; fl < floors; fl++) {
+    const lp = place(lpBldg, 0, 0, fl * H);
+    const st = add(`IFCBUILDINGSTOREY(${gid()},$,${str(fl === 0 ? "Ground floor" : "Floor " + fl)},$,$,${lp},$,$,.ELEMENT.,${f(fl * H)})`);
+    storeys.push(st);
+    const contained = [], spaces = [];
+    for (const r of state.rooms.filter(r => r.floor === fl)) {
+      spaces.push(add(`IFCSPACE(${gid()},$,${str(r.name)},$,${str(LABEL[r.type])},${place(lp, r.x * FT, r.y * FT, 0)},${shape(r.w * FT, r.h * FT, H - .15)},$,.ELEMENT.,.INTERNAL.,$)`));
+      contained.push(add(`IFCSLAB(${gid()},$,${str(r.name + " slab")},$,$,${place(lp, r.x * FT, r.y * FT, -.15)},${shape(r.w * FT, r.h * FT, .15)},$,.FLOOR.)`));
+    }
+    for (const s of segs.filter(s => s.floor === fl)) {
+      const th = s.thick * FT, len = (s.b - s.a) * FT;
+      const [wx, wy] = s.horiz ? [s.a * FT, s.coord * FT - th / 2] : [s.coord * FT - th / 2, s.a * FT];
+      const wlp = place(lp, wx, wy, 0);
+      const wall = add(`IFCWALL(${gid()},$,${str((s.kind === "ext" ? "External wall, " : "Internal wall, ") + s.owner.name)},$,$,${wlp},${s.horiz ? shape(len, th, H) : shape(th, len, H)},$,.STANDARD.)`);
+      contained.push(wall);
+      if (!s.opening) continue;
+      const door = s.opening === "door";
+      const ow = (door ? (s.main ? DOOR_W + .8 : DOOR_W) : Math.min((s.b - s.a) * .46, 7.5)) * FT;
+      const sill = door ? 0 : 3 * FT, oh = (door ? 7 : 4) * FT;
+      const off = ((s.a + s.b) / 2) * FT - s.a * FT - ow / 2;
+      const [ox, oy, w, d] = s.horiz ? [off, -.05, ow, th + .1] : [-.05, off, th + .1, ow];
+      const olp = place(wlp, ox, oy, sill);
+      const opening = add(`IFCOPENINGELEMENT(${gid()},$,'Opening',$,$,${olp},${shape(w, d, oh)},$,.OPENING.)`);
+      add(`IFCRELVOIDSELEMENT(${gid()},$,$,$,${wall},${opening})`);
+      const [fx, fy, fw, fd] = s.horiz ? [0, .05 + th / 2 - .025, ow, .05] : [.05 + th / 2 - .025, 0, .05, ow];
+      const flp = place(olp, fx, fy, 0);
+      const fill = door
+        ? add(`IFCDOOR(${gid()},$,${str(s.main ? "Main door" : "Door")},$,$,${flp},${shape(fw, fd, oh)},$,${f(oh)},${f(ow)},.DOOR.,.SINGLE_SWING_LEFT.,$)`)
+        : add(`IFCWINDOW(${gid()},$,'Window',$,$,${flp},${shape(fw, fd, oh)},$,${f(oh)},${f(ow)},.WINDOW.,.SINGLE_PANEL.,$)`);
+      add(`IFCRELFILLSELEMENT(${gid()},$,$,$,${opening},${fill})`);
+      contained.push(fill);
+    }
+    if (spaces.length) add(`IFCRELAGGREGATES(${gid()},$,$,$,${st},(${spaces.join(",")}))`);
+    if (contained.length) add(`IFCRELCONTAINEDINSPATIALSTRUCTURE(${gid()},$,$,$,(${contained.join(",")}),${st})`);
+  }
+  add(`IFCRELAGGREGATES(${gid()},$,$,$,${bldg},(${storeys.join(",")}))`);
+  const now = new Date().toISOString().slice(0, 19);
+  return ["ISO-10303-21;", "HEADER;",
+    "FILE_DESCRIPTION(('ViewDefinition [DesignTransferView]'),'2;1');",
+    `FILE_NAME(${str(fileBase() + ".ifc")},'${now}',(''),(''),'Synapse Studio','Synapse Studio','');`,
+    "FILE_SCHEMA(('IFC4'));", "ENDSEC;", "DATA;", ...L, "ENDSEC;", "END-ISO-10303-21;"].join("\n");
+}
+
 function buildReport() {
   const t = measure(), c = cost(t), f = compliance(t), rd = readiness(t, c, f);
   const lines = costLines(t), ints = interiorLines(), sch = schedule(t, c);
   const sug = suggestions(t, c, rd);
   const row = l => `<tr><td>${l.item}<div class="basis">${l.code} · ${l.basis}</div></td>
-    <td class="n">${l.unit === "LS" ? "LS" : Math.round(l.qty).toLocaleString("en-IN") + " " + l.unit}</td>
-    <td class="n">${l.unit === "LS" ? "" : inr(l.rate)}</td><td class="n">${inr(l.amount)}</td></tr>`;
+    <td class="n">${l.unit === "LS" ? "LS" : l.unit === "%" ? l.qty + "%" : (Math.round(l.qty * 10) / 10).toLocaleString("en-IN") + " " + l.unit}</td>
+    <td class="n">${l.unit === "LS" ? "" : l.unit === "%" ? "of " + inr(l.rate) : inr(l.rate) + "/" + l.unit}</td><td class="n">${inr(l.amount)}</td></tr>`;
   const floors = [...Array(t.floors).keys()];
   $("reportTitle").textContent = state.name;
   $("reportBody").innerHTML = `
@@ -3109,7 +3362,8 @@ function buildReport() {
         <tr><td>Contingency (${RATES.contingency_pct}%)</td><td></td><td></td><td class="n">${inr(c.cont)}</td></tr>
         <tr><td>Furniture, fittings and exterior (${ints.length} items)</td><td></td><td></td><td class="n">${inr(c.interiors)}</td></tr></tbody>
       <tfoot><tr><td>Total</td><td></td><td></td><td class="n">${inr(c.total)}</td></tr></tfoot></table>
-    <p class="basis">Rates: ${escH(RATES.source || "representative placeholder rates")}. Replace with the current PWD schedule before relying on any figure.</p>
+    <p class="basis">Rates: ${escH(RATES.source)}. Plinth-area rates are for rough cost estimates; a detailed
+      item-rate estimate replaces them at tender.${RATES.par === KERALA_PAR ? " Kerala: CPWD Delhi base (index 100); apply the CPWD cost index for the location." : ""}</p>
   </section>
 
   <section>
@@ -3156,6 +3410,9 @@ function buildReport() {
 
   ${floors.map(fl => `<section class="sheetpage"><h2>Drawing A-${fl + 1} · ${fl === 0 ? "Ground" : "Floor " + fl} plan</h2><div class="sheet">${planSheet(fl)}</div></section>`).join("")}
   <section class="sheetpage"><h2>Drawing A-${floors.length + 1} · Front elevation</h2><div class="sheet">${elevationSheet()}</div></section>
+  <section class="sheetpage"><h2>Drawing A-${floors.length + 2} · Section</h2><div class="sheet">${sectionSheet()}</div></section>
+  <section class="sheetpage"><h2>Drawing S-1 · Preliminary structural layout</h2><div class="sheet">${structuralSheet()}</div></section>
+  ${floors.map(fl => `<section class="sheetpage"><h2>Drawing P-${fl + 1} · ${fl === 0 ? "Ground" : "Floor " + fl} services</h2><div class="sheet">${servicesSheet(fl)}</div></section>`).join("")}
 
   <section><p class="basis">Generated by Synapse Studio from the live model. Schematic design only: structural design,
     detailed drawings and municipal approval are required before construction.</p></section>`;
@@ -3217,6 +3474,7 @@ function buildDxf() {
 const fileBase = () => state.name.replace(/[^\w-]+/g, "-").toLowerCase() || "synapse";
 $("exportBoq").addEventListener("click", () => save(`${fileBase()}-boq.csv`, buildBoq(), "text/csv"));
 $("exportDxf").addEventListener("click", () => save(`${fileBase()}.dxf`, buildDxf(), "application/dxf"));
+$("exportIfc").addEventListener("click", () => save(`${fileBase()}.ifc`, buildIfc(), "application/x-step"));
 
 /* ---------- roles and presenting ----------
    Roles only change what is on screen; there is no login, so they are a

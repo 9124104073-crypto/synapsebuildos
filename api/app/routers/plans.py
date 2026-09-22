@@ -29,6 +29,10 @@ def recommend(
     to be one.
     """
     plans = db.scalars(select(Plan).where(Plan.region == region)).all()
+    if not plans:
+        # A plan is geometry; it builds anywhere. Local plans are preferred
+        # when a region has them, the whole library otherwise.
+        plans = db.scalars(select(Plan)).all()
     brief = {
         "plot_size_sqft": plot_size_sqft, "budget_max": budget_max,
         "family_members": family_members, "elderly_residents": elderly_residents,

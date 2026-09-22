@@ -1,9 +1,6 @@
-"""Seed data for the Kochi pilot.
-
-The rate card is the honest part of this file: figures are representative of
-Kerala PWD / market rates for a schematic estimate, and are placeholders until
-the real published schedule is loaded. `authority` and `document_name` are what
-the UI cites, so they must never say something the data cannot support.
+"""Seed data: plans, the interiors catalogue, and the published rates and
+bylaws from regions.py. `authority` and `document_name` are what the UI cites,
+so they must never say something the data cannot support.
 """
 
 from __future__ import annotations
@@ -14,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import ComplianceRule, Plan, RateCard
+from .regions import REGIONS
 
 REGION = "Kochi"
 
@@ -136,49 +134,33 @@ def _rooms_compact() -> list[dict]:
 def run(db: Session) -> dict:
     created = {"plans": 0, "rate_cards": 0, "rules": 0}
 
-    existing = db.scalar(select(RateCard).where(RateCard.region == REGION))
-    if existing and existing.interior_catalog != INTERIOR_CATALOG:
-        # Keep the catalogue in step with the code on every boot, so an existing
-        # database learns new items instead of pricing them at zero.
-        existing.interior_catalog = INTERIOR_CATALOG
-        created["catalog_synced"] = 1
-    if not existing:
-        db.add(RateCard(
-            region=REGION,
-            authority="Kerala PWD",
-            document_name="Schedule of Rates 2024-25 (representative placeholder)",
-            effective_from=date(2024, 4, 1),
-            source_url=None,
-            construction_rate_per_sqft={"budget": 1500, "standard": 1900, "premium": 2600},
-            labor_rate_per_sqft=350,
-            material_rates={
-                "wall_finish": {"unit": "sqft", "rate": 180},
-                "flooring_base": {"unit": "sqft", "rate": 95},
-                "door": {"unit": "nos", "rate": 9400},
-                "window": {"unit": "nos", "rate": 11200},
-                "electrical_point": {"unit": "nos", "rate": 1250},
-                "plumbing_set": {"unit": "set", "rate": 68000},
-            },
-            interior_catalog=INTERIOR_CATALOG,
-        ))
-        created["rate_cards"] += 1
+    # Rate cards and rulesets are kept in step with regions.py on every boot, so
+    # a newly published schedule reaches existing databases instead of being
+    # shadowed by whatever was seeded first.
+    for name, reg in REGIONS.items():
+        card = db.scalar(select(RateCard).where(RateCard.region == name))
+        fields = dict(
+            authority=reg["authority"], document_name=reg["document"],
+            effective_from=reg["effective"], source_url=None,
+            construction_rate_per_sqft={}, labor_rate_per_sqft=0,
+            material_rates={"par": reg["par"]}, interior_catalog=INTERIOR_CATALOG,
+        )
+        if not card:
+            db.add(RateCard(region=name, **fields))
+            created["rate_cards"] += 1
+        else:
+            for k, v in fields.items():
+                if getattr(card, k) != v:
+                    setattr(card, k, v)
 
-    if not db.scalar(select(ComplianceRule).where(ComplianceRule.region == REGION)):
-        db.add(ComplianceRule(
-            region=REGION,
-            ruleset_version="KMBR-2019.v1",
-            verified_on=date(2026, 6, 12),
-            source="Kerala Municipality Building Rules — encoded subset, pilot only.",
-            min_setback_front_ft=10, min_setback_rear_ft=6, min_setback_side_ft=4,
-            max_fsi=1.5, max_ground_coverage=0.65, max_height_ft=45,
-            min_parking_per_unit=1,
-            required_nocs=[
-                "Municipal Corporation building permit",
-                "Fire and Rescue NOC (above 15 m)",
-                "Kerala Water Authority connection sanction",
-            ],
-        ))
-        created["rules"] += 1
+        rule = db.scalar(select(ComplianceRule).where(ComplianceRule.region == name))
+        if not rule:
+            db.add(ComplianceRule(region=name, **reg["rules"]))
+            created["rules"] += 1
+        else:
+            for k, v in reg["rules"].items():
+                if getattr(rule, k) != v:
+                    setattr(rule, k, v)
 
     if not db.scalar(select(Plan).where(Plan.region == REGION)):
         db.add_all([

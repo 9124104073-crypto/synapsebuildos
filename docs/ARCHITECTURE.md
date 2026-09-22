@@ -398,6 +398,14 @@ declares a plan approved.
   models is the actual work.
 - Exterior items are lump sums, not measured quantities.
 - The walkthrough has no stair *headroom* modelling.
+- Cost uses published **plinth-area rates** (₹/sq m) from `api/app/regions.py`:
+  Tamil Nadu PWD PAR 2025-26 (circular 30.07.2025) and, for Kerala, CPWD PAR
+  2025. Foundation, roof and anti-termite on the ground-floor plinth area,
+  superstructure on every enclosed floor, parking and balconies at the stilt
+  rate, services per sq m (TN) or as a % of building cost (CPWD). Schedule
+  rates include contractor's profit, so overhead is 0; contingency 5%.
+  Chosen finishes and catalogue items are added on top. The old per-sq-ft
+  item method remains in `cost.py` for any rate card without a `par` block.
 - Orientation: `plot.facing` is the compass bearing of the road edge (y = 0).
   The rear faces facing+180, the x = 0 side facing+90, the far side facing+270.
   The plan's north arrow, the 3D sun, the west-window and vastu suggestions and

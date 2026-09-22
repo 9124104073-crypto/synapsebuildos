@@ -13,7 +13,7 @@ from datetime import date
 from ..config import settings
 from ..models import RateCard
 from . import finishes
-from .geometry import FLOOR_HEIGHT_FT, OPENING_ALLOWANCE, Takeoff
+from .geometry import FLOOR_HEIGHT_FT, OPENING_ALLOWANCE, UNCONDITIONED, Takeoff
 
 
 @dataclass
@@ -81,7 +81,60 @@ def compute(
         return float(entry) if entry is not None else fallback
 
     a = takeoff
-    out.lines = [
+    par = mats.get("par")
+    if par:
+        out.lines = par_lines(a, par)
+        out.tier = "pwd"
+    else:
+        out.lines = _item_lines(a, base_rate, card, mat, tier)
+    out.lines += _finish_lines(a)
+    out.subtotal = sum(l.amount for l in out.lines)
+    return _finish(out, card, interiors, cfg, par)
+
+
+SQM_PER_SQFT = 0.09290304
+
+
+def par_lines(a: Takeoff, par: dict) -> list[CostLine]:
+    """Plinth-area-rate estimate, the way a PWD engineer writes one.
+
+    Foundation, roof and anti-termite on the ground-floor plinth area;
+    superstructure on every conditioned floor; parking and balconies at the
+    stilt rate; services either per square metre or as a percentage of the
+    building cost, whichever the schedule uses.
+    """
+    idx = float(par.get("location_index", 100)) / 100
+    ground = a.footprint_sqft * SQM_PER_SQFT
+    conditioned = a.built_up_sqft * SQM_PER_SQFT
+    open_area = sum(r.area for r in a.rooms if r.type in UNCONDITIONED) * SQM_PER_SQFT
+
+    def line(item, code, qty, key, basis):
+        rate = float(par.get(key, 0)) * idx
+        return CostLine(item, code, "SQM", round(qty, 2), rate, qty * rate, basis) if rate else None
+
+    building = [l for l in [
+        line("Foundation", "PAR-F", ground, "foundation", "Ground-floor plinth area, all rooms on the ground floor."),
+        line("Superstructure", "PAR-S", conditioned, "superstructure", "Plinth area of every enclosed floor."),
+        line("Stilt, parking and balconies", "PAR-ST", open_area, "stilt", "Open and stilt areas at the reduced rate."),
+        line("Roof finishing", "PAR-R", ground, "roof", "Ground-floor plinth area, as the schedule specifies."),
+        line("Anti-termite treatment", "PAR-AT", ground, "anti_termite", "Ground-floor plinth area."),
+    ] if l]
+    base = sum(l.amount for l in building)
+    services = [
+        CostLine(name, "PAR-SV", "SQM", round(conditioned, 2), rate * idx, conditioned * rate * idx,
+                 "Per square metre of enclosed plinth area.")
+        for name, rate in (par.get("services_per_sqm") or {}).items()
+    ] + [
+        # quantity is the percentage, rate the building cost it applies to
+        CostLine(name, "PAR-SV", "%", pct, round(base), base * pct / 100,
+                 f"{pct}% of the building cost above.")
+        for name, pct in (par.get("services_pct") or {}).items()
+    ]
+    return building + services
+
+
+def _item_lines(a: Takeoff, base_rate: float, card: RateCard, mat, tier: str) -> list[CostLine]:
+    return [
         CostLine(
             "Structure and civil works", "C-1.0", "SQFT", round(a.built_up_sqft, 1), base_rate,
             a.built_up_sqft * base_rate,
@@ -127,20 +180,23 @@ def compute(
         ),
     ]
 
-    # Surface finishes, per room, on top of masonry and screed.
+
+def _finish_lines(a: Takeoff) -> list[CostLine]:
+    """Surface finishes, per room, on top of the base specification."""
     wall_fin = floor_fin = 0.0
     for r in a.rooms:
         wall_area = r.perimeter * FLOOR_HEIGHT_FT * (1 - OPENING_ALLOWANCE) * 0.5
         wall_fin += wall_area * finishes.wall_rate(r.type, r.wall_finish)
         floor_fin += r.area * finishes.floor_rate(r.type, r.floor_finish)
-    out.lines += [
+    return [
         CostLine("Wall finishes", "F-8.0", "LS", 1, round(wall_fin), wall_fin,
                  "Paint, paper or cladding chosen per room, over the plastered wall."),
         CostLine("Floor finishes", "F-9.0", "LS", 1, round(floor_fin), floor_fin,
-                 "Tile, wood or stone chosen per room, over the base screed."),
+                 "Tile, wood or stone chosen per room, over the base floor."),
     ]
-    out.subtotal = sum(l.amount for l in out.lines)
 
+
+def _finish(out: CostBreakdown, card: RateCard, interiors, cfg, par) -> CostBreakdown:
     catalog = _catalog_index(card)
     for room_id, item_ids in (interiors or {}).items():
         for item_id in item_ids:
@@ -154,7 +210,9 @@ def compute(
             )
     out.interiors = sum(l.amount for l in out.interior_lines)
 
-    out.overhead = out.subtotal * cfg.contractor_overhead_pct / 100
+    # Schedule rates already carry the contractor's overhead and profit.
+    oh_pct = float(par.get("overhead_pct", 0)) if par else cfg.contractor_overhead_pct
+    out.overhead = out.subtotal * oh_pct / 100
     out.contingency = out.subtotal * cfg.contingency_pct / 100
     out.total = out.subtotal + out.interiors + out.overhead + out.contingency
     return out
