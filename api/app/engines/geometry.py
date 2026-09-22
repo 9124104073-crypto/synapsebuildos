@@ -24,6 +24,10 @@ class Room:
     y: float
     w: float
     h: float
+    # Finish ids live on the room — the source of truth — so the studio and
+    # the server price them from the same data. None means the type default.
+    wall_finish: str | None = None
+    floor_finish: str | None = None
 
     @property
     def area(self) -> float:
@@ -61,6 +65,7 @@ class Takeoff:
     bedrooms: int = 0
     bathrooms: int = 0
     parking_bays: int = 0
+    stairs: int = 0
     overlaps: list[tuple[str, str]] = field(default_factory=list)
     out_of_bounds: list[str] = field(default_factory=list)
 
@@ -89,13 +94,19 @@ _POINTS = {
     "pooja": (1, 0, 3),
     "parking": (0, 0, 2),
     "utility": (1, 1, 4),
+    "stairs": (0, 1, 3),
+    "balcony": (1, 0, 2),
 }
+
+# Excluded from built-up area the way a municipality excludes them.
+UNCONDITIONED = frozenset({"parking", "balcony"})
 
 
 def parse_rooms(raw: list[dict]) -> list[Room]:
     out: list[Room] = []
     for r in raw:
         try:
+            finish = r.get("finish") or {}
             out.append(
                 Room(
                     id=str(r["id"]),
@@ -104,6 +115,8 @@ def parse_rooms(raw: list[dict]) -> list[Room]:
                     floor=int(r.get("floor", 0)),
                     x=float(r["x"]), y=float(r["y"]),
                     w=float(r["w"]), h=float(r["h"]),
+                    wall_finish=finish.get("wall"),
+                    floor_finish=finish.get("floor"),
                 )
             )
         except (KeyError, TypeError, ValueError):
@@ -121,7 +134,7 @@ def measure(rooms: list[Room], plot_w: float, plot_h: float) -> Takeoff:
     t.floors = max(r.floor for r in rooms) + 1
 
     for r in rooms:
-        conditioned = r.type != "parking"
+        conditioned = r.type not in UNCONDITIONED
         if conditioned:
             t.built_up_sqft += r.area
             t.flooring_sqft += r.area
@@ -143,6 +156,8 @@ def measure(rooms: list[Room], plot_w: float, plot_h: float) -> Takeoff:
             t.bathrooms += 1
         elif r.type == "parking":
             t.parking_bays += 1
+        elif r.type == "stairs":
+            t.stairs += 1
 
     # Front door plus circulation points the room loop cannot see.
     t.doors += 1

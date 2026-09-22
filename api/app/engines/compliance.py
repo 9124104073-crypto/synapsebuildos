@@ -101,6 +101,14 @@ def check(takeoff: Takeoff, rule: ComplianceRule) -> dict:
         "are not modelled here and can add to the measured height.",
         src, verified))
 
+    # --- vertical access ----------------------------------------------
+    if takeoff.floors > 1 and takeoff.stairs == 0:
+        f.append(Finding(
+            f"{rule.ruleset_version}.ACCESS", "Vertical access", "WARNING",
+            LIKELY_FAIL, HIGH,
+            "More than one floor with no staircase placed.",
+            src, verified))
+
     # --- geometry sanity, surfaced as compliance because it blocks filing --
     if takeoff.overlaps:
         f.append(Finding(

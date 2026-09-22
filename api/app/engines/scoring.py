@@ -46,7 +46,9 @@ def buildability(t: Takeoff) -> tuple[float, str]:
         score -= 25
         notes.append("overlapping rooms")
     # Irregular, sliver-shaped rooms are disproportionately expensive to build.
-    slivers = sum(1 for r in t.rooms if r.w and r.h and max(r.w / r.h, r.h / r.w) > 3.2)
+    # Stairs are long and narrow by nature; that is not a buildability smell.
+    slivers = sum(1 for r in t.rooms
+                  if r.type != "stairs" and r.w and r.h and max(r.w / r.h, r.h / r.w) > 3.2)
     if slivers:
         score -= slivers * 4
         notes.append(f"{slivers} long, narrow room(s)")

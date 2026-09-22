@@ -11,14 +11,16 @@ class RoomIn(BaseModel):
     id: str
     name: str | None = None
     type: Literal[
-        "bedroom", "living", "kitchen", "bath", "dining",
-        "office", "pooja", "parking", "utility",
+        "bedroom", "living", "kitchen", "bath", "dining", "office", "pooja",
+        "parking", "utility", "stairs", "balcony",
     ] = "bedroom"
     floor: int = Field(0, ge=0, le=4)
     x: float = Field(..., ge=-1)
     y: float = Field(..., ge=-1)
     w: float = Field(..., gt=0, le=200)
     h: float = Field(..., gt=0, le=200)
+    # {"wall": "p-sage", "floor": "f-marble"} — ids from engines/finishes.py
+    finish: dict[str, str] | None = None
 
 
 class Plot(BaseModel):

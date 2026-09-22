@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,10 @@ class Settings(BaseSettings):
     # Claude. The SDK resolves ANTHROPIC_API_KEY itself; we only carry the
     # knobs. Leave the key unset and the specialist endpoints return 503
     # rather than pretending.
+    # Read from the environment OR api/.env. Un-prefixed on purpose: it is the
+    # name the SDK and every Anthropic doc uses. Never logged, never returned.
+    anthropic_api_key: str | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+
     model: str = "claude-opus-5"
     effort: str = "high"
     max_tokens: int = 16000

@@ -78,6 +78,28 @@ INTERIOR_CATALOG = [
     {"id": "d-f-tile", "room": "dining", "category": "Flooring", "name": "Vitrified tile", "price": 22000},
     {"id": "d-w-paint", "room": "dining", "category": "Walls", "name": "Paint", "price": 8000},
     {"id": "d-lt", "room": "dining", "category": "Lighting", "name": "Pendant over table", "price": 18000},
+
+    {"id": "o-desk", "room": "office", "category": "Furniture", "name": "Work desk", "price": 22000},
+    {"id": "o-chair", "room": "office", "category": "Furniture", "name": "Task chair", "price": 12000},
+    {"id": "o-shelf", "room": "office", "category": "Furniture", "name": "Book shelving", "price": 18000},
+    {"id": "p-unit", "room": "pooja", "category": "Furniture", "name": "Pooja unit", "price": 35000},
+    {"id": "u-washer", "room": "utility", "category": "Appliances", "name": "Washing machine", "price": 32000},
+    {"id": "bl-chairs", "room": "balcony", "category": "Furniture", "name": "Balcony chairs", "price": 15000},
+    {"id": "bl-plant", "room": "balcony", "category": "Decor", "name": "Planters", "price": 8000},
+
+    # Exterior upgrades over the base flat slab and plastered facade. Lump sums,
+    # indicative for a 1,000-1,500 sq ft house — they do not scale with area yet,
+    # and the UI labels them as such.
+    {"id": "x-roof-gable", "room": "exterior", "category": "Roof", "name": "Sloped tile roof", "price": 280000},
+    {"id": "x-roof-hip", "room": "exterior", "category": "Roof", "name": "Hip roof, clay tile", "price": 340000},
+    {"id": "x-facade-brick", "room": "exterior", "category": "Facade", "name": "Exposed brick facade", "price": 190000},
+    {"id": "x-facade-stone", "room": "exterior", "category": "Facade", "name": "Stone cladding", "price": 360000},
+    {"id": "x-facade-wood", "room": "exterior", "category": "Facade", "name": "Wood cladding accents", "price": 240000},
+    {"id": "x-chajja", "room": "exterior", "category": "Shading", "name": "Window sunshades (chajjas)", "price": 60000},
+    {"id": "x-pergola", "room": "exterior", "category": "Shading", "name": "Terrace pergola", "price": 110000},
+    {"id": "x-gate", "room": "exterior", "category": "Site", "name": "Compound wall and gate", "price": 220000},
+    {"id": "x-garden", "room": "exterior", "category": "Site", "name": "Front landscaping", "price": 90000},
+    {"id": "x-solar", "room": "exterior", "category": "Services", "name": "Rooftop solar, 3 kW", "price": 180000},
 ]
 
 
@@ -94,6 +116,9 @@ def _rooms_3bhk() -> list[dict]:
         {"id": "bed_2", "name": "Bedroom 2", "type": "bedroom", "floor": 1, "x": 4, "y": 10, "w": 13, "h": 12},
         {"id": "bed_3", "name": "Bedroom 3", "type": "bedroom", "floor": 1, "x": 18, "y": 10, "w": 13, "h": 12},
         {"id": "bath_2", "name": "Bathroom 2", "type": "bath", "floor": 1, "x": 4, "y": 23, "w": 7, "h": 7},
+        # Same footprint on both floors so the flight lands where it starts.
+        {"id": "stair_0", "name": "Stairs", "type": "stairs", "floor": 0, "x": 31, "y": 33, "w": 4, "h": 11},
+        {"id": "stair_1", "name": "Stairs", "type": "stairs", "floor": 1, "x": 31, "y": 33, "w": 4, "h": 11},
     ]
 
 
@@ -111,7 +136,13 @@ def _rooms_compact() -> list[dict]:
 def run(db: Session) -> dict:
     created = {"plans": 0, "rate_cards": 0, "rules": 0}
 
-    if not db.scalar(select(RateCard).where(RateCard.region == REGION)):
+    existing = db.scalar(select(RateCard).where(RateCard.region == REGION))
+    if existing and existing.interior_catalog != INTERIOR_CATALOG:
+        # Keep the catalogue in step with the code on every boot, so an existing
+        # database learns new items instead of pricing them at zero.
+        existing.interior_catalog = INTERIOR_CATALOG
+        created["catalog_synced"] = 1
+    if not existing:
         db.add(RateCard(
             region=REGION,
             authority="Kerala PWD",

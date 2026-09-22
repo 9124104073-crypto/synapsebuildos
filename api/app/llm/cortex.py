@@ -18,8 +18,8 @@ from . import prompts
 
 log = logging.getLogger(__name__)
 
-RoomType = Literal["bedroom", "living", "kitchen", "bath", "dining",
-                   "office", "pooja", "parking", "utility"]
+RoomType = Literal["bedroom", "living", "kitchen", "bath", "dining", "office",
+                   "pooja", "parking", "utility", "stairs", "balcony"]
 
 
 class GeneratedRoom(BaseModel):
@@ -31,6 +31,8 @@ class GeneratedRoom(BaseModel):
     y: float
     w: float = Field(..., gt=0)
     h: float = Field(..., gt=0)
+    finish: dict[str, str] | None = Field(
+        None, description="Keep any existing finish on rooms you did not change.")
 
 
 class GeneratedLayout(BaseModel):
@@ -87,8 +89,11 @@ def _client():
         import anthropic
     except ImportError as e:  # pragma: no cover
         raise CortexUnavailable("The anthropic SDK is not installed.") from e
+    key = settings().anthropic_api_key
     try:
-        return anthropic.Anthropic()
+        # Explicit key from api/.env wins; otherwise the SDK's own resolution
+        # (environment variable, then an `ant auth login` profile).
+        return anthropic.Anthropic(api_key=key) if key else anthropic.Anthropic()
     except Exception as e:
         raise CortexUnavailable(
             "No Claude credentials found. Set ANTHROPIC_API_KEY or run `ant auth login`."
@@ -108,6 +113,17 @@ def _parse_messages(system: str, messages: list[dict], output_model: type[BaseMo
             messages=messages,
             output_format=output_model,
         )
+    except TypeError as e:
+        # The SDK only discovers missing credentials when it builds the request.
+        # That is a configuration state, not a crash — say what to do, skip the
+        # stack trace.
+        if "authentication" in str(e).lower():
+            log.warning("Claude call skipped: no credentials configured")
+            raise CortexUnavailable(
+                "Claude is not configured. Add ANTHROPIC_API_KEY to api/.env "
+                "(see api/.env.example) and restart the API.") from e
+        log.exception("Cortex call failed")
+        raise CortexUnavailable(str(e)) from e
     except Exception as e:
         log.exception("Cortex call failed")
         raise CortexUnavailable(str(e)) from e
@@ -143,9 +159,12 @@ def architecture(brief: dict, plot: dict, setbacks: dict) -> GeneratedLayout:
 
 
 def _room_lines(rooms: list[dict]) -> str:
+    def fin(r):
+        f = r.get("finish") or {}
+        return f" finish={{wall:{f.get('wall')}, floor:{f.get('floor')}}}" if f else ""
     return "\n".join(
         f"- id={r.get('id')} \"{r.get('name')}\" ({r.get('type')}, floor {r.get('floor', 0)}): "
-        f"{r.get('w')} x {r.get('h')} ft at ({r.get('x')}, {r.get('y')})"
+        f"{r.get('w')} x {r.get('h')} ft at ({r.get('x')}, {r.get('y')}){fin(r)}"
         for r in rooms) or "- (the plan is empty)"
 
 

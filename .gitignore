@@ -30,3 +30,9 @@ dpr_sample.pdf
 
 # Local preview output
 *.log
+
+# secrets and local state
+api/.env
+api/.venv/
+api/synapse.db
+__pycache__/

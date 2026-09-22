@@ -63,6 +63,8 @@ def health() -> dict:
     return {
         "status": "ok",
         "model": cfg.model,
+        # Whether a key is present — never the key itself.
+        "claude_configured": bool(cfg.anthropic_api_key),
         "database": cfg.database_url.split("://", 1)[0],
         "note": "Cost is arithmetic over a rate card. Compliance is a rule "
                 "checklist. Neither is a prediction.",

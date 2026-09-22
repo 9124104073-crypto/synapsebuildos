@@ -12,7 +12,8 @@ from datetime import date
 
 from ..config import settings
 from ..models import RateCard
-from .geometry import Takeoff
+from . import finishes
+from .geometry import FLOOR_HEIGHT_FT, OPENING_ALLOWANCE, Takeoff
 
 
 @dataclass
@@ -124,6 +125,19 @@ def compute(
             (a.bathrooms + (1 if a.rooms else 0)) * mat("plumbing_set", 68000),
             "One set per bathroom, plus the kitchen.",
         ),
+    ]
+
+    # Surface finishes, per room, on top of masonry and screed.
+    wall_fin = floor_fin = 0.0
+    for r in a.rooms:
+        wall_area = r.perimeter * FLOOR_HEIGHT_FT * (1 - OPENING_ALLOWANCE) * 0.5
+        wall_fin += wall_area * finishes.wall_rate(r.type, r.wall_finish)
+        floor_fin += r.area * finishes.floor_rate(r.type, r.floor_finish)
+    out.lines += [
+        CostLine("Wall finishes", "F-8.0", "LS", 1, round(wall_fin), wall_fin,
+                 "Paint, paper or cladding chosen per room, over the plastered wall."),
+        CostLine("Floor finishes", "F-9.0", "LS", 1, round(floor_fin), floor_fin,
+                 "Tile, wood or stone chosen per room, over the base screed."),
     ]
     out.subtotal = sum(l.amount for l in out.lines)
 

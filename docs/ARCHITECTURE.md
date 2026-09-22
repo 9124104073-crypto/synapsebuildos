@@ -283,15 +283,25 @@ response means those three can never drift apart.
 The studio reimplements the engines in JS so it works offline. They are held to
 be identical — verified live on the same project:
 
+Last verified on the seeded 3BHK (two floors with stairs), Comfort furniture in
+every room and a hip roof:
+
 | | Studio | FastAPI |
 |---|---|---|
-| Built-up | 997 sf | 997.0 |
-| Cost | ₹38.2L | 3,821,358 |
-| Readiness | 96 | 96 |
-| Sub-scores | 97 / 100 / 92 / 94 | 97 / 100 / 92 / 94 |
+| Built-up | 1085 sf | 1085 |
+| Furniture & exterior | ₹17.9L | 1,794,000 |
+| Total | ₹61.6L | 6,161,774 |
 
-A divergence is a bug in one of them. One was found this way: the client was
-missing the building-height check and read 78 where the server read 79.
+What both sides now share: per-room finishes (`room.finish = {wall, floor}`,
+priced as an extra on top of base masonry and flooring — `engines/finishes.py`
+mirrors the studio's `FINISH` table), `stairs` and `balcony` room types
+(balconies are excluded from conditioned built-up), the "vertical access" rule
+for multi-floor plans without stairs, and the catalogue (`seed.py` ↔ studio
+`CATALOG`, including exterior items stored under `interiors.exterior`).
+
+A divergence is a bug in one of them. Several were found this way: the missing
+building-height check, finishes the server did not know about, paint replacing
+rather than adding to masonry, and balconies counted as built-up.
 
 ---
 
@@ -299,12 +309,20 @@ missing the building-height check and read 78 where the server read 79.
 
 Same rectangles, extruded.
 
-1. **Walls** — per room edge. Thickness 0.75 ft external / 0.5 ft internal,
-   decided by whether the edge faces away from the building centroid.
-2. **Openings** — the edge facing the centroid gets a **door** (3.2 ft, with a
-   lintel above and a hinged leaf standing ajar); outward edges get a **window**
-   (sill 3 ft, head 7 ft, glass plus frame). A wall run is emitted as up to
-   four segments around its hole.
+1. **Walls** — `wallPlan()` partitions every room edge into runs. A run shared
+   by two rooms is drawn **once** (owned by the smaller id) as an internal wall;
+   an unshared run is an external wall. No more doubled walls.
+2. **Openings** — a door goes in a shared run only when the two rooms should
+   connect (bedroom↔bath, kitchen↔dining, anything↔living/hallway hub…); the
+   living room's lowest exterior run gets the **main door**. A room that ends
+   up with no door is given one to its largest neighbour, so nothing is
+   sealed. External runs get **windows**, with optional chajjas. The same
+   plan draws door swings and window marks on the 2D plan.
+3. **Furniture** — `placeItems()` anchors each catalogue item (n/s/e/w/corner/
+   centre) inside its room and skips anything that would collide; skipped
+   items stay priced and the panel names them.
+4. **Exterior** — flat parapet, gable or hip roof; brick/stone/wood facade
+   materials; chajjas, pergola, compound wall and gate, garden, rooftop solar.
 3. **Finishes** — wall and floor materials become `CanvasTexture`s drawn at
    runtime: tile grout, wood grain, marble veining, granite speckle, coursed
    stone. Repeat is set from real dimensions, so a 20 ft wall shows twice the
@@ -339,8 +357,15 @@ cd web && python -m http.server 5173
 Studio standalone: <http://127.0.0.1:5173/studio.html>
 Studio wired to the API: `…/studio.html?api=http://127.0.0.1:8000&project=<id>`
 
-Claude features need `ANTHROPIC_API_KEY` in the API process. Without it the
-`/cortex/*` endpoints return 503 and the studio falls back to the rules engine.
+Claude features need an Anthropic API key. Copy `api/.env.example` to
+`api/.env`, set `ANTHROPIC_API_KEY=sk-ant-…` (from console.anthropic.com) and
+restart the API. `/health` reports `claude_configured: true|false` — never the
+key. Without it the `/cortex/*` endpoints return a 503 saying exactly this, and
+the studio keeps working on the rules engine.
+
+**Voice input** uses the browser's Web Speech API (Chrome/Edge; the browser
+sends audio to its own speech service). English goes through the rules engine
+first; Malayalam, Hindi and Tamil go straight to Claude. No extra key needed.
 
 ---
 
@@ -367,10 +392,13 @@ declares a plan approved.
   `seed.py` and echoed in every response. Load the real Kerala PWD schedule
   before anyone treats a number as bankable.
 - The compliance ruleset is an encoded subset of KMBR, Kochi pilot only.
-- Adjacent rooms each draw their own wall — fine visually, wrong if you ever
-  want wall quantities from the 3D rather than from the takeoff.
+- The takeoff still measures walls per room; the 3D shares them. Quantities
+  from the 3D would be more accurate but are not used yet.
 - Furniture is parametric blocks, not glTF. The loader is trivial; sourcing
   models is the actual work.
-- The walkthrough has no stair *headroom* modelling and no doors that open.
+- Exterior items are lump sums, not measured quantities.
+- The walkthrough has no stair *headroom* modelling.
+- See `docs/GAP_ANALYSIS.md` for what the product documents describe that is
+  not built.
 - Redis is declared and unused.
 - No auth. Single-user demo posture.
