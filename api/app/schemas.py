@@ -41,6 +41,8 @@ class BriefIn(BaseModel):
     required_spaces: list[str] = Field(default_factory=list)
     theme: str | None = None
     region: str = "Chennai"
+    # TN PWD PAR note 13: concrete grade near the sea.
+    coastal: Literal["under10", "10to24", "inland"] | None = None
     notes: str | None = None
 
 

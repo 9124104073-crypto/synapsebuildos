@@ -553,7 +553,7 @@ const TN_SERVICES = { "Internal water supply":767, "Internal sanitary arrangemen
                       "Internal electrical arrangements":1269 };
 const tnPar = (foundation, superstructure, roof, nonres) => ({ foundation, superstructure, roof,
   stilt: Math.round(.65 * nonres * 100) / 100, anti_termite:144, services_per_sqm:TN_SERVICES,
-  services_pct:{}, location_index:100 });
+  services_pct:{}, location_index:100, coastal:{ under10:328, "10to24":164 } });
 const TN_DOC = "Tamil Nadu PWD — Plinth Area Rates 2025-26, Circular Memo HDO(A)/48518/2003 dated 30.07.2025 (Annexure I, III)";
 const TNCDBR = { version:"TNCDBR-2019.v1", front:4.92, rear:4.92, side:3.28, max_fsi:2.0, max_cover:1.0, max_height:39.4, min_parking:1 };
 const TN_BIG = tnPar(6420, 17455, 2170, 13110), TN_MID = tnPar(6255, 17070, 2135, 12820), TN_MOF = tnPar(5955, 16260, 2025, 12215);
@@ -738,7 +738,7 @@ const state = {
   plot:{ w:40, h:50 }, budget:45, floor:0, selected:null,
   interiors:{},          // roomId -> [catalogue ids]; "exterior" -> [ids]
   name:"Untitled house",
-  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", notes:"" },
+  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", coastal:"inland", notes:"" },
   rooms:[
     {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
     {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
@@ -837,6 +837,9 @@ function costLines(t) {
     ["Roof finishing", "PAR-R", ground, "roof", "Ground-floor plinth area, as the schedule specifies."],
     ["Anti-termite treatment", "PAR-AT", ground, "anti_termite", "Ground-floor plinth area."]
   ].filter(([, , , k]) => P[k]).map(([n, c, q, k, b]) => L(n, c, "sqm", q, P[k] * idx, b));
+  const coastRate = (P.coastal || {})[state.brief.coastal] || 0;
+  if (coastRate) building.push(L("Coastal extra, higher-grade concrete", "PAR-CO", "sqm", cond + open,
+    coastRate * idx, `Total plinth area, for a plot ${state.brief.coastal === "under10" ? "within 10 km" : "10-24 km from"} the sea.`));
   const base = building.reduce((s, l) => s + l.amount, 0);
   const services = [
     ...Object.entries(P.services_per_sqm || {}).map(([n, r]) => L(n, "PAR-SV", "sqm", cond, r * idx, "Per square metre of enclosed plinth area.")),
@@ -2842,6 +2845,9 @@ function renderBrief() {
       <select id="bRegion">${["Tamil Nadu"].map(st => `<optgroup label="${st}">${
         Object.entries(REGIONS).filter(([, r]) => r.state === st).map(([n]) =>
           `<option${n === B.region ? " selected" : ""}>${n}</option>`).join("")}</optgroup>`).join("")}</select></div>
+    <div class="field" style="margin-top:.5rem"><label for="bCoast">Distance from the sea</label>
+      <select id="bCoast">${[["inland","More than 24 km"],["10to24","10 to 24 km (+₹164/sq m)"],["under10","Within 10 km (+₹328/sq m)"]]
+        .map(([v, t]) => `<option value="${v}"${v === B.coastal ? " selected" : ""}>${t}</option>`).join("")}</select></div>
     <div class="fields">
       <div class="field"><label for="bFam">People</label><input id="bFam" class="num" type="number" min="1" max="20" value="${B.family_members}"></div>
       <div class="field"><label for="bOld">Elderly</label><input id="bOld" class="num" type="number" min="0" max="10" value="${B.elderly_residents}"></div>
@@ -2858,7 +2864,7 @@ function renderBrief() {
     render(); pushBrief();
   });
   bind("bFam","family_members",1); bind("bOld","elderly_residents",1); bind("bKid","children",1);
-  bind("bTheme","theme"); bind("bNotes","notes");
+  bind("bTheme","theme"); bind("bNotes","notes"); bind("bCoast","coastal");
   $("bRegion").addEventListener("change", e => {
     B.region = e.target.value; setRegion(B.region);
     render(); pushBrief();

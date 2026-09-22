@@ -64,6 +64,7 @@ def compute(
     card: RateCard,
     interiors: dict[str, list[str]] | None = None,
     tier: str = "standard",
+    coastal: str | None = None,
 ) -> CostBreakdown:
     cfg = settings()
     out = CostBreakdown(tier=tier)
@@ -83,7 +84,7 @@ def compute(
     a = takeoff
     par = mats.get("par")
     if par:
-        out.lines = par_lines(a, par)
+        out.lines = par_lines(a, par, coastal)
         out.tier = "pwd"
     else:
         out.lines = _item_lines(a, base_rate, card, mat, tier)
@@ -95,7 +96,7 @@ def compute(
 SQM_PER_SQFT = 0.09290304
 
 
-def par_lines(a: Takeoff, par: dict) -> list[CostLine]:
+def par_lines(a: Takeoff, par: dict, coastal: str | None = None) -> list[CostLine]:
     """Plinth-area-rate estimate, the way a PWD engineer writes one.
 
     Foundation, roof and anti-termite on the ground-floor plinth area;
@@ -119,6 +120,13 @@ def par_lines(a: Takeoff, par: dict) -> list[CostLine]:
         line("Roof finishing", "PAR-R", ground, "roof", "Ground-floor plinth area, as the schedule specifies."),
         line("Anti-termite treatment", "PAR-AT", ground, "anti_termite", "Ground-floor plinth area."),
     ] if l]
+    rate = float((par.get("coastal") or {}).get(coastal or "", 0)) * idx
+    if rate:
+        qty = conditioned + open_area
+        building.append(CostLine(
+            "Coastal extra, higher-grade concrete", "PAR-CO", "SQM", round(qty, 2), rate, qty * rate,
+            "Total plinth area, for a plot "
+            + ("within 10 km" if coastal == "under10" else "10-24 km from") + " the sea."))
     base = sum(l.amount for l in building)
     services = [
         CostLine(name, "PAR-SV", "SQM", round(conditioned, 2), rate * idx, conditioned * rate * idx,

@@ -38,7 +38,8 @@ def analyse(project: Project, card: RateCard, rule: ComplianceRule, tier: str = 
     rooms = parse_rooms(project.rooms or [])
     t = measure(rooms, float(plot.get("w") or 0), float(plot.get("h") or 0))
 
-    c = cost_engine.compute(t, card, project.interiors or {}, tier=tier)
+    c = cost_engine.compute(t, card, project.interiors or {}, tier=tier,
+                            coastal=(project.brief or {}).get("coastal"))
     comp = compliance_engine.check(t, rule)
     ready = scoring.compute(t, c.total, float(project.budget_max or 0), comp)
 

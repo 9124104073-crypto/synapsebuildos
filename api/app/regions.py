@@ -42,6 +42,8 @@ def _tn(foundation: float, superstructure: float, roof: float, column: str) -> d
         "anti_termite": 144,                   # 17(a)(viii), ground-floor plinth area
         "services_per_sqm": _TN_SERVICES,
         "services_pct": {},
+        # Note 13: higher-grade concrete near the sea, on the total plinth area.
+        "coastal": {"under10": 328, "10to24": 164},
         "location_index": 100,
         "overhead_pct": 0,                     # SoR-derived rates include contractor's profit
         "includes": "RCC frame, brickwork, plaster, steel-framed doors and windows, "
@@ -49,8 +51,7 @@ def _tn(foundation: float, superstructure: float, roof: float, column: str) -> d
                     "whitewash inside, colour wash outside, weathering course and "
                     "pressed-tile roof finish (notes 14-16).",
         "notes": "Chosen floor and wall finishes are charged on top of this base "
-                 "specification. Coastal extra (Rs.328/sqm within 10 km of the sea, "
-                 "note 13) is not applied automatically.",
+                 "specification.",
     }
 
 
