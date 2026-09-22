@@ -191,16 +191,20 @@ def _item_lines(a: Takeoff, base_rate: float, card: RateCard, mat, tier: str) ->
 
 def _finish_lines(a: Takeoff) -> list[CostLine]:
     """Surface finishes, per room, on top of the base specification."""
-    wall_fin = floor_fin = 0.0
+    wall_fin = floor_fin = ceil_fin = 0.0
     for r in a.rooms:
         wall_area = r.perimeter * FLOOR_HEIGHT_FT * (1 - OPENING_ALLOWANCE) * 0.5
         wall_fin += wall_area * finishes.wall_rate(r.type, r.wall_finish)
         floor_fin += r.area * finishes.floor_rate(r.type, r.floor_finish)
+        if r.type not in UNCONDITIONED:
+            ceil_fin += r.area * finishes.ceiling_rate(r.type, r.ceiling_finish)
     return [
         CostLine("Wall finishes", "F-8.0", "LS", 1, round(wall_fin), wall_fin,
                  "Paint, paper or cladding chosen per room, over the plastered wall."),
         CostLine("Floor finishes", "F-9.0", "LS", 1, round(floor_fin), floor_fin,
                  "Tile, wood or stone chosen per room, over the base floor."),
+        CostLine("Ceiling finishes", "F-10.0", "LS", 1, round(ceil_fin), ceil_fin,
+                 "Paint, false ceiling or rafters chosen per room, over the slab soffit."),
     ]
 
 

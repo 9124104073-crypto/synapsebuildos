@@ -344,6 +344,9 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
     </div>
     <div class="threeonly" id="threeTools" hidden>
       <button class="btn" id="walkBtn" aria-pressed="false">Walk inside</button>
+      <button class="btn" id="lockBtn" aria-pressed="true"
+              title="Locked: dragging turns the view and nothing in the house moves. Unlock to drag rooms in 3D.">Locked</button>
+      <button class="btn" id="spinBtn" aria-pressed="false" title="Turn the house slowly on the spot">Spin</button>
       <label class="chk"><input type="checkbox" id="showFurniture" checked> Furniture</label>
       <label class="chk"><input type="checkbox" id="showRoof"> Roof</label>
       <label class="sun">
@@ -947,7 +950,7 @@ function renderFinishes() {
     const chosen = finishById(kind, sel);
     return `
       <div class="swlabel">
-        <span class="eyebrow">${kind === "wall" ? "Wall finish" : "Floor finish"}</span>
+        <span class="eyebrow">${{ wall:"Wall finish", floor:"Floor finish", ceiling:"Ceiling" }[kind]}</span>
         <span class="rate">₹${chosen.rate}/sf · ${inr(chosen.rate * area)}</span>
       </div>
       <div class="swatches" data-kind="${kind}">
@@ -959,10 +962,13 @@ function renderFinishes() {
       </div>`;
   };
 
-  box.innerHTML = grid("wall", wallArea) + grid("floor", r.w * r.h) +
+  const area = r.w * r.h;
+  const ceil = UNCONDITIONED.has(r.type) ? 0 : finishById("ceiling", cur.ceiling).rate * area;
+  box.innerHTML = grid("wall", wallArea) + grid("floor", area) +
+    (UNCONDITIONED.has(r.type) ? "" : grid("ceiling", area)) +
     `<p class="hint">Finish rates are per square foot and feed straight into the cost
      panel below — ${inr(wallArea * finishById("wall", cur.wall).rate
-       + r.w * r.h * finishById("floor", cur.floor).rate)} for this room.</p>`;
+       + area * finishById("floor", cur.floor).rate + ceil)} for this room.</p>`;
 
   box.querySelectorAll("[data-fin]").forEach(btn => btn.addEventListener("click", () => {
     const { fin, kind } = btn.dataset;
@@ -1543,7 +1549,8 @@ function placeItems(r) {
 
 /* ---------- furniture in 3D ---------- */
 const TONE = {
-  soft: 0x8b8578, wood: 0x8a6a48, white: 0xe8e6e0, rug: 0xb49a7a, plant: 0x5d7a4f
+  soft: 0x8b8578, wood: 0x8a6a48, white: 0xe8e6e0, rug: 0xb49a7a, plant: 0x5d7a4f,
+  brass: 0xb08d3f
 };
 function furniture3d(group, r, baseY, cx, cz) {
   const mat = c => new THREE.MeshLambertMaterial({ color:c });
@@ -1558,6 +1565,19 @@ function furniture3d(group, r, baseY, cx, cz) {
       const leaves = new THREE.Mesh(new THREE.SphereGeometry(Math.min(p.w, p.d) * .75, 10, 8), mat(TONE.plant));
       leaves.position.set(X, baseY + 1.2 + p.h * .35, Z); leaves.castShadow = true;
       group.add(leaves);
+    } else if (it.jaali) {
+      // a pierced screen: slats with gaps, so light passes through it in 3D too
+      const n = Math.max(3, Math.round(p.w / .8)), slat = p.w / (n * 2);
+      for (let i = 0; i < n; i++)
+        group.add(box(slat, p.h, p.d, X - p.w/2 + slat/2 + i * p.w/n, baseY + p.h/2, Z, mat(TONE.wood)));
+      group.add(box(p.w, .3, p.d, X, baseY + p.h, Z, mat(TONE.wood)));
+    } else if (it.swing) {
+      const chain = mat(0x4a4a4a);
+      group.add(box(p.w, .35, p.d, X, baseY + 2.2, Z, mat(TONE.wood)));            // seat plank
+      group.add(box(p.w, 1.4, .2, X, baseY + 3, Z - p.d/2 + .1, mat(TONE.wood)));  // backrest
+      for (const dx of [-p.w/2 + .3, p.w/2 - .3])
+        for (const dz of [-p.d/2 + .2, p.d/2 - .2])
+          group.add(box(.08, FLOOR_H - 2.4, .08, X + dx, baseY + 2.4 + (FLOOR_H - 2.4)/2, Z + dz, chain, false));
     } else if (it.bed) {
       group.add(box(p.w, 1.1, p.d, X, baseY + .55, Z, mat(TONE.wood)));
       group.add(box(p.w - .3, .6, p.d - .5, X, baseY + 1.4, Z + .15, mat(0xe9e4da)));      // mattress
@@ -1614,6 +1634,7 @@ function buildStairs(group, r, baseY, cx, cz) {
 /* ---------- exterior: roof, site, services ---------- */
 const ext = id => hasItem("exterior", id);
 function facadeMaterial(len) {
+  if (ext("x-facade-plaster")) return finishMaterial({ tex:"plaster", color:0xe6dfd1 }, len/3, FLOOR_H/3);
   if (ext("x-facade-brick")) return finishMaterial({ tex:"stone", color:0x9c5a3c }, len/4, FLOOR_H/3);
   if (ext("x-facade-stone")) return finishMaterial({ tex:"stone", color:0x8f877b }, len/6, FLOOR_H/5);
   if (ext("x-facade-wood"))  return finishMaterial({ tex:"wood",  color:0x9a6a40 }, len/6, FLOOR_H/6);
@@ -1630,11 +1651,11 @@ function exterior3d(cx, cz, showRoof) {
     const z0 = Math.min(...topRooms.map(r => r.y)) - cz, z1 = Math.max(...topRooms.map(r => r.y + r.h)) - cz;
     const W = x1 - x0, D = z1 - z0, Y = (top + 1) * FLOOR_H, mx = (x0+x1)/2, mz = (z0+z1)/2;
     const tile = finishMaterial({ tex:"stone", color:0xa65a3a }, W/5, D/5);
-    const sloped = ext("x-roof-gable") || ext("x-roof-hip");
+    const sloped = ext("x-roof-gable") || ext("x-roof-hip") || ext("x-roof-mangalore");
 
     if (sloped && showRoof) {
       const oh = 1.6;
-      if (ext("x-roof-gable")) {
+      if (ext("x-roof-gable") || ext("x-roof-mangalore")) {
         const alongX = W >= D, span = (alongX ? D : W) + oh*2, run = (alongX ? W : D) + oh*2;
         const rise = span * .32;
         const shape = new THREE.Shape();
@@ -1681,18 +1702,102 @@ function exterior3d(cx, cz, showRoof) {
     }
   }
 
-  if (ext("x-gate")) {
+  // Car porch: a slab over the parking bay, on four columns.
+  const park = state.rooms.find(r => r.type === "parking" && r.floor === 0);
+  if (ext("x-porch") && park) {
+    const col = mat(0xdcd6c9), slab = mat(0xcfc9bc), H = 9.5;
+    const x0 = park.x - cx, x1 = park.x + park.w - cx, z0 = park.y - cz, z1 = park.y + park.h - cz;
+    for (const [x, z] of [[x0+.4,z0+.4],[x1-.4,z0+.4],[x0+.4,z1-.4],[x1-.4,z1-.4]])
+      g.add(box(.8, H, .8, x, H/2, z, col));
+    g.add(box(park.w + 1.2, .5, park.h + 1.2, (x0+x1)/2, H + .25, (z0+z1)/2, slab));
+  }
+  // Portico columns at the main door, and a raised sit-out beside it.
+  const mainSeg = wallPlan().find(s => s.main);
+  if (ext("x-portico") && mainSeg) {
+    const col = mat(0xe4ded1), m = (mainSeg.a + mainSeg.b) / 2;
+    const [px, pz] = mainSeg.horiz ? [m - cx, mainSeg.coord - cz] : [mainSeg.coord - cx, m - cz];
+    const out = mainSeg.horiz ? [0, -4] : [-4, 0];
+    for (const d of [-3.5, 3.5]) {
+      const x = px + out[0] + (mainSeg.horiz ? d : 0), z = pz + out[1] + (mainSeg.horiz ? 0 : d);
+      g.add(box(1.1, FLOOR_H - .5, 1.1, x, (FLOOR_H - .5)/2, z, col));
+    }
+    g.add(box(mainSeg.horiz ? 9 : 5, .6, mainSeg.horiz ? 5 : 9,
+              px + out[0], FLOOR_H - .2, pz + out[1], col));
+  }
+  if (ext("x-thinnai") && mainSeg) {
+    const plinth = mat(0xd3ccbd), m = (mainSeg.a + mainSeg.b) / 2;
+    const [px, pz] = mainSeg.horiz ? [m - cx, mainSeg.coord - cz] : [mainSeg.coord - cx, m - cz];
+    g.add(mainSeg.horiz ? box(10, 1.4, 4, px, .7, pz - 2.6, plinth)
+                        : box(4, 1.4, 10, px - 2.6, .7, pz, plinth));
+  }
+  // Window grills and balcony railings, drawn from the same wall plan the
+  // windows come from.
+  if (ext("x-grills") || ext("x-railing-ms") || ext("x-railing-ss")) {
+    const bar = mat(0x3a3a3a), glass = ext("x-railing-ss");
+    for (const s of wallPlan()) {
+      const base = s.floor * FLOOR_H;
+      if (ext("x-grills") && s.kind === "ext" && s.opening === "window") {
+        const wW = Math.min((s.b - s.a) * .46, 7.5), m = (s.a + s.b) / 2;
+        const n = Math.max(3, Math.round(wW / 1.1));
+        for (let i = 0; i < n; i++) {
+          const o = -wW/2 + wW * (i + .5) / n;
+          g.add(s.horiz ? box(.08, 4, .08, m + o - cx, base + 5, s.coord - cz, bar, false)
+                        : box(.08, 4, .08, s.coord - cx, base + 5, m + o - cz, bar, false));
+        }
+      }
+      if (s.kind === "ext" && s.owner.type === "balcony" && (ext("x-railing-ms") || glass)) {
+        const len = s.b - s.a, m = (s.a + s.b) / 2;
+        if (glass) {
+          g.add(s.horiz ? box(len, 3, .12, m - cx, base + 1.5, s.coord - cz, GLASS, false)
+                        : box(.12, 3, len, s.coord - cx, base + 1.5, m - cz, GLASS, false));
+        } else {
+          const n = Math.max(3, Math.round(len / 1.2));
+          for (let i = 0; i < n; i++) {
+            const o = -len/2 + len * (i + .5) / n;
+            g.add(s.horiz ? box(.1, 3, .1, m + o - cx, base + 1.5, s.coord - cz, bar, false)
+                          : box(.1, 3, .1, s.coord - cx, base + 1.5, m + o - cz, bar, false));
+          }
+        }
+        g.add(s.horiz ? box(len, .18, .3, m - cx, base + 3, s.coord - cz, bar, false)
+                      : box(.3, .18, len, s.coord - cx, base + 3, m - cz, bar, false));
+      }
+    }
+  }
+  if (ext("x-driveway") && park) {
+    const pave = finishMaterial({ tex:"tile", color:0x9c978c }, park.w / 3, (park.y + park.h) / 3);
+    g.add(box(park.w + 2, .1, park.y + park.h, park.x + park.w/2 - cx, .05,
+              (park.y + park.h)/2 - cz, pave, false));
+  }
+  if (ext("x-tank")) {
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 4, 16),
+                                mat(0x2a2a2e));
+    const top = measure().floors * FLOOR_H;
+    tank.position.set(P.w/2 - cx - 6, top + 2.6, P.h/2 - cz + 6);
+    tank.castShadow = true;
+    g.add(box(5, .6, 5, P.w/2 - cx - 6, top + .3, P.h/2 - cz + 6, mat(0xbdb7ab)));
+    g.add(tank);
+  }
+  if (ext("x-lights")) {
+    const post = mat(0x3f3f3f), glow = new THREE.MeshBasicMaterial({ color:0xffe9b0 });
+    for (const [x, z] of [[2, RULE.front - 2], [P.w - 2, RULE.front - 2], [2, P.h - 2], [P.w - 2, P.h - 2]]) {
+      g.add(box(.25, 6, .25, x - cx, 3, z - cz, post, false));
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.45, 10, 8), glow);
+      b.position.set(x - cx, 6.4, z - cz); g.add(b);
+    }
+  }
+  if (ext("x-gate") || ext("x-wall")) {
     const wall = mat(0xcfc8bb), gate = mat(0x2e2e2e), H = 4.5, T = .6;
-    const park = state.rooms.find(r => r.type === "parking" && r.floor === 0);
-    const gc = park ? park.x + park.w/2 : P.w/2, gw = 12;
+    const gc = park ? park.x + park.w/2 : P.w/2, gw = ext("x-gate") ? 12 : 0;
     const fx = -cx, bx = P.w - cx, fz = -cz, bz = P.h - cz;
     const left = gc - gw/2, right = gc + gw/2;
     if (left > .2) g.add(box(left, H, T, fx + left/2, H/2, fz, wall));
     if (P.w - right > .2) g.add(box(P.w - right, H, T, fx + right + (P.w - right)/2, H/2, fz, wall));
     g.add(box(P.w, H, T, 0, H/2, bz, wall));
     g.add(box(T, H, P.h, fx, H/2, 0, wall)); g.add(box(T, H, P.h, bx, H/2, 0, wall));
-    g.add(box(gw/2 - .2, H - .6, .2, fx + left + gw/4, (H - .6)/2, fz, gate));
-    g.add(box(gw/2 - .2, H - .6, .2, fx + right - gw/4, (H - .6)/2, fz, gate));
+    if (gw) {
+      g.add(box(gw/2 - .2, H - .6, .2, fx + left + gw/4, (H - .6)/2, fz, gate));
+      g.add(box(gw/2 - .2, H - .6, .2, fx + right - gw/4, (H - .6)/2, fz, gate));
+    }
   }
   if (ext("x-garden")) {
     const grass = mat(0x6e8f55), trunk = mat(0x6b4f36), crown = mat(0x4f7a43);
@@ -1791,9 +1896,17 @@ function build3d() {
       if (!touches("w")) g.add(box(.2, 3.2, r.h, x0, baseY + 1.6, (z0+z1)/2, rail));
       if (!touches("e")) g.add(box(.2, 3.2, r.h, x1, baseY + 1.6, (z0+z1)/2, rail));
     }
-    if (showRoof && WALLED(r.type))
+    if (showRoof && WALLED(r.type)) {
+      // the ceiling you chose, seen from inside on the walkthrough
+      const cf = finishById("ceiling", finishOf(r).ceiling);
       g.add(box(r.w, .35, r.h, r.x + r.w/2 - cx, baseY + FLOOR_H - .17, r.y + r.h/2 - cz,
-                new THREE.MeshLambertMaterial({ color:0xdedad2 })));
+                finishMaterial(cf, r.w / 4, r.h / 4)));
+      if (cf.id === "c-cove") {                     // a cove reads as a recessed border
+        const t = new THREE.MeshLambertMaterial({ color:0xfffaf0 });
+        g.add(box(r.w - 1.2, .18, .3, r.x + r.w/2 - cx, baseY + FLOOR_H - .5, r.y + .8 - cz, t, false));
+        g.add(box(r.w - 1.2, .18, .3, r.x + r.w/2 - cx, baseY + FLOOR_H - .5, r.y + r.h - .8 - cz, t, false));
+      }
+    }
     if (showFurn) furniture3d(g, r, baseY + .4, cx, cz);
     shell.add(g);
   }
@@ -1808,6 +1921,10 @@ function setPointer(ev) {
   ptr.y = -((ev.clientY - b.top)/b.height)*2 + 1;
   ray.setFromCamera(ptr, camera);
 }
+/* Locked is the default: a drag turns the camera and the house stays put, so
+   you can walk around it and look at the detail without nudging a wall.
+   Unlock to drag rooms in 3D. */
+let lock3d = true;
 function on3dDown(ev) {
   if (walking || !live) return;
   setPointer(ev);
@@ -1817,6 +1934,7 @@ function on3dDown(ev) {
   const id = hit.object.userData?.id || hit.object.parent?.userData?.id;
   const room = state.rooms.find(r => r.id === id);
   if (!room) return;
+  if (lock3d) { state.selected = id; state.floor = room.floor; render(); return; }
   state.selected = id; state.floor = room.floor;
   groundPlane.constant = -(room.floor * FLOOR_H);
   const p = new THREE.Vector3();
@@ -3517,7 +3635,8 @@ $("viewSeg").addEventListener("click", ev => {
   $("wrap3d").classList.toggle("on", is3d);
   $("threeTools").hidden = !is3d;
   $("hud").textContent = is3d
-    ? "drag a room to move it · click to select · scroll to zoom"
+    ? (lock3d ? "locked · drag to turn the view · click to select"
+              : "unlocked · drag a room to move it · scroll to zoom")
     : "drag to move · handles to resize · arrows nudge · Del removes";
   if (is3d) {
     if (!ready3d && !init3d()) { warn("3D needs WebGL, which is unavailable on this device."); return; }
@@ -3528,6 +3647,18 @@ $("walkBtn").addEventListener("click", () => setWalking(!walking));
 $("sunTime").addEventListener("input", updateSun);
 $("showFurniture").addEventListener("change", () => { dirty3d = true; if (live) build3d(); });
 $("showRoof").addEventListener("change", () => { dirty3d = true; if (live) build3d(); });
+$("lockBtn").addEventListener("click", e => {
+  lock3d = !lock3d;
+  e.currentTarget.setAttribute("aria-pressed", String(lock3d));
+  e.currentTarget.textContent = lock3d ? "Locked" : "Unlocked";
+  $("hud").textContent = lock3d ? "locked · drag to turn the view · click to select"
+                                : "unlocked · drag a room to move it · scroll to zoom";
+});
+$("spinBtn").addEventListener("click", e => {
+  const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
+  e.currentTarget.setAttribute("aria-pressed", String(on));
+  if (controls) { controls.autoRotate = on && !reduce; controls.autoRotateSpeed = .6; }
+});
 $("themeBtn").addEventListener("click", () => {
   const root = document.documentElement;
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;

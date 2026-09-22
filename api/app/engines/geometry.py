@@ -28,6 +28,7 @@ class Room:
     # the server price them from the same data. None means the type default.
     wall_finish: str | None = None
     floor_finish: str | None = None
+    ceiling_finish: str | None = None
 
     @property
     def area(self) -> float:
@@ -117,6 +118,7 @@ def parse_rooms(raw: list[dict]) -> list[Room]:
                     w=float(r["w"]), h=float(r["h"]),
                     wall_finish=finish.get("wall"),
                     floor_finish=finish.get("floor"),
+                    ceiling_finish=finish.get("ceiling"),
                 )
             )
         except (KeyError, TypeError, ValueError):

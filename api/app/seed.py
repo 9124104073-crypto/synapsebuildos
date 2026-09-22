@@ -16,18 +16,11 @@ from .regions import REGIONS
 REGION = "Chennai"
 
 INTERIOR_CATALOG = [
-    # id, room type, category, name, price
-    {"id": "l-sofa", "room": "living", "category": "Furniture", "name": "3-seater sofa", "price": 45000},
-    {"id": "l-recliner", "room": "living", "category": "Furniture", "name": "Recliner", "price": 28000},
-    {"id": "l-coffee", "room": "living", "category": "Furniture", "name": "Coffee table", "price": 12000},
-    {"id": "l-tv", "room": "living", "category": "Furniture", "name": "TV unit", "price": 70000},
-    {"id": "l-shelf", "room": "living", "category": "Furniture", "name": "Bookshelf", "price": 22000},
-    {"id": "l-f-tile", "room": "living", "category": "Flooring", "name": "Vitrified tile", "price": 60000},
-    {"id": "l-f-prem", "room": "living", "category": "Flooring", "name": "Premium tile", "price": 120000},
-    {"id": "l-f-marble", "room": "living", "category": "Flooring", "name": "Marble", "price": 210000},
-    {"id": "l-w-paint", "room": "living", "category": "Walls", "name": "Paint", "price": 18000},
-    {"id": "l-w-wood", "room": "living", "category": "Walls", "name": "Wood panel accent", "price": 65000},
-    {"id": "l-w-stone", "room": "living", "category": "Walls", "name": "Stone cladding", "price": 88000},
+    {"id": "l-sofa", "room": "living", "category": "Seating", "name": "3-seater sofa", "price": 45000},
+    {"id": "l-recliner", "room": "living", "category": "Seating", "name": "Recliner", "price": 28000},
+    {"id": "l-coffee", "room": "living", "category": "Tables", "name": "Coffee table", "price": 12000},
+    {"id": "l-tv", "room": "living", "category": "Storage", "name": "TV unit", "price": 70000},
+    {"id": "l-shelf", "room": "living", "category": "Storage", "name": "Bookshelf", "price": 22000},
     {"id": "l-lt-cove", "room": "living", "category": "Lighting", "name": "Cove lighting", "price": 35000},
     {"id": "l-lt-pend", "room": "living", "category": "Lighting", "name": "Pendant", "price": 14000},
     {"id": "l-win-curt", "room": "living", "category": "Windows", "name": "Curtains", "price": 16000},
@@ -37,13 +30,9 @@ INTERIOR_CATALOG = [
     {"id": "l-d-plant", "room": "living", "category": "Decor", "name": "Indoor plants", "price": 6000},
 
     {"id": "b-bed", "room": "bedroom", "category": "Furniture", "name": "King bed", "price": 65000},
-    {"id": "b-ward", "room": "bedroom", "category": "Furniture", "name": "Wardrobe", "price": 95000},
+    {"id": "b-ward", "room": "bedroom", "category": "Storage", "name": "Wardrobe", "price": 95000},
     {"id": "b-study", "room": "bedroom", "category": "Furniture", "name": "Study table", "price": 18000},
     {"id": "b-side", "room": "bedroom", "category": "Furniture", "name": "Side tables", "price": 9000},
-    {"id": "b-f-tile", "room": "bedroom", "category": "Flooring", "name": "Vitrified tile", "price": 36000},
-    {"id": "b-f-wood", "room": "bedroom", "category": "Flooring", "name": "Engineered wood", "price": 88000},
-    {"id": "b-w-paint", "room": "bedroom", "category": "Walls", "name": "Paint", "price": 12000},
-    {"id": "b-w-paper", "room": "bedroom", "category": "Walls", "name": "Wallpaper accent", "price": 24000},
     {"id": "b-lt-ceil", "room": "bedroom", "category": "Lighting", "name": "Ceiling light", "price": 7000},
     {"id": "b-lt-read", "room": "bedroom", "category": "Lighting", "name": "Reading lights", "price": 9000},
     {"id": "b-win", "room": "bedroom", "category": "Windows", "name": "Blackout curtains", "price": 14000},
@@ -57,7 +46,6 @@ INTERIOR_CATALOG = [
     {"id": "k-oven", "room": "kitchen", "category": "Appliances", "name": "Built-in oven", "price": 45000},
     {"id": "k-dish", "room": "kitchen", "category": "Appliances", "name": "Dishwasher", "price": 48000},
     {"id": "k-splash", "room": "kitchen", "category": "Finishes", "name": "Backsplash tile", "price": 18000},
-    {"id": "k-f-tile", "room": "kitchen", "category": "Flooring", "name": "Anti-skid tile", "price": 26000},
     {"id": "k-lt", "room": "kitchen", "category": "Lighting", "name": "Under-cabinet lighting", "price": 16000},
 
     {"id": "t-wc", "room": "bath", "category": "Fixtures", "name": "Wall-hung WC", "price": 28000},
@@ -66,28 +54,23 @@ INTERIOR_CATALOG = [
     {"id": "t-tub", "room": "bath", "category": "Fixtures", "name": "Bathtub", "price": 78000},
     {"id": "t-van", "room": "bath", "category": "Furniture", "name": "Vanity unit", "price": 34000},
     {"id": "t-mirror", "room": "bath", "category": "Furniture", "name": "Backlit mirror", "price": 12000},
-    {"id": "t-wall-t", "room": "bath", "category": "Tiling", "name": "Wall tiles", "price": 22000},
-    {"id": "t-wall-p", "room": "bath", "category": "Tiling", "name": "Premium wall tiles", "price": 48000},
-    {"id": "t-floor", "room": "bath", "category": "Tiling", "name": "Anti-skid floor tile", "price": 14000},
     {"id": "t-acc", "room": "bath", "category": "Accessories", "name": "Grab bars and accessories", "price": 8000},
 
     {"id": "d-table", "room": "dining", "category": "Furniture", "name": "6-seater dining table", "price": 52000},
     {"id": "d-crock", "room": "dining", "category": "Furniture", "name": "Crockery unit", "price": 38000},
-    {"id": "d-f-tile", "room": "dining", "category": "Flooring", "name": "Vitrified tile", "price": 22000},
-    {"id": "d-w-paint", "room": "dining", "category": "Walls", "name": "Paint", "price": 8000},
     {"id": "d-lt", "room": "dining", "category": "Lighting", "name": "Pendant over table", "price": 18000},
 
     {"id": "o-desk", "room": "office", "category": "Furniture", "name": "Work desk", "price": 22000},
     {"id": "o-chair", "room": "office", "category": "Furniture", "name": "Task chair", "price": 12000},
     {"id": "o-shelf", "room": "office", "category": "Furniture", "name": "Book shelving", "price": 18000},
+
     {"id": "p-unit", "room": "pooja", "category": "Furniture", "name": "Pooja unit", "price": 35000},
+
     {"id": "u-washer", "room": "utility", "category": "Appliances", "name": "Washing machine", "price": 32000},
+
     {"id": "bl-chairs", "room": "balcony", "category": "Furniture", "name": "Balcony chairs", "price": 15000},
     {"id": "bl-plant", "room": "balcony", "category": "Decor", "name": "Planters", "price": 8000},
 
-    # Exterior upgrades over the base flat slab and plastered facade. Lump sums,
-    # indicative for a 1,000-1,500 sq ft house — they do not scale with area yet,
-    # and the UI labels them as such.
     {"id": "x-roof-gable", "room": "exterior", "category": "Roof", "name": "Sloped tile roof", "price": 280000},
     {"id": "x-roof-hip", "room": "exterior", "category": "Roof", "name": "Hip roof, clay tile", "price": 340000},
     {"id": "x-facade-brick", "room": "exterior", "category": "Facade", "name": "Exposed brick facade", "price": 190000},
@@ -98,6 +81,56 @@ INTERIOR_CATALOG = [
     {"id": "x-gate", "room": "exterior", "category": "Site", "name": "Compound wall and gate", "price": 220000},
     {"id": "x-garden", "room": "exterior", "category": "Site", "name": "Front landscaping", "price": 90000},
     {"id": "x-solar", "room": "exterior", "category": "Services", "name": "Rooftop solar, 3 kW", "price": 180000},
+
+    {"id": "l-arm", "room": "living", "category": "Seating", "name": "Armchair", "price": 18000},
+    {"id": "l-swing", "room": "living", "category": "Seating", "name": "Oonjal, teak swing", "price": 85000},
+    {"id": "l-console", "room": "living", "category": "Storage", "name": "Console table", "price": 16000},
+    {"id": "l-partition", "room": "living", "category": "Decor", "name": "Jaali partition", "price": 42000},
+    {"id": "l-lt-floor", "room": "living", "category": "Lighting", "name": "Floor lamp", "price": 9000},
+
+    {"id": "b-dress", "room": "bedroom", "category": "Furniture", "name": "Dressing table", "price": 22000},
+    {"id": "b-bench", "room": "bedroom", "category": "Furniture", "name": "Bed bench", "price": 14000},
+    {"id": "b-loft", "room": "bedroom", "category": "Storage", "name": "Loft storage", "price": 28000},
+    {"id": "b-ac", "room": "bedroom", "category": "Appliances", "name": "Split AC", "price": 42000},
+
+    {"id": "k-tall", "room": "kitchen", "category": "Cabinetry", "name": "Tall unit", "price": 65000},
+    {"id": "k-break", "room": "kitchen", "category": "Cabinetry", "name": "Breakfast counter", "price": 38000},
+    {"id": "k-sink", "room": "kitchen", "category": "Fixtures", "name": "Double-bowl sink", "price": 18000},
+    {"id": "k-ro", "room": "kitchen", "category": "Appliances", "name": "Water purifier", "price": 16000},
+    {"id": "k-fridge", "room": "kitchen", "category": "Appliances", "name": "Refrigerator", "price": 52000},
+
+    {"id": "t-geyser", "room": "bath", "category": "Fixtures", "name": "Geyser", "price": 14000},
+    {"id": "t-faucet", "room": "bath", "category": "Fixtures", "name": "Health faucet and mixer set", "price": 11000},
+    {"id": "t-rail", "room": "bath", "category": "Accessories", "name": "Towel rail and hooks", "price": 5000},
+    {"id": "t-niche", "room": "bath", "category": "Tiling", "name": "Shower niche and feature tile", "price": 16000},
+
+    {"id": "d-bar", "room": "dining", "category": "Furniture", "name": "Bar cabinet", "price": 34000},
+    {"id": "d-mirror", "room": "dining", "category": "Decor", "name": "Wall mirror", "price": 12000},
+
+    {"id": "p-jaali", "room": "pooja", "category": "Decor", "name": "Jaali screen and door", "price": 38000},
+    {"id": "p-lamp", "room": "pooja", "category": "Decor", "name": "Brass lamp pair", "price": 14000},
+
+    {"id": "o-file", "room": "office", "category": "Storage", "name": "Filing cabinet", "price": 14000},
+
+    {"id": "u-dryer", "room": "utility", "category": "Appliances", "name": "Dryer", "price": 38000},
+    {"id": "u-sink", "room": "utility", "category": "Fixtures", "name": "Utility sink and counter", "price": 18000},
+
+    {"id": "bl-deck", "room": "balcony", "category": "Finishes", "name": "Wood deck flooring", "price": 36000},
+    {"id": "bl-swing", "room": "balcony", "category": "Furniture", "name": "Hanging swing chair", "price": 22000},
+
+    {"id": "x-roof-mangalore", "room": "exterior", "category": "Roof", "name": "Mangalore tile roof", "price": 240000},
+    {"id": "x-facade-plaster", "room": "exterior", "category": "Facade", "name": "Textured exterior plaster", "price": 95000},
+    {"id": "x-porch", "room": "exterior", "category": "Structure", "name": "Car porch roof", "price": 180000},
+    {"id": "x-portico", "room": "exterior", "category": "Structure", "name": "Portico columns", "price": 140000},
+    {"id": "x-thinnai", "room": "exterior", "category": "Structure", "name": "Sit-out (thinnai)", "price": 95000},
+    {"id": "x-grills", "room": "exterior", "category": "Openings", "name": "Window grills", "price": 85000},
+    {"id": "x-railing-ms", "room": "exterior", "category": "Openings", "name": "MS balcony railing", "price": 45000},
+    {"id": "x-railing-ss", "room": "exterior", "category": "Openings", "name": "Steel and glass railing", "price": 120000},
+    {"id": "x-wall", "room": "exterior", "category": "Site", "name": "Compound wall only", "price": 140000},
+    {"id": "x-driveway", "room": "exterior", "category": "Site", "name": "Paved driveway", "price": 75000},
+    {"id": "x-tank", "room": "exterior", "category": "Services", "name": "Terrace water tank", "price": 35000},
+    {"id": "x-rain", "room": "exterior", "category": "Services", "name": "Rainwater harvesting pit", "price": 55000},
+    {"id": "x-lights", "room": "exterior", "category": "Services", "name": "Outdoor and facade lighting", "price": 65000},
 ]
 
 

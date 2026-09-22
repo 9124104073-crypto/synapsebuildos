@@ -61,31 +61,52 @@ export const FINISH = {
     { id:"p-sage",  name:"Sage",     rate:32,  color:0xbcc7b2, tex:"plaster" },
     { id:"p-clay",  name:"Clay",     rate:32,  color:0xd9b69a, tex:"plaster" },
     { id:"p-slate", name:"Slate",    rate:32,  color:0x8d97a0, tex:"plaster" },
+    { id:"p-teal",  name:"Teal",     rate:32,  color:0x6f9390, tex:"plaster" },
+    { id:"p-terra", name:"Terracotta", rate:32, color:0xc0714b, tex:"plaster" },
+    { id:"p-tex",   name:"Textured", rate:55,  color:0xe8e2d6, tex:"plaster" },
+    { id:"lime",    name:"Lime",     rate:70,  color:0xeae3d2, tex:"plaster" },
     { id:"paper",   name:"Paper",    rate:95,  color:0xe7dccb, tex:"paper" },
+    { id:"dado",    name:"Tile dado", rate:120, color:0xd9e2e4, tex:"tile" },
+    { id:"conc",    name:"Concrete", rate:210, color:0xa9a49c, tex:"plaster" },
+    { id:"brick-e", name:"Brick",    rate:260, color:0x9c5a3c, tex:"stone" },
     { id:"wood-p",  name:"Wood",     rate:340, color:0xa8794b, tex:"wood" },
     { id:"stone-c", name:"Stone",    rate:520, color:0x9d958a, tex:"stone" }
   ],
   floor: [
-    { id:"f-vit",    name:"Vitrified", rate:95,  color:0xe0dcd4, tex:"tile" },
-    { id:"f-prem",   name:"Premium",   rate:165, color:0xd2ccc0, tex:"tile" },
     { id:"f-skid",   name:"Anti-skid", rate:85,  color:0xc6c2b8, tex:"tile" },
+    { id:"f-vit",    name:"Vitrified", rate:95,  color:0xe0dcd4, tex:"tile" },
+    { id:"f-oxide",  name:"Red oxide", rate:120, color:0xa8503c, tex:"plaster" },
+    { id:"f-terra",  name:"Terracotta", rate:140, color:0xc27a53, tex:"tile" },
+    { id:"f-kota",   name:"Kota stone", rate:150, color:0x6f7468, tex:"granite" },
+    { id:"f-prem",   name:"Premium",   rate:165, color:0xd2ccc0, tex:"tile" },
+    { id:"f-mosaic", name:"Mosaic",    rate:180, color:0xded6c4, tex:"granite" },
+    { id:"f-lam",    name:"Laminate",  rate:190, color:0xbb8e60, tex:"wood" },
+    { id:"f-athan",  name:"Athangudi", rate:260, color:0xc9a25c, tex:"tile" },
     { id:"f-wood",   name:"Wood",      rate:320, color:0xb07f4f, tex:"wood" },
-    { id:"f-marble", name:"Marble",    rate:420, color:0xeeece8, tex:"marble" },
-    { id:"f-gran",   name:"Granite",   rate:380, color:0x6f6b66, tex:"granite" }
+    { id:"f-gran",   name:"Granite",   rate:380, color:0x6f6b66, tex:"granite" },
+    { id:"f-marble", name:"Marble",    rate:420, color:0xeeece8, tex:"marble" }
+  ],
+  /* Ceilings are the surface people forget to price and always notice. */
+  ceiling: [
+    { id:"c-plain",  name:"Plain",     rate:45,  color:0xf4f1ea, tex:"plaster" },
+    { id:"c-conc",   name:"Exposed",   rate:30,  color:0xb4afa6, tex:"plaster" },
+    { id:"c-pop",    name:"POP false", rate:130, color:0xf6f4ef, tex:"plaster" },
+    { id:"c-cove",   name:"Cove + gypsum", rate:180, color:0xf7f5f0, tex:"plaster" },
+    { id:"c-wood",   name:"Wood rafters", rate:420, color:0x9a6a40, tex:"wood" }
   ]
 };
 export const DEFAULT_FINISH = {
-  bedroom:{ wall:"p-warm",  floor:"f-vit"  },
-  living: { wall:"p-white", floor:"f-vit"  },
-  kitchen:{ wall:"p-white", floor:"f-skid" },
-  bath:   { wall:"p-white", floor:"f-skid" },
-  dining: { wall:"p-warm",  floor:"f-vit"  },
-  office: { wall:"p-white", floor:"f-vit"  },
-  pooja:  { wall:"p-warm",  floor:"f-vit"  },
-  utility:{ wall:"p-white", floor:"f-skid" },
-  stairs: { wall:"p-white", floor:"f-vit"  },
-  balcony:{ wall:"p-white", floor:"f-skid" },
-  parking:{ wall:"p-white", floor:"f-skid" }
+  bedroom:{ wall:"p-warm",  floor:"f-vit",   ceiling:"c-plain" },
+  living: { wall:"p-white", floor:"f-vit",   ceiling:"c-plain" },
+  kitchen:{ wall:"p-white", floor:"f-skid",  ceiling:"c-plain" },
+  bath:   { wall:"p-white", floor:"f-skid",  ceiling:"c-plain" },
+  dining: { wall:"p-warm",  floor:"f-vit",   ceiling:"c-plain" },
+  office: { wall:"p-white", floor:"f-vit",   ceiling:"c-plain" },
+  pooja:  { wall:"p-warm",  floor:"f-vit",   ceiling:"c-plain" },
+  utility:{ wall:"p-white", floor:"f-skid",  ceiling:"c-conc"  },
+  stairs: { wall:"p-white", floor:"f-vit",   ceiling:"c-plain" },
+  balcony:{ wall:"p-white", floor:"f-skid",  ceiling:"c-conc"  },
+  parking:{ wall:"p-white", floor:"f-skid",  ceiling:"c-conc"  }
 };
 export const finishById = (kind, id) => FINISH[kind].find(f => f.id === id) || FINISH[kind][0];
 
@@ -157,9 +178,53 @@ export const CATALOG = [
   { id:"x-facade-wood", room:"exterior", cat:"Facade", name:"Wood cladding accents", price:240000, group:"facade" },
   { id:"x-chajja", room:"exterior", cat:"Shading", name:"Window sunshades (chajjas)", price:60000 },
   { id:"x-pergola", room:"exterior", cat:"Shading", name:"Terrace pergola", price:110000 },
-  { id:"x-gate", room:"exterior", cat:"Site", name:"Compound wall and gate", price:220000 },
+  { id:"x-gate", room:"exterior", cat:"Site", name:"Compound wall and gate", price:220000, group:"boundary" },
   { id:"x-garden", room:"exterior", cat:"Site", name:"Front landscaping", price:90000 },
-  { id:"x-solar", room:"exterior", cat:"Services", name:"Rooftop solar, 3 kW", price:180000 }
+  { id:"x-solar", room:"exterior", cat:"Services", name:"Rooftop solar, 3 kW", price:180000 },
+
+  // --- more detail, by room ---
+  { id:"l-arm", room:"living", cat:"Seating", name:"Armchair", price:18000, fp:[2.6,2.6,2.8], at:"w", tone:"soft" },
+  { id:"l-swing", room:"living", cat:"Seating", name:"Oonjal, teak swing", price:85000, fp:[5,2,6.5], at:"e", tone:"wood", swing:true },
+  { id:"l-console", room:"living", cat:"Storage", name:"Console table", price:16000, fp:[3.6,1.2,2.6], at:"nw", tone:"wood" },
+  { id:"l-partition", room:"living", cat:"Decor", name:"Jaali partition", price:42000, fp:[5,.5,7], at:"e", tone:"wood", jaali:true },
+  { id:"l-lt-floor", room:"living", cat:"Lighting", name:"Floor lamp", price:9000, fp:[1.2,1.2,5], at:"nw", tone:"soft" },
+  { id:"b-dress", room:"bedroom", cat:"Furniture", name:"Dressing table", price:22000, fp:[3.2,1.6,5.5], at:"w", tone:"wood" },
+  { id:"b-bench", room:"bedroom", cat:"Furniture", name:"Bed bench", price:14000, fp:[4,1.4,1.5], at:"s", tone:"soft" },
+  { id:"b-loft", room:"bedroom", cat:"Storage", name:"Loft storage", price:28000 },
+  { id:"b-ac", room:"bedroom", cat:"Appliances", name:"Split AC", price:42000 },
+  { id:"k-tall", room:"kitchen", cat:"Cabinetry", name:"Tall unit", price:65000, fp:[2.5,2,7], at:"e", tone:"white" },
+  { id:"k-break", room:"kitchen", cat:"Cabinetry", name:"Breakfast counter", price:38000, fp:[5,1.6,3], at:"s", tone:"wood" },
+  { id:"k-sink", room:"kitchen", cat:"Fixtures", name:"Double-bowl sink", price:18000 },
+  { id:"k-ro", room:"kitchen", cat:"Appliances", name:"Water purifier", price:16000 },
+  { id:"k-fridge", room:"kitchen", cat:"Appliances", name:"Refrigerator", price:52000, fp:[2.6,2.4,6], at:"ne", tone:"white" },
+  { id:"t-geyser", room:"bath", cat:"Fixtures", name:"Geyser", price:14000 },
+  { id:"t-faucet", room:"bath", cat:"Fixtures", name:"Health faucet and mixer set", price:11000 },
+  { id:"t-rail", room:"bath", cat:"Accessories", name:"Towel rail and hooks", price:5000 },
+  { id:"t-niche", room:"bath", cat:"Tiling", name:"Shower niche and feature tile", price:16000 },
+  { id:"d-bar", room:"dining", cat:"Furniture", name:"Bar cabinet", price:34000, fp:[3.2,1.4,6], at:"e", tone:"wood" },
+  { id:"d-mirror", room:"dining", cat:"Decor", name:"Wall mirror", price:12000 },
+  { id:"p-jaali", room:"pooja", cat:"Decor", name:"Jaali screen and door", price:38000, fp:[4,.5,7], at:"s", tone:"wood", jaali:true },
+  { id:"p-lamp", room:"pooja", cat:"Decor", name:"Brass lamp pair", price:14000, fp:[1,1,3], at:"e", tone:"brass" },
+  { id:"o-file", room:"office", cat:"Storage", name:"Filing cabinet", price:14000, fp:[1.6,1.6,3.6], at:"e", tone:"white" },
+  { id:"u-dryer", room:"utility", cat:"Appliances", name:"Dryer", price:38000, fp:[2,2,2.8], at:"ne", tone:"white" },
+  { id:"u-sink", room:"utility", cat:"Fixtures", name:"Utility sink and counter", price:18000, fp:[3,1.8,3], at:"s", tone:"white" },
+  { id:"bl-deck", room:"balcony", cat:"Finishes", name:"Wood deck flooring", price:36000 },
+  { id:"bl-swing", room:"balcony", cat:"Furniture", name:"Hanging swing chair", price:22000, fp:[3,3,6], at:"w", tone:"soft" },
+
+  // --- exterior detail ---
+  { id:"x-roof-mangalore", room:"exterior", cat:"Roof", name:"Mangalore tile roof", price:240000, group:"roof" },
+  { id:"x-facade-plaster", room:"exterior", cat:"Facade", name:"Textured exterior plaster", price:95000, group:"facade" },
+  { id:"x-porch", room:"exterior", cat:"Structure", name:"Car porch roof", price:180000 },
+  { id:"x-portico", room:"exterior", cat:"Structure", name:"Portico columns", price:140000 },
+  { id:"x-thinnai", room:"exterior", cat:"Structure", name:"Sit-out (thinnai)", price:95000 },
+  { id:"x-grills", room:"exterior", cat:"Openings", name:"Window grills", price:85000 },
+  { id:"x-railing-ms", room:"exterior", cat:"Openings", name:"MS balcony railing", price:45000, group:"railing" },
+  { id:"x-railing-ss", room:"exterior", cat:"Openings", name:"Steel and glass railing", price:120000, group:"railing" },
+  { id:"x-wall", room:"exterior", cat:"Site", name:"Compound wall only", price:140000, group:"boundary" },
+  { id:"x-driveway", room:"exterior", cat:"Site", name:"Paved driveway", price:75000 },
+  { id:"x-tank", room:"exterior", cat:"Services", name:"Terrace water tank", price:35000 },
+  { id:"x-rain", room:"exterior", cat:"Services", name:"Rainwater harvesting pit", price:55000 },
+  { id:"x-lights", room:"exterior", cat:"Services", name:"Outdoor and facade lighting", price:65000 }
 ];
 export const catalogById = Object.fromEntries(CATALOG.map(c => [c.id, c]));
 export const itemsFor = (M, key) => (M.interiors[key] || []).map(id => catalogById[id]).filter(Boolean);
@@ -216,7 +281,7 @@ export function measure(M) {
   const t = { built:0, footprint:0, wall:0, floorArea:0, doors:1, windows:0, elec:6,
               bedrooms:0, baths:0, parking:0, overlaps:[], outside:[], stairs:0,
               floors: r.length ? Math.max(...r.map(x => x.floor)) + 1 : 1,
-              wallCost:0, floorCost:0, openArea:0 };
+              wallCost:0, floorCost:0, ceilCost:0, openArea:0 };
   for (const x of r) {
     const area = x.w * x.h;
     const conditioned = !UNCONDITIONED.has(x.type);
@@ -230,6 +295,7 @@ export function measure(M) {
     const fin = finishOf(x);
     t.wallCost  += wallArea * finishById("wall",  fin.wall).rate;
     t.floorCost += area     * finishById("floor", fin.floor).rate;
+    if (conditioned) t.ceilCost += area * finishById("ceiling", fin.ceiling).rate;
 
     const [d, w, e] = POINTS[x.type] || [1,1,5];
     t.doors += d; t.windows += w; t.elec += e;
@@ -277,7 +343,8 @@ export function costLines(M, t) {
   ];
   return [...building, ...services,
     L("Wall finishes", "F-8.0", "LS", 1, t.wallCost, "Paint, paper or cladding chosen per room, over the plastered wall."),
-    L("Floor finishes", "F-9.0", "LS", 1, t.floorCost, "Tile, wood or stone chosen per room, over the base floor.")];
+    L("Floor finishes", "F-9.0", "LS", 1, t.floorCost, "Tile, wood or stone chosen per room, over the base floor."),
+    L("Ceiling finishes", "F-10.0", "LS", 1, t.ceilCost, "Paint, false ceiling or rafters chosen per room, over the slab soffit.")];
 }
 export function cost(M, t) {
   const lines = costLines(M, t);
@@ -408,5 +475,5 @@ export function setFinish(r, kind, id) { r.finish = { ...(r.finish || {}), [kind
 export const finishOf = r => {
   const d = DEFAULT_FINISH[r.type] || DEFAULT_FINISH.living;
   const f = r.finish || {};
-  return { wall: f.wall || d.wall, floor: f.floor || d.floor };
+  return { wall: f.wall || d.wall, floor: f.floor || d.floor, ceiling: f.ceiling || d.ceiling };
 };
