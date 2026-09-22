@@ -43,6 +43,11 @@ class BriefIn(BaseModel):
     region: str = "Chennai"
     # TN PWD PAR note 13: concrete grade near the sea.
     coastal: Literal["under10", "10to24", "inland"] | None = None
+    # Preliminary structural inputs. `sbc` is the soil's safe bearing capacity
+    # in kN/m² — from a soil test, not from us.
+    sbc: float | None = Field(None, ge=50, le=600)
+    concrete: Literal["M20", "M25", "M30"] | None = None
+    steel: Literal["Fe415", "Fe500"] | None = None
     notes: str | None = None
 
 

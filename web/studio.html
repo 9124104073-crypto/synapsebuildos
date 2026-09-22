@@ -760,7 +760,8 @@ const state = {
   plot:{ w:40, h:50 }, budget:45, floor:0, selected:null,
   interiors:{},          // roomId -> [catalogue ids]; "exterior" -> [ids]
   name:"Untitled house",
-  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", coastal:"inland", notes:"" },
+  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", coastal:"inland", notes:"",
+          sbc:150, concrete:"M25", steel:"Fe500" },
   rooms:[
     {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
     {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
@@ -3039,6 +3040,14 @@ function renderBrief() {
       <div class="field"><label for="bTheme">Style</label><select id="bTheme">${THEMES.map(t =>
         `<option value="${t}"${t === B.theme ? " selected" : ""}>${t || "Any"}</option>`).join("")}</select></div>
     </div>
+    <div class="fields" style="margin-top:.5rem">
+      <div class="field"><label for="bSbc">Soil bearing kN/m²</label>
+        <input id="bSbc" class="num" type="number" min="50" max="600" step="10" value="${B.sbc}"></div>
+      <div class="field"><label for="bConc">Concrete</label><select id="bConc">${["M20","M25","M30"]
+        .map(g => `<option${g === B.concrete ? " selected" : ""}>${g}</option>`).join("")}</select></div>
+      <div class="field"><label for="bSteel">Steel</label><select id="bSteel">${["Fe415","Fe500"]
+        .map(g => `<option${g === B.steel ? " selected" : ""}>${g}</option>`).join("")}</select></div>
+    </div>
     <div class="field" style="margin-top:.5rem"><label for="bNotes">Notes for the architect</label>
       <textarea id="bNotes" placeholder="Courtyard, home office, a room for visiting parents…">${escH(B.notes)}</textarea></div>
     <button class="btn primary" id="bGen" style="margin-top:.6rem;width:100%;justify-content:center">Generate a layout from this brief</button>
@@ -3049,6 +3058,7 @@ function renderBrief() {
   });
   bind("bFam","family_members",1); bind("bOld","elderly_residents",1); bind("bKid","children",1);
   bind("bTheme","theme"); bind("bNotes","notes"); bind("bCoast","coastal");
+  bind("bSbc","sbc",1); bind("bConc","concrete"); bind("bSteel","steel");
   $("bRegion").addEventListener("change", e => {
     B.region = e.target.value; setRegion(B.region);
     render(); pushBrief();
@@ -3308,20 +3318,107 @@ const sheetFoot = (x, y, w, title, note) =>
 /* Columns at room corners, and along any edge longer than 15 ft (about a
    4.5 m span), merged where rooms share a corner. Every floor is projected
    onto the ground so the columns stack. */
+/* Grid lines first: room edges within 2 ft of each other are the same line,
+   because a wall offset by a foot is a drafting artefact, not a second frame.
+   Columns then sit on that grid, at room corners and wherever a bay would
+   otherwise span more than 15 ft (about 4.5 m). */
+function gridAxes(vals) {
+  return vals.sort((a, b) => a - b).reduce((acc, v) => {
+    const last = acc[acc.length - 1];
+    if (last && v - last.max < 4) { last.max = v; last.sum += v; last.n++; }
+    else acc.push({ max:v, sum:v, n:1 });
+    return acc;
+  }, []).map(c => Math.round(c.sum / c.n * 2) / 2);
+}
 function columnGrid() {
-  const MAX = 15, pts = [];
-  const split = (a, b) => { const n = Math.max(1, Math.ceil((b - a) / MAX));
-    return Array.from({ length: n + 1 }, (_, i) => a + (b - a) * i / n); };
-  for (const r of state.rooms) {
-    if (!WALLED(r.type) && r.type !== "parking") continue;
-    const xs = split(r.x, r.x + r.w), ys = split(r.y, r.y + r.h);
-    for (const x of xs) for (const y of ys) {
-      const edge = x === r.x || x === r.x + r.w || y === r.y || y === r.y + r.h;
-      if (edge && !pts.some(p => Math.hypot(p[0] - x, p[1] - y) < 1.6)) pts.push([x, y]);
+  const MAX = 15, frame = state.rooms.filter(r => WALLED(r.type) || r.type === "parking");
+  const xs = gridAxes(frame.flatMap(r => [r.x, r.x + r.w]));
+  const ys = gridAxes(frame.flatMap(r => [r.y, r.y + r.h]));
+  const fill = axis => axis.flatMap((v, i) => {
+    if (i === axis.length - 1) return [v];
+    const gap = axis[i + 1] - v, n = Math.ceil(gap / MAX);
+    return Array.from({ length: n }, (_, k) => v + gap * k / n);
+  });
+  const gx = [...new Set(fill(xs))].sort((a, b) => a - b);
+  const gy = [...new Set(fill(ys))].sort((a, b) => a - b);
+  const snap = (v, axis) => axis.reduce((b, a) => (Math.abs(a - v) < Math.abs(b - v) ? a : b), axis[0]);
+  const pts = [];
+  for (const r of frame) {
+    const cand = [];
+    for (const x of gx) for (const y of gy) {
+      const onX = Math.abs(x - snap(r.x, gx)) < .01 || Math.abs(x - snap(r.x + r.w, gx)) < .01;
+      const onY = Math.abs(y - snap(r.y, gy)) < .01 || Math.abs(y - snap(r.y + r.h, gy)) < .01;
+      const inX = x >= snap(r.x, gx) - .01 && x <= snap(r.x + r.w, gx) + .01;
+      const inY = y >= snap(r.y, gy) - .01 && y <= snap(r.y + r.h, gy) + .01;
+      if ((onX && inY) || (onY && inX)) cand.push([x, y]);   // on this room's perimeter
     }
+    for (const c of cand) if (!pts.some(p => p[0] === c[0] && p[1] === c[1])) pts.push(c);
   }
+  pts.axes = { xs:gx, ys:gy };
   return pts;
 }
+/* ---------- preliminary structural sizing ----------
+   Load takedown and member sizing by the standard first-pass method:
+   IS 875 Part 1 (unit weights) and Part 2 (imposed load, 2 kN/m² for
+   residential rooms), IS 456 span/depth ratios for the slab and beam, and
+   the short-column formula Pu = 0.4·fck·Ac + 0.67·fy·Asc for the columns.
+   Footings are sized on the assumed safe bearing capacity, which only a soil
+   test can supply. This is what an engineer starts from, not what they sign. */
+const CONCRETE = { M20:20, M25:25, M30:30 };
+const STEEL = { Fe415:415, Fe500:500 };
+const FT_M = 0.3048;
+function structuralSizing() {
+  const B = state.brief, t = measure();
+  const fck = CONCRETE[B.concrete] || 25, fy = STEEL[B.steel] || 500;
+  const sbc = Math.max(50, Number(B.sbc) || 150);          // kN/m², from the soil test
+  const pts = columnGrid();
+  const xs = [...new Set(pts.map(p => p[0]))].sort((a, b) => a - b);
+  const ys = [...new Set(pts.map(p => p[1]))].sort((a, b) => a - b);
+  // a strip narrower than 5 ft is a corridor or a wall offset, not a slab panel
+  const gaps = a => a.slice(1).map((v, i) => v - a[i]).filter(g => g > 5);
+  const gx = gaps(xs).length ? gaps(xs) : [10], gy = gaps(ys).length ? gaps(ys) : [10];
+  const maxSpanFt = Math.max(...gx, ...gy);
+  // The slab is sized by the worst panel: of every bay, the one whose shorter
+  // side is longest.
+  const shortSpanFt = Math.max(...gx.flatMap(a => gy.map(b => Math.min(a, b))));
+
+  // Slab: IS 456 cl 23.2.1, continuous two-way, short span / 26, plus cover.
+  const slab_mm = Math.max(110, Math.ceil((shortSpanFt * FT_M * 1000 / 26 + 25) / 5) * 5);
+  // Beam: depth about span/12, width 230 mm to match the wall.
+  const beam_d = Math.max(300, Math.ceil(maxSpanFt * FT_M * 1000 / 12 / 25) * 25);
+
+  const dead = 25 * slab_mm / 1000        // slab self weight, 25 kN/m³
+             + 1.0                        // floor finish
+             + 1.5;                       // partitions and services allowance
+  const live = 2.0;                        // IS 875-2, residential
+  const udl = dead + live;                 // kN/m² per floor
+
+  const near = (v, arr) => { const i = arr.indexOf(v);
+    return [(v - (arr[i - 1] ?? v)) / 2, ((arr[i + 1] ?? v) - v) / 2]; };
+  const floorsAt = (x, y) => state.rooms.filter(r =>
+    x >= r.x - 1 && x <= r.x + r.w + 1 && y >= r.y - 1 && y <= r.y + r.h + 1)
+    .reduce((s, r) => Math.max(s, r.floor + 1), 0);
+
+  const columns = pts.map(([x, y]) => {
+    const [l, r] = near(x, xs), [u, d] = near(y, ys);
+    const trib = (l + r) * (u + d) * FT_M * FT_M;          // m²
+    const floors = Math.max(1, floorsAt(x, y));
+    const service = trib * udl * floors + 2 * floors;      // + column and beam self weight
+    const Pu = 1.5 * service;                               // kN, factored
+    const ag = Pu * 1000 / (0.4 * fck * 0.99 + 0.67 * fy * 0.01);   // mm², 1% steel
+    const w = 230;
+    const dcol = Math.max(300, Math.ceil(ag / w / 25) * 25);
+    const area = (service * 1.1) / sbc;                     // m², service load + 10% footing
+    const side = Math.max(1, Math.ceil(Math.sqrt(area) * 20) / 20);
+    return { x, y, trib, floors, service, Pu, size: `${w} × ${dcol}`, footing: side };
+  });
+  const worst = columns.reduce((a, b) => (b.Pu > a.Pu ? b : a), columns[0] || { Pu:0 });
+  return { fck, fy, sbc, slab_mm, beam_d, udl, dead, live, columns, worst,
+           maxSpanFt, shortSpanFt,
+           colSizes: [...new Set(columns.map(c => c.size))],
+           footings: [...new Set(columns.map(c => c.footing))].sort((a, b) => a - b) };
+}
+
 function structuralSheet() {
   const P = state.plot, pts = columnGrid(), S = [sheetOpen(`-10 -10 ${P.w + 20} ${P.h + 22}`)];
   S.push(`<rect x="0" y="0" width="${P.w}" height="${P.h}" fill="#fafaf7" stroke="#111" stroke-width=".15"/>`);
@@ -3330,21 +3427,21 @@ function structuralSheet() {
     S.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9aa" stroke-width=".9" stroke-opacity=".5"/>`,
            `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#444" stroke-width=".08" stroke-dasharray=".8 .4"/>`);
   }
-  // one grid line per cluster of column positions within 2 ft of each other
-  const axis = vals => vals.sort((a, b) => a - b).reduce((acc, v) => {
-    const last = acc[acc.length - 1];
-    if (last && v - last.max < 2) { last.max = v; last.sum += v; last.n++; } else acc.push({ max:v, sum:v, n:1 });
-    return acc; }, []).map(c => Math.round(c.sum / c.n * 2) / 2);
-  const xs = axis(pts.map(p => p[0])), ys = axis(pts.map(p => p[1]));
+  const xs = pts.axes.xs, ys = pts.axes.ys;
   xs.forEach((x, i) => S.push(`<line x1="${x}" y1="-4" x2="${x}" y2="${P.h + 1}" stroke="#bbb" stroke-width=".05"/>`,
     `<circle cx="${x}" cy="-5.2" r="1.1" fill="#fff" stroke="#333" stroke-width=".1"/><text x="${x}" y="-4.8" text-anchor="middle" font-size="1.1">${String.fromCharCode(65 + (i % 26))}</text>`));
   ys.forEach((y, i) => S.push(`<line x1="-4" y1="${y}" x2="${P.w + 1}" y2="${y}" stroke="#bbb" stroke-width=".05"/>`,
     `<circle cx="-5.2" cy="${y}" r="1.1" fill="#fff" stroke="#333" stroke-width=".1"/><text x="-5.2" y="${y + .4}" text-anchor="middle" font-size="1.1">${i + 1}</text>`));
-  for (const [x, y] of pts) S.push(`<rect x="${x - .38}" y="${y - .5}" width=".75" height="1" fill="#111"/>`);
+  const sz = structuralSizing();
+  for (const c of sz.columns) {
+    const w = 0.23 / FT_M, d = Number(c.size.split("×")[1]) / 1000 / FT_M;   // draw at true size
+    S.push(`<rect x="${c.x - w/2}" y="${c.y - d/2}" width="${w}" height="${d}" fill="#111"/>`,
+           `<rect x="${c.x - c.footing/FT_M/2}" y="${c.y - c.footing/FT_M/2}" width="${c.footing/FT_M}" height="${c.footing/FT_M}" fill="none" stroke="#999" stroke-width=".08" stroke-dasharray=".5 .4"/>`);
+  }
   S.push(sheetFoot(0, P.h + 5, P.w, `Preliminary column layout · ${pts.length} columns`,
     "Indicative only · to be designed by a structural engineer"));
-  S.push(`<text x="0" y="${P.h + 8.6}" fill="#555" font-size="1.05">Columns about 230 × 300 mm at room corners, spans kept under 4.5 m; beams follow the dashed walls.</text>`,
-         `<text x="0" y="${P.h + 10.2}" fill="#555" font-size="1.05">Isolated footings about ${(FOUNDATION_FT() * .3048).toFixed(1)} m deep, the depth the rate schedule assumes. Soil test decides.</text>`);
+  S.push(`<text x="0" y="${P.h + 8.6}" fill="#555" font-size="1.05">Columns ${sz.colSizes.join(" and ")} mm (${sz.fck < 25 ? "M" + sz.fck : "M" + sz.fck}, ${state.brief.steel || "Fe500"}); ${sz.slab_mm} mm slab; beams 230 × ${sz.beam_d} mm; longest span ${(sz.maxSpanFt * FT_M).toFixed(1)} m.</text>`,
+         `<text x="0" y="${P.h + 10.2}" fill="#555" font-size="1.05">Dashed squares are isolated footings ${sz.footings[0].toFixed(2)}–${sz.footings[sz.footings.length-1].toFixed(2)} m square at ${(FOUNDATION_FT() * .3048).toFixed(1)} m depth, on an assumed ${sz.sbc} kN/m² bearing capacity. A soil test decides that number.</text>`);
   S.push(`</svg>`);
   return S.join("");
 }
@@ -3590,7 +3687,31 @@ function buildReport() {
   ${floors.map(fl => `<section class="sheetpage"><h2>Drawing A-${fl + 1} · ${fl === 0 ? "Ground" : "Floor " + fl} plan</h2><div class="sheet">${planSheet(fl)}</div></section>`).join("")}
   <section class="sheetpage"><h2>Drawing A-${floors.length + 1} · Front elevation</h2><div class="sheet">${elevationSheet()}</div></section>
   <section class="sheetpage"><h2>Drawing A-${floors.length + 2} · Section</h2><div class="sheet">${sectionSheet()}</div></section>
-  <section class="sheetpage"><h2>Drawing S-1 · Preliminary structural layout</h2><div class="sheet">${structuralSheet()}</div></section>
+  <section class="sheetpage"><h2>Drawing S-1 · Preliminary structural layout</h2><div class="sheet">${structuralSheet()}</div>
+    ${(() => { const s = structuralSizing(); const w = s.worst || {};
+      return `<h2 style="margin-top:1.6rem">Preliminary sizing</h2>
+      <p class="lede">A first-pass load takedown, by the method a structural engineer starts from:
+        IS 875 Part 2 for imposed load, IS 456 span/depth ratios for the slab and beam, and
+        Pu = 0.4·f<sub>ck</sub>·A<sub>c</sub> + 0.67·f<sub>y</sub>·A<sub>sc</sub> at 1% steel for the columns.
+        <b>It is not a design.</b> Member sizes, reinforcement, lateral load and the footing depth
+        must be designed and sealed by a licensed structural engineer, on a real soil report.</p>
+      <table><thead><tr><th>Item</th><th class="n">Value</th><th>How it was worked out</th></tr></thead><tbody>
+        <tr><td>Design loads</td><td class="n">${s.udl.toFixed(1)} kN/m²</td>
+          <td>Dead ${s.dead.toFixed(1)} (slab self weight at 25 kN/m³, 1.0 finish, 1.5 partitions and services) + live ${s.live.toFixed(1)} (IS 875-2, residential rooms).</td></tr>
+        <tr><td>Slab</td><td class="n">${s.slab_mm} mm</td>
+          <td>Governing panel, short side ${(s.shortSpanFt * FT_M).toFixed(2)} m ÷ 26 (IS 456 cl 23.2.1, continuous) plus cover.</td></tr>
+        <tr><td>Beams</td><td class="n">230 × ${s.beam_d} mm</td>
+          <td>Longest span ${(s.maxSpanFt * FT_M).toFixed(2)} m ÷ 12, width matched to the wall.</td></tr>
+        <tr><td>Columns</td><td class="n">${s.colSizes.join(", ")} mm</td>
+          <td>Worst column carries ${w.trib?.toFixed(1)} m² over ${w.floors} floor(s): ${w.service?.toFixed(0)} kN service, ${w.Pu?.toFixed(0)} kN factored. M${s.fck} concrete, ${state.brief.steel || "Fe500"} steel.</td></tr>
+        <tr><td>Footings</td><td class="n">${s.footings[0].toFixed(2)}–${s.footings[s.footings.length-1].toFixed(2)} m square</td>
+          <td>Service load ÷ assumed bearing capacity ${s.sbc} kN/m², plus 10% for the footing itself. <b>Set this from a soil test.</b></td></tr>
+      </tbody></table>
+      <table style="margin-top:1rem"><thead><tr><th>Column</th><th class="n">Tributary</th><th class="n">Floors</th><th class="n">Service load</th><th class="n">Factored</th><th class="n">Size</th><th class="n">Footing</th></tr></thead><tbody>
+        ${s.columns.map((c, i) => `<tr><td>C${i + 1}</td><td class="n">${c.trib.toFixed(1)} m²</td><td class="n">${c.floors}</td>
+          <td class="n">${c.service.toFixed(0)} kN</td><td class="n">${c.Pu.toFixed(0)} kN</td><td class="n">${c.size}</td><td class="n">${c.footing.toFixed(2)} m</td></tr>`).join("")}
+      </tbody></table>`; })()}
+  </section>
   ${floors.map(fl => `<section class="sheetpage"><h2>Drawing P-${fl + 1} · ${fl === 0 ? "Ground" : "Floor " + fl} services</h2><div class="sheet">${servicesSheet(fl)}</div></section>`).join("")}
 
   <section><p class="basis">Generated by Synapse Studio from the live model. Schematic design only: structural design,
