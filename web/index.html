@@ -898,7 +898,8 @@ footer{border-top:1px solid var(--border);padding-block:2.6rem;color:var(--muted
   </div>
 </footer>
 
-<script>
+<script type="module">
+import * as E from "./engine.js";
 (() => {
   "use strict";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1075,59 +1076,62 @@ footer{border-top:1px solid var(--border);padding-block:2.6rem;color:var(--muted
   /* ---------- derivation ---------- */
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+  /* The configurator builds a real room model and hands it to engine.js —
+     the same code the studio and the API run. There is no second set of
+     formulas on this page: change a slider here and the number that moves is
+     the one the studio would show. */
+  const FINISH_FOR = { "l-f-tile":"f-vit", "l-f-prem":"f-prem", "l-f-marble":"f-marble",
+    "b-f-tile":"f-vit", "b-f-wood":"f-wood", "k-f-tile":"f-skid", "d-f-tile":"f-vit",
+    "t-floor":"f-skid", "l-w-paint":"p-white", "l-w-wood":"wood-p", "l-w-stone":"stone-c",
+    "b-w-paint":"p-warm", "b-w-paper":"paper", "d-w-paint":"p-white" };
+  function model() {
+    const M = E.layoutFromBrief({
+      bedrooms: S.bedrooms, bathrooms: S.bathrooms, floors: S.floors,
+      parking: S.parking > 0, budget: S.budget, region: "Chennai",
+      bed_w: 13, bed_h: Math.max(8, Math.round(S.bedSize / 13)),
+      living_w: 18, living_h: Math.max(8, Math.round(S.living / 18)),
+      plot_w: 40, plot_h: 50,
+    });
+    for (const [roomId, set] of Object.entries(interiors)) {
+      const target = M.rooms.find(r => r.id === roomId) ||
+                     M.rooms.find(r => r.type === (roomById(roomId) || {}).type);
+      if (!target) continue;
+      for (const id of set) {
+        if (FINISH_FOR[id]) {
+          const kind = FINISH_FOR[id].startsWith("f-") ? "floor" : "wall";
+          E.setFinish(target, kind, FINISH_FOR[id]);
+        } else if (E.catalogById[id]) {
+          (M.interiors[target.id] = M.interiors[target.id] || []).push(id);
+        }
+      }
+    }
+    return M;
+  }
+  let lastModel = null;
   function derive() {
-    const built = 700 + S.living + S.kitchen + S.bedrooms * S.bedSize + S.bathrooms * 45;
-    const civil = built * RATE;
-    const park = S.parking * 160000;
-    const interior = interiorTotal();
-    const cost = civil + park + interior;
-    const perFloor = built / S.floors;
-    const parkReq = S.bedrooms >= 4 ? 2 : 1;
-    const budget = S.budget * 100000;
-    const overBy = cost - budget;
-
-    const compliance = {
-      fsi: built / PLOT <= FSI_LIMIT,
-      cover: perFloor / PLOT <= COVER_LIMIT,
-      park: S.parking >= parkReq, parkReq
-    };
-    const violations = [compliance.fsi, compliance.cover, compliance.park].filter(v => !v).length;
-
-    // Readiness — a weighted composite of four arithmetic scores, not a model
-    // judgement. Weights come straight from the POC spec and are a starting
-    // guess, to be tuned against real projects rather than defended as truth.
-    const budgetFit = overBy <= 0
-      ? clamp(100 - (Math.abs(overBy) / budget) * 20, 82, 100)   // far under budget is its own smell
-      : clamp(100 - (overBy / budget) * 320, 0, 100);
-    const complianceScore = clamp(100 - violations * 34, 0, 100);
-    const buildability = clamp(
-      100 - (S.floors - 1) * 8 - Math.max(0, S.bedrooms - 4) * 7 - Math.max(0, S.bathrooms - 3) * 5,
-      35, 100);
-    const areaPerBed = built / Math.max(S.bedrooms, 1);
-    const sustainability = clamp(
-      70 + (perFloor / PLOT <= .5 ? 12 : 0) + (areaPerBed <= 520 ? 12 : 0) - (built > 2600 ? 14 : 0),
-      30, 100);
-    const composite = Math.round(
-      .35 * budgetFit + .25 * complianceScore + .25 * buildability + .15 * sustainability);
-
+    const M = lastModel = model();
+    const t = E.measure(M), c = E.cost(M, t);
+    const rule = E.ruleFor(M);
+    const f = E.compliance(M, t, rule), rd = E.readiness(M, t, c, f);
+    const finding = title => f.find(x => x.title === title);
+    const parkReq = rule.min_parking;
     return {
-      built, civil, park, interior, cost, perFloor,
-      fsi: built / PLOT, cover: perFloor / PLOT,
-      overBy,
-      compliance,
+      built: t.built, civil: c.civil, park: 0, interior: c.interiors,
+      cost: c.total, perFloor: t.footprint,
+      fsi: t.fsi, cover: t.cover, overBy: rd.over,
+      compliance: {
+        fsi: !!finding("Floor Space Index")?.ok,
+        cover: !!finding("Ground coverage")?.ok,
+        park: !!finding("Parking")?.ok, parkReq
+      },
       readiness: {
-        budgetFit: Math.round(budgetFit),
-        compliance: Math.round(complianceScore),
-        buildability: Math.round(buildability),
-        sustainability: Math.round(sustainability),
-        composite
+        budgetFit: rd.bFit, compliance: rd.comp, buildability: rd.build,
+        sustainability: rd.sus, composite: rd.composite
       },
       boq: {
-        doors: S.bedrooms + S.bathrooms + 2,
-        wall: Math.round(built * .42),
-        floor: Math.round(built * .0929),
-        elec: S.bedrooms * 8 + S.bathrooms * 3 + 14,
-        items: 240 + S.bedrooms * 18 + S.bathrooms * 12
+        doors: t.doors, wall: Math.round(t.wall),
+        floor: Math.round(t.floorArea * 0.0929), elec: t.elec,
+        items: Object.values(M.interiors).reduce((n, a) => n + a.length, 0)
       }
     };
   }
@@ -1971,6 +1975,26 @@ footer{border-top:1px solid var(--border);padding-block:2.6rem;color:var(--muted
       const ok = await saveFile(name, text, mime);
       if (ok) log("You", `exported the project as ${kind.toUpperCase()}.`);
     });
+  });
+
+  /* ---------- hand-off to the studio ----------
+     The same rooms, plot, budget and selections the numbers above were
+     measured from, so opening the studio continues this design rather than
+     starting a second one. */
+  function handOff(e) {
+    try {
+      const M = lastModel || model();
+      localStorage.setItem("synapse.handoff", JSON.stringify({
+        at: Date.now(), name: "Design from the configurator",
+        rooms: M.rooms, plot: M.plot, interiors: M.interiors,
+        budget: M.budget, brief: M.brief
+      }));
+    } catch {}
+    log("You", "carried this configuration into the studio.");
+  }
+  document.querySelectorAll('a[href="studio.html"]').forEach(a => {
+    a.addEventListener("click", handOff);
+    a.href = "studio.html?from=configurator";
   });
 
   /* ---------- boot ---------- */

@@ -20,7 +20,8 @@ The organising idea, and the thing to understand before anything else:
 | 3D | **Three.js r160** (ES modules, import map) | Direct control of the render loop, no build step, works from `file://`. |
 | 3D camera | `OrbitControls` + `PointerLockControls` | Orbit for design, pointer-lock for the walkthrough. |
 | Textures | **Procedural `CanvasTexture`** | No CDN images, no CORS. Swatch and 3D surface are generated from one colour, so they always match. |
-| Frontend build | **None** | One HTML file per page. Deploys anywhere, publishes as an artifact, no toolchain rot. |
+| Frontend build | **None** | Two pages plus `web/engine.js`, loaded as ES modules. Deploys anywhere, no toolchain rot. |
+| Shared model | **`web/engine.js`** | One copy of the geometry, cost, compliance and scoring rules, imported by the landing page *and* the studio, so the two cannot disagree. |
 | Backend | **FastAPI** (Python 3.11+) | Pydantic gives request validation and LLM structured output from the same type. |
 | ORM | **SQLAlchemy 2.0** (typed `Mapped[]`) | |
 | Database | **SQLite** default, **PostgreSQL** in anything real | Runs with nothing installed; one env var to switch. |

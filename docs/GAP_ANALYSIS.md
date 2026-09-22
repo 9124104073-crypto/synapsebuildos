@@ -27,12 +27,13 @@ critique. Updated 2026-09-22.
 | IFC4 export: storeys, spaces, slabs, walls, doors and windows in real openings (opens in IfcOpenShell; geometry builds) | studio top bar `.ifc` |
 | Coastal concrete extra (TN PAR note 13) from the distance to the sea on the brief | `regions.py` `par.coastal`, studio brief |
 | Accounts, sign-in, per-project roles enforced server-side | `api/app/auth.py`, studio account panel |
+| Preliminary structural sizing: loads, slab, beams, columns, footings (IS 456 / IS 875) | studio › Report › S-1 |
+| One shared model and engine for both pages; the configurator hands its design to the studio | `web/engine.js` |
 
 ## Still not built, and why
 
-1. **Structural design.** The column layout, footing depth and section are
-   preliminary; sizes and reinforcement need a structural engineer and a soil
-   test. Services are schematic for the MEP engineer.
+1. **Sealed structural and services design.** The sizing is a first pass by
+   the standard method. Reinforcement detailing, lateral load, and a real soil
+   report need a licensed structural engineer; the services layouts need an
+   MEP engineer. Software cannot sign a drawing.
 2. **Redis cache.** Not needed at this scale.
-3. `index.html` and `studio.html` still keep separate models and meet only
-   through the API.
