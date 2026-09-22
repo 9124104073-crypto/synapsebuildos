@@ -191,6 +191,10 @@ button{font-family:var(--sans);cursor:pointer}
 .swing{fill:none;stroke:var(--muted-2);stroke-width:.12;stroke-dasharray:.4 .3}
 .win{stroke:var(--sage);stroke-width:.14}
 .dimtext{font-family:var(--mono);font-size:2.1px;fill:var(--sage)}
+.roadtext{font-family:var(--mono);font-size:1.5px;letter-spacing:.3px;fill:var(--muted-2)}
+.c-ring{fill:var(--surface);stroke:var(--border-strong);stroke-width:.14}
+.c-n{fill:var(--error)}.c-s{fill:var(--muted-2)}
+.c-t{font-family:var(--mono);font-size:1.5px;font-weight:600;fill:var(--ink)}
 
 /* ---------- side ---------- */
 .side{border-left:1px solid var(--border);background:var(--surface);overflow-y:auto}
@@ -244,6 +248,75 @@ button{font-family:var(--sans);cursor:pointer}
 .swlabel{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;margin-top:.9rem}
 .swlabel .rate{font-family:var(--mono);font-size:var(--s--2);color:var(--muted-2)}
 
+/* ---------- brief, options ---------- */
+details.panel>summary{cursor:pointer;list-style:none}
+details.panel>summary::before{content:"▸ ";color:var(--muted-2)}
+details.panel[open]>summary::before{content:"▾ "}
+#brief .fields{margin-top:.6rem}
+#brief textarea{width:100%;min-height:3.6rem;font:inherit;font-size:var(--s--1);background:transparent;
+  color:inherit;border:1px solid var(--border);padding:.4rem}
+.opt{display:grid;grid-template-columns:auto 1fr auto;gap:.2rem .6rem;align-items:center;
+  padding:.5rem 0;border-bottom:1px solid var(--border)}
+.opt:last-of-type{border-bottom:0}
+.opt b{font-family:var(--display);font-size:1.15rem;font-weight:400}
+.opt .m{font-family:var(--mono);font-size:var(--s--2);color:var(--muted-foreground)}
+.opt .acts{display:flex;gap:.3rem}
+.opt .acts .btn{padding:.25rem .55rem}
+.opt.active b{color:var(--primary)}
+table.cmp{width:100%;border-collapse:collapse;font-size:var(--s--1);margin-top:.6rem}
+table.cmp th,table.cmp td{padding:.3rem .4rem;border-bottom:1px solid var(--border);text-align:right}
+table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--muted-foreground)}
+table.cmp .best{color:var(--success);font-weight:600}
+.lib{margin-top:.6rem;display:grid;gap:.4rem}
+.lib .finding .btn{margin-top:.4rem;padding:.25rem .6rem}
+
+/* ---------- roles and presenting ---------- */
+body[data-role=client] .rail, body[data-role=client] .edit-only,
+body[data-role=contractor] .rail, body[data-role=contractor] .edit-only,
+body[data-role=contractor] .promptbar, body[data-role=contractor] #sugPanel{display:none}
+body[data-role=client] .main, body[data-role=contractor] .main{grid-template-columns:1fr var(--side)}
+body.present .rail, body.present .side, body.present .promptbar, body.present .stage-hud,
+body.present .bar>*:not(.brand):not(#presentBtn):not(#viewSeg):not(#threeTools){display:none}
+body.present .main{grid-template-columns:1fr}
+.present-cap{position:absolute;left:1.4rem;bottom:1.4rem;background:var(--surface);border:1px solid var(--border);
+  padding:.9rem 1.1rem;max-width:26rem;display:none}
+body.present .present-cap{display:block}
+.present-cap h2{font-size:1.6rem}
+.present-cap .m{font-family:var(--mono);font-size:var(--s--1);color:var(--muted-foreground);margin-top:.3rem}
+
+/* ---------- report ---------- */
+.report{position:fixed;inset:0;z-index:50;background:var(--background);display:grid;grid-template-rows:58px 1fr}
+.report[hidden]{display:none}
+.report-bar{display:flex;align-items:center;gap:.6rem;padding:0 1.1rem;border-bottom:1px solid var(--border);background:var(--surface)}
+.report-bar .sp{flex:1}
+.report-body{overflow-y:auto;padding:2rem max(1.2rem,calc(50vw - 30rem))}
+.report-body section{margin-bottom:2.4rem;break-inside:avoid-page}
+.report-body h1{font-size:var(--s-3);line-height:1.1}
+.report-body h2{font-size:var(--s-2);margin-bottom:.7rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+.report-body .lede{color:var(--muted-foreground);max-width:44rem}
+.report-body table{width:100%;border-collapse:collapse;font-size:var(--s--1)}
+.report-body th,.report-body td{text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--border);vertical-align:top}
+.report-body td.n,.report-body th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.report-body tfoot td{font-weight:600;border-top:2px solid var(--ink)}
+.report-body .basis{color:var(--muted-foreground);font-size:var(--s--2)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.8rem;margin:1.2rem 0}
+.kpis div{border:1px solid var(--border);padding:.7rem .8rem}
+.kpis b{display:block;font-family:var(--display);font-size:1.6rem;font-weight:400}
+.kpis span{font-family:var(--mono);font-size:var(--s--2);color:var(--muted-2);text-transform:uppercase;letter-spacing:.1em}
+.sheet{border:1px solid var(--border);background:#fff;margin:.8rem 0;padding:.4rem}
+.sheet svg{width:100%;height:auto;display:block;max-height:78vh}
+.sheet svg text{font-family:Inter,system-ui,sans-serif}
+.pill{display:inline-block;font-family:var(--mono);font-size:var(--s--2);padding:.05rem .45rem;border:1px solid currentColor}
+.pill.pass{color:var(--success)}.pill.fail{color:var(--error)}.pill.und{color:var(--muted-2)}
+@media print{
+  body{overflow:visible;background:#fff;color:#000}
+  .app,.report-bar{display:none!important}
+  .report{position:static;display:block}
+  .report-body{overflow:visible;padding:0}
+  .report-body section{page-break-inside:avoid}
+  .report-body section.sheetpage{page-break-before:always}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important}}
 </style>
 
@@ -268,6 +341,15 @@ button{font-family:var(--sans);cursor:pointer}
     <button class="btn" id="redoBtn">Redo</button>
     <div class="sp"></div>
     <span class="status" id="apiStatus">local</span>
+    <select id="role" class="btn" aria-label="Viewing as">
+      <option value="architect">Architect</option>
+      <option value="client">Client</option>
+      <option value="contractor">Contractor</option>
+    </select>
+    <button class="btn" id="reportBtn">Report</button>
+    <button class="btn" id="presentBtn" aria-pressed="false">Present</button>
+    <button class="btn" id="exportBoq">BOQ</button>
+    <button class="btn" id="exportDxf">.dxf</button>
     <button class="btn" id="exportObj">.obj</button>
     <button class="btn" id="exportJson">.json</button>
     <button class="btn" id="themeBtn" aria-label="Theme">◐</button>
@@ -301,6 +383,14 @@ button{font-family:var(--sans);cursor:pointer}
           <div class="field"><label for="plotW">Width ft</label><input class="num" type="number" id="plotW" min="15" max="300" step="1"></div>
           <div class="field"><label for="plotH">Depth ft</label><input class="num" type="number" id="plotH" min="15" max="300" step="1"></div>
         </div>
+        <div class="field" style="margin-top:.55rem"><label for="facing">Road side faces</label>
+          <select id="facing">
+            <option value="">Not set</option>
+            <option value="0">North</option><option value="45">North-east</option>
+            <option value="90">East</option><option value="135">South-east</option>
+            <option value="180">South</option><option value="225">South-west</option>
+            <option value="270">West</option><option value="315">North-west</option>
+          </select></div>
       </div>
     </aside>
 
@@ -309,6 +399,7 @@ button{font-family:var(--sans);cursor:pointer}
       <div id="wrap3d"><canvas id="canvas3d"></canvas></div>
       <div class="crosshair" id="crosshair"></div>
       <div class="stage-warn hide" id="stageWarn"></div>
+      <div class="present-cap" id="presentCap"></div>
       <div class="stage-hud" id="hud">drag to move · handles to resize · arrows nudge · Del removes</div>
 
       <div class="promptbar">
@@ -333,7 +424,15 @@ button{font-family:var(--sans);cursor:pointer}
     </div>
 
     <aside class="side">
+      <details class="panel" id="briefPanel">
+        <summary class="eyebrow">Project brief</summary>
+        <div id="brief"></div>
+      </details>
       <div class="panel">
+        <span class="eyebrow">Design options</span>
+        <div id="options"></div>
+      </div>
+      <div class="panel edit-only">
         <span class="eyebrow">Selected room</span>
         <div id="inspector"><p class="empty">Nothing selected. Click a room on the plan, or a wall in the 3D view.</p></div>
       </div>
@@ -345,7 +444,7 @@ button{font-family:var(--sans);cursor:pointer}
         <span class="eyebrow">Furniture &amp; fittings</span>
         <div id="furniture"></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="sugPanel">
         <span class="eyebrow">Suggestions</span>
         <div id="suggestions"></div>
       </div>
@@ -390,6 +489,16 @@ button{font-family:var(--sans);cursor:pointer}
       </div>
     </aside>
   </div>
+</div>
+
+<div class="report" id="report" hidden>
+  <div class="report-bar">
+    <span class="eyebrow" id="reportTitle">Design report</span>
+    <div class="sp"></div>
+    <button class="btn primary" id="reportPrint">Print / save PDF</button>
+    <button class="btn" id="reportClose">Close</button>
+  </div>
+  <div class="report-body" id="reportBody"></div>
 </div>
 
 <script type="importmap">
@@ -607,6 +716,8 @@ function furnishRoom(r, level) {
 const state = {
   plot:{ w:40, h:50 }, budget:45, floor:0, selected:null,
   interiors:{},          // roomId -> [catalogue ids]; "exterior" -> [ids]
+  name:"Untitled house",
+  brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Kochi", notes:"" },
   rooms:[
     {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
     {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
@@ -814,6 +925,7 @@ function drawPlan(t) {
   const dh = el("text",{x:-2.6, y:P.h/2, class:"dimtext","text-anchor":"middle",
     transform:`rotate(-90 ${-2.6} ${P.h/2})`});
   dh.textContent = P.h + " ft"; svg.appendChild(dh);
+  drawCompass();
 
   for (const r of state.rooms) {
     if (r.floor === state.floor) continue;
@@ -1049,7 +1161,9 @@ function renderPanels(t, c, f, rd) {
   renderFurniture();
   renderExterior();
   renderSuggestions(t, c, rd);
+  renderOptions();
   renderFloors(t);
+  $("facing").value = hasFacing() ? String((Math.round(state.plot.facing / 45) * 45) % 360) : "";
 }
 
 function renderInspector() {
@@ -1231,9 +1345,43 @@ function suggestions(t, c, rd) {
     out.push({ t:"Kitchen is far from dining", why:"Every meal crosses the house. Put them side by side." });
   if (count("bedroom") && !rooms.some(r => r.type === "bedroom" && r.floor === 0) && t.floors > 1)
     out.push({ t:"No ground-floor bedroom", why:"Worth having one next to a bathroom for elderly parents or guests." });
-  if (!hasItem("exterior", "x-chajja"))
-    out.push({ t:"Add window sunshades", why:"In Kerala, west and east windows without chajjas take the full afternoon sun and monsoon rain.",
-      fix:() => toggleItem("exterior", "x-chajja") });
+  // --- the brief ---
+  const B = state.brief;
+  const wantBeds = Math.max(1, Math.ceil((B.family_members - (B.children > 1 ? 1 : 0)) / 2));
+  if (beds < wantBeds)
+    out.push({ t:`The brief needs ${wantBeds} bedrooms`, why:`${B.family_members} people in the brief, ${beds} bedroom(s) in the plan.`,
+      fix:() => addRoomSilent("bedroom") });
+  if (B.elderly_residents > 0 && !rooms.some(b => b.type === "bedroom" && b.floor === 0 &&
+        rooms.some(x => x.type === "bath" && near(b, x))))
+    out.push({ t:"Elderly-friendly bedroom", why:"The brief has an elderly resident. Put a ground-floor bedroom right next to a bathroom." });
+
+  // --- orientation ---
+  if (!hasFacing()) {
+    out.push({ t:"Set the road direction", why:"Choose which way the road faces under Plot. Sun, shading and placement advice depends on it." });
+    if (!hasItem("exterior", "x-chajja"))
+      out.push({ t:"Add window sunshades", why:"In Kerala, west and east windows without chajjas take the full sun and monsoon rain.",
+        fix:() => toggleItem("exterior", "x-chajja") });
+  } else {
+    const hot = new Set();
+    for (const s of wallPlan())
+      if (s.kind === "ext" && s.opening === "window" && ["bedroom","living","office","dining"].includes(s.owner.type)) {
+        const b = bearingOfSide(s.outward);
+        if (b >= 225 && b <= 315) hot.add(s.owner.name);
+      }
+    if (hot.size && !hasItem("exterior", "x-chajja"))
+      out.push({ t:"Shade the west windows", why:`${[...hot].join(", ")} take the afternoon sun from the west. Chajjas cut the heat and keep monsoon rain off the glass.`,
+        fix:() => toggleItem("exterior", "x-chajja") });
+    const zone = r => bearingOfPoint(r.x + r.w/2, r.y + r.h/2);
+    const inArc = (b, lo, hi) => b != null && (lo <= hi ? b >= lo && b <= hi : b >= lo || b <= hi);
+    if (k && !inArc(zone(k), 45, 180))
+      out.push({ t:"Kitchen placement (vastu, optional)", why:`The kitchen sits in the ${dirName(zone(k))} of the plot. Vastu prefers the south-east; an east window also gives morning light and a cooler afternoon.` });
+    const master = rooms.filter(r => r.type === "bedroom").sort((a, b) => b.w*b.h - a.w*a.h)[0];
+    if (master && !inArc(zone(master), 180, 270))
+      out.push({ t:"Master bedroom placement (vastu, optional)", why:`${master.name} sits in the ${dirName(zone(master))}. Vastu prefers the south-west.` });
+    const pooja = rooms.find(r => r.type === "pooja");
+    if (pooja && !inArc(zone(pooja), 315, 90))
+      out.push({ t:"Pooja room placement (vastu, optional)", why:`The pooja room sits in the ${dirName(zone(pooja))}. Vastu prefers the north-east.` });
+  }
   const bare = rooms.filter(r => CATALOG.some(ci => ci.room === r.type) && !(state.interiors[r.id] || []).length);
   if (bare.length)
     out.push({ t:`${bare.length} room(s) unfurnished`, why:"The cost excludes furniture until you add it. Essentials gives a realistic floor.",
@@ -1439,9 +1587,11 @@ function updateSun() {
   const hour = Number($("sunTime").value);
   const t = clamp((hour - 6) / 12, 0, 1);
   const alt = Math.sin(t * Math.PI) * 78 * Math.PI / 180;
-  const azi = (-95 + t * 190) * Math.PI / 180;
+  // Sun bearing east → south → west, turned into model space by the plot's
+  // facing: a compass bearing b points along (−sin θ, −cos θ) with θ = b − facing.
+  const th = (85 + t * 190 - (state.plot.facing ?? 0)) * Math.PI / 180;
   const r = 140;
-  sun.position.set(Math.sin(azi)*Math.cos(alt)*r, Math.max(Math.sin(alt)*r, 3), Math.cos(azi)*Math.cos(alt)*r);
+  sun.position.set(-Math.sin(th)*Math.cos(alt)*r, Math.max(Math.sin(alt)*r, 3), -Math.cos(th)*Math.cos(alt)*r);
   const low = 1 - Math.sin(t * Math.PI);
   sun.color.setRGB(1, .95 - low*.16, .88 - low*.28);
   sun.intensity = .7 + Math.sin(t*Math.PI) * 2.0;
@@ -2074,6 +2224,7 @@ function pushToApi() {
       const res = await fetch(`${API}/projects/${projectId}`, {
         method:"PATCH", headers:{ "content-type":"application/json" },
         body: JSON.stringify({ rooms: state.rooms, plot: state.plot, interiors: state.interiors,
+                               actor: $("role").value === "client" ? "client" : "architect",
                                budget_max: Math.round(state.budget * 100000) })
       });
       setStatus(res.ok ? "synced" : "sync failed", res.ok ? "ok" : "err");
@@ -2086,7 +2237,11 @@ async function loadFromApi() {
     const p = await (await fetch(`${API}/projects/${projectId}`)).json();
     if (p.rooms?.length) state.rooms = p.rooms;
     state.interiors = p.interiors || {};
-    if (p.plot?.w) state.plot = { w:p.plot.w, h:p.plot.h };
+    state.name = p.name || state.name;
+    if (p.brief) Object.assign(state.brief, pick(p.brief, Object.keys(state.brief)));
+    if (p.plot?.w) state.plot = { w:p.plot.w, h:p.plot.h,
+                                  ...(p.plot.facing != null ? { facing:p.plot.facing } : {}) };
+    options = loadOptions(); renderBrief();
     if (p.budget_max) state.budget = p.budget_max / 100000;
     $("plotW").value = state.plot.w; $("plotH").value = state.plot.h; $("budget").value = state.budget;
     setStatus("synced", "ok");
@@ -2598,6 +2753,500 @@ $("promptForm").addEventListener("submit", e => { e.preventDefault(); runPrompt(
 })();
 
 /* =====================================================================
+   ORIENTATION
+   The road edge is y = 0 on the plan and −z in 3D. `plot.facing` is the
+   compass bearing that edge faces; every other direction follows from it.
+   ===================================================================== */
+const DIR8 = ["north","north-east","east","south-east","south","south-west","west","north-west"];
+const norm360 = b => ((b % 360) + 360) % 360;
+const dirName = b => DIR8[Math.round(norm360(b) / 45) % 8];
+const hasFacing = () => Number.isFinite(state.plot.facing);
+const OUT_OFFSET = { "-z":0, "+z":180, "-x":90, "+x":270 };
+const bearingOfSide = out => norm360((state.plot.facing ?? 0) + OUT_OFFSET[out]);
+/* Compass bearing from the plot centre to a point on the plan. A bearing b
+   points along (−sin θ, −cos θ) in plan (x, y) with θ = b − facing. */
+function bearingOfPoint(px, py) {
+  const dx = px - state.plot.w/2, dy = py - state.plot.h/2;
+  if (Math.hypot(dx, dy) < 1) return null;
+  return norm360((state.plot.facing ?? 0) + Math.atan2(-dx, -dy) * 180 / Math.PI);
+}
+function drawCompass() {
+  const P = state.plot;
+  const road = el("text", { x:P.w/2, y:-5.6, class:"roadtext", "text-anchor":"middle" });
+  road.textContent = hasFacing() ? `ROAD · FACES ${dirName(P.facing).toUpperCase()}` : "ROAD";
+  svg.appendChild(road);
+  if (!hasFacing()) return;
+  const g = el("g", { transform:`translate(${P.w + 4.8} 3) rotate(${-P.facing})` });
+  g.appendChild(el("circle", { r:2.5, class:"c-ring" }));
+  g.appendChild(el("path", { d:"M0 -2.1 L.75 0 L-.75 0 Z", class:"c-n" }));
+  g.appendChild(el("path", { d:"M0 2.1 L.75 0 L-.75 0 Z", class:"c-s" }));
+  const n = el("text", { x:0, y:-2.9, class:"c-t", "text-anchor":"middle" });
+  n.textContent = "N"; g.appendChild(n);
+  svg.appendChild(g);
+}
+$("facing").addEventListener("change", e => {
+  const v = e.target.value;
+  if (v === "") delete state.plot.facing; else state.plot.facing = Number(v);
+  updateSun(); render(); commit(); pushToApi(); pushBrief();
+});
+
+/* =====================================================================
+   PROJECT BRIEF
+   ===================================================================== */
+const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const pick = (o, keys) => Object.fromEntries(keys.filter(k => o[k] != null).map(k => [k, o[k]]));
+const THEMES = ["", "warm contemporary", "minimal", "kerala traditional", "colonial"];
+function renderBrief() {
+  const B = state.brief;
+  $("brief").innerHTML = `
+    <div class="fields">
+      <div class="field"><label for="bFam">People</label><input id="bFam" class="num" type="number" min="1" max="20" value="${B.family_members}"></div>
+      <div class="field"><label for="bOld">Elderly</label><input id="bOld" class="num" type="number" min="0" max="10" value="${B.elderly_residents}"></div>
+      <div class="field"><label for="bKid">Children</label><input id="bKid" class="num" type="number" min="0" max="10" value="${B.children}"></div>
+      <div class="field"><label for="bTheme">Style</label><select id="bTheme">${THEMES.map(t =>
+        `<option value="${t}"${t === B.theme ? " selected" : ""}>${t || "Any"}</option>`).join("")}</select></div>
+    </div>
+    <div class="field" style="margin-top:.5rem"><label for="bNotes">Notes for the architect</label>
+      <textarea id="bNotes" placeholder="Courtyard, home office, a room for visiting parents…">${escH(B.notes)}</textarea></div>
+    <button class="btn primary" id="bGen" style="margin-top:.6rem;width:100%;justify-content:center">Generate a layout from this brief</button>
+    <p class="hint">Plot size, road direction and budget come from the rest of the studio. Generating replaces the rooms; Undo brings them back.</p>`;
+  const bind = (id, key, num) => $(id).addEventListener("change", e => {
+    B[key] = num ? Math.max(0, Number(e.target.value) || 0) : e.target.value;
+    render(); pushBrief();
+  });
+  bind("bFam","family_members",1); bind("bOld","elderly_residents",1); bind("bKid","children",1);
+  bind("bTheme","theme"); bind("bNotes","notes");
+  $("bGen").addEventListener("click", generateFromBrief);
+}
+async function pushBrief() {
+  if (!API || !projectId) return;
+  try {
+    await fetch(`${API}/projects/${projectId}`, { method:"PATCH", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ brief: { ...state.brief, plot: state.plot, budget_max: Math.round(state.budget * 100000),
+                                      plot_size_sqft: state.plot.w * state.plot.h } }) });
+  } catch {}
+}
+async function generateFromBrief() {
+  if (!API || !projectId) {
+    promptOut(`<div class="who">Needs the API</div><div class="note">Layouts from a brief are drawn by Claude on the
+      backend. Open the studio with <code>?api=…&amp;project=…</code> and set ANTHROPIC_API_KEY.</div>`);
+    return;
+  }
+  const btn = $("bGen"); btn.disabled = true;
+  promptOut(`<div class="who">Claude · Architecture AI <span class="thinking"></span></div>
+             <div class="note">Drawing a layout for this brief and plot.</div>`);
+  try {
+    await pushBrief(); await pushToApiNow();
+    const res = await fetch(`${API}/projects/${projectId}/cortex/layout`, { method:"POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { promptOut(`<div class="who">Claude unavailable</div><div class="bad">${escH(data.detail || res.statusText)}</div>`); return; }
+    state.rooms = data.rooms; state.selected = null;
+    render(); commit();
+    promptOut(`<div class="who">Claude · new layout, ${data.rooms.length} rooms</div>
+      <ul>${(data.adjacency_notes || []).map(s => `<li>${escH(s)}</li>`).join("")}</ul>
+      ${data.assumptions?.length ? `<div class="note">Assumed: ${data.assumptions.map(escH).join(" · ")}</div>` : ""}
+      <div class="acts"><button class="btn" id="pUndo">Undo</button></div>`);
+    $("pUndo").addEventListener("click", () => { $("undoBtn").click(); $("promptOut").classList.remove("on"); });
+  } catch (e) {
+    promptOut(`<div class="who">Could not reach the API</div><div class="bad">${escH(e.message)}</div>`);
+  } finally { btn.disabled = false; }
+}
+async function pushToApiNow() {
+  if (!API || !projectId) return;
+  clearTimeout(pushTimer);
+  await fetch(`${API}/projects/${projectId}`, { method:"PATCH", headers:{ "content-type":"application/json" },
+    body: JSON.stringify({ rooms: state.rooms, plot: state.plot, interiors: state.interiors,
+                           budget_max: Math.round(state.budget * 100000) }) });
+}
+
+/* =====================================================================
+   DESIGN OPTIONS A / B / C
+   Three slots, each a full snapshot plus its headline numbers taken at the
+   moment it was saved. Kept in this browser; the project on the API always
+   holds whichever option is open.
+   ===================================================================== */
+const optKey = () => `synapse.options.${projectId || "local"}`;
+function loadOptions() { try { return JSON.parse(localStorage.getItem(optKey())) || {}; } catch { return {}; } }
+let options = loadOptions(), activeOpt = null, library = null;
+const saveOptions = () => { try { localStorage.setItem(optKey(), JSON.stringify(options)); } catch {} };
+function currentMetrics() {
+  const { t, c, rd, fails } = snapshotMetrics();
+  return { built:t.built, total:c.total, ready:rd.composite, fails, beds:t.bedrooms, baths:t.baths, floors:t.floors };
+}
+function renderOptions() {
+  const slots = ["A","B","C"];
+  const rows = slots.map(k => {
+    const o = options[k];
+    return `<div class="opt${activeOpt === k ? " active" : ""}"><b>${k}</b>
+      <div>${o ? `<div>${escH(o.label)}</div><div class="m">${Math.round(o.m.built)} sf · ${lakh(o.m.total)} · readiness ${o.m.ready}</div>`
+               : `<span class="m">empty</span>`}</div>
+      <div class="acts"><button class="btn" data-osave="${k}">Save</button>
+        ${o ? `<button class="btn" data-oopen="${k}">Open</button>` : ""}</div></div>`;
+  }).join("");
+  const saved = slots.filter(k => options[k]);
+  let cmp = "";
+  if (saved.length >= 2) {
+    const M = [["Built-up", o => o.built, v => Math.round(v) + " sf"], ["Cost", o => o.total, lakh, "min"],
+               ["Readiness", o => o.ready, v => v, "max"], ["Issues", o => o.fails, v => v, "min"],
+               ["Bedrooms", o => o.beds, v => v], ["Bathrooms", o => o.baths, v => v], ["Floors", o => o.floors, v => v]];
+    cmp = `<table class="cmp"><thead><tr><th></th>${saved.map(k => `<th>${k}</th>`).join("")}</tr></thead><tbody>${
+      M.map(([n, get, fmt, best]) => {
+        const vals = saved.map(k => get(options[k].m));
+        const target = best === "min" ? Math.min(...vals) : best === "max" ? Math.max(...vals) : null;
+        const uniq = new Set(vals).size > 1;
+        return `<tr><td>${n}</td>${vals.map(v => `<td class="${uniq && v === target ? "best" : ""}">${fmt(v)}</td>`).join("")}</tr>`;
+      }).join("")}</tbody></table>`;
+  }
+  const lib = library ? `<div class="lib">${library.length ? library.map(p => `
+      <div class="finding"><div class="t">${escH(p.name)} · ${p.match_score}/${p.max_possible}</div>
+        <div class="e">${p.bedrooms} bed · ${p.floors} floor(s) · ${escH(p.why.join("; "))}</div>
+        <button class="btn" data-lib="${p.plan_id}">Open this plan</button></div>`).join("")
+      : `<p class="empty">No library plans for this region.</p>`}</div>` : "";
+  $("options").innerHTML = rows + cmp +
+    `<button class="btn" id="libBtn" style="margin-top:.6rem;width:100%;justify-content:center">Suggest plans from the library</button>` +
+    lib + `<p class="hint">Save the current design into a slot, change it, save again into another, and compare.</p>`;
+
+  $("options").querySelectorAll("[data-osave]").forEach(b => b.addEventListener("click", () => {
+    const m = currentMetrics(), k = b.dataset.osave;
+    options[k] = { snap: snapshot(), m, label: `${m.beds} bed · ${m.floors} floor${m.floors > 1 ? "s" : ""}` };
+    activeOpt = k; saveOptions(); renderOptions();
+  }));
+  $("options").querySelectorAll("[data-oopen]").forEach(b => b.addEventListener("click", () => {
+    restore(options[b.dataset.oopen].snap); activeOpt = b.dataset.oopen;
+    state.selected = null; render(); commit(); pushToApi();
+  }));
+  $("libBtn").addEventListener("click", loadLibrary);
+  $("options").querySelectorAll("[data-lib]").forEach(b => b.addEventListener("click", async () => {
+    try {
+      const plan = await (await fetch(`${API}/plans/${b.dataset.lib}`)).json();
+      state.rooms = JSON.parse(JSON.stringify(plan.rooms)); state.selected = null; activeOpt = null;
+      render(); commit(); pushToApi();
+    } catch (e) { warn("Could not load that plan: " + e.message); }
+  }));
+}
+async function loadLibrary() {
+  if (!API) { library = []; warn("The plan library lives on the API. Open the studio with ?api=…"); renderOptions(); return; }
+  const B = state.brief, q = new URLSearchParams({
+    plot_size_sqft: state.plot.w * state.plot.h, budget_max: Math.round(state.budget * 100000),
+    family_members: B.family_members, elderly_residents: B.elderly_residents, region: B.region || "Kochi", limit: 3 });
+  if (B.theme) q.set("theme", B.theme);
+  try { library = (await (await fetch(`${API}/plans/recommend?${q}`)).json()).results || []; }
+  catch { library = []; }
+  renderOptions();
+}
+
+/* =====================================================================
+   REPORT, DRAWING SET, SPEC SHEET, CONSTRUCTION
+   Everything here is derived from the same engines as the side panels, so
+   the printed report can never disagree with the screen.
+   ===================================================================== */
+function costLines(t) {
+  const base = RATES.construction[RATES.tier];
+  const L = (item, code, unit, qty, rate, basis) => ({ item, code, unit, qty, rate, amount: qty * rate, basis });
+  return [
+    L("Structure and civil works", "C-1.0", "sqft", t.built, base, `Built-up area measured from ${state.rooms.length} room rectangles.`),
+    L("Labour", "L-1.0", "sqft", t.built, RATES.labor, "Built-up area at the published labour rate."),
+    L("Masonry and plaster", "M-3.1", "sqft", t.wall, RATES.wall_finish, "Room perimeters at 10 ft floor-to-floor, less 12% for openings, half-weighted for shared walls."),
+    L("Flooring, base", "F-6.2", "sqft", t.floorArea, RATES.flooring_base, "Conditioned floor area, excluding parking and balconies."),
+    L("Doors and frames", "J-1.1", "nos", t.doors, RATES.door, "One per enclosed room, plus the main entrance."),
+    L("Windows", "J-2.1", "nos", t.windows, RATES.window, "Per-room-type allowance for a schematic design."),
+    L("Electrical points", "E-4.2", "nos", t.elec, RATES.electrical_point, "Per-room-type allowance plus circulation."),
+    L("Plumbing, per wet area", "S-2.1", "set", t.baths + (state.rooms.length ? 1 : 0), RATES.plumbing_set, "One set per bathroom, plus the kitchen."),
+    L("Wall finishes", "F-8.0", "LS", 1, t.wallCost, "Paint, paper or cladding chosen per room, over the plaster."),
+    L("Floor finishes", "F-9.0", "LS", 1, t.floorCost, "Tile, wood or stone chosen per room, over the base screed.")
+  ];
+}
+function interiorLines() {
+  const live = new Map(state.rooms.map(r => [r.id, r.name]));
+  live.set("exterior", "Exterior");
+  const out = [];
+  for (const [key, ids] of Object.entries(state.interiors))
+    if (live.has(key)) for (const id of ids) { const it = catalogById[id]; if (it) out.push({ where: live.get(key), ...it }); }
+  return out;
+}
+/* Indicative only: a duration from size and floors, and the stage split most
+   Kerala residential contracts use. The contractor's own schedule replaces it. */
+const STAGES = [["Mobilisation and foundation", .15], ["Plinth and columns", .15], ["Structure and roof slab", .25],
+                ["Masonry and plaster", .15], ["Electrical and plumbing", .10], ["Finishes", .15], ["Handover and snagging", .05]];
+function schedule(t, c) {
+  const months = Math.round(clamp(5 + t.built / 450 + (t.floors - 1) * 2, 5, 24));
+  const construction = c.total - c.interiors;
+  let wk = 0;
+  const weeks = months * 4.3;
+  return { months, rows: STAGES.map(([name, share]) => {
+    const start = wk, dur = weeks * share; wk += dur;
+    return { name, share, amount: construction * share, from: Math.round(start) + 1, to: Math.round(wk) };
+  }) };
+}
+function explainReadiness(t, c, f, rd) {
+  const graded = f.filter(x => x.outcome !== "UNDETERMINED"), failed = graded.filter(x => !x.ok);
+  return [
+    ["Budget fit", rd.bFit, WEIGHTS.budget, rd.over > 0 ? `Over the ₹${state.budget}L budget by ${lakh(rd.over)}; every 1% over costs 3.2 points.`
+                                                         : `${lakh(-rd.over)} under the ₹${state.budget}L budget.`],
+    ["Compliance", rd.comp, WEIGHTS.compliance, `${graded.length - failed.length} of ${graded.length} checks pass${failed.length ? ": " + failed.map(x => x.title).join(", ") + " fail" : ""}.`],
+    ["Buildability", rd.build, WEIGHTS.buildability, `${t.floors} floor(s), ${t.bedrooms} bedrooms, ${t.baths} bathrooms${t.overlaps.length ? ", overlapping rooms" : ""}. Each extra floor, bedroom over 4 and very narrow room costs points.`],
+    ["Sustainability", rd.sus, WEIGHTS.sustainability, `${(t.cover*100).toFixed(0)}% ground coverage, ${t.bedrooms ? Math.round(t.built / t.bedrooms) : "—"} sf per bedroom. Compact, low-coverage homes score higher.`]
+  ];
+}
+
+/* A clean black-on-white sheet, independent of the screen theme. */
+function planSheet(floor) {
+  const P = state.plot, pad = 10, S = [];
+  const W = P.w + pad * 2, H = P.h + pad * 2 + 6;
+  S.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad - 3} ${W} ${H}" font-size="1.3">`);
+  S.push(`<rect x="0" y="0" width="${P.w}" height="${P.h}" fill="#fafaf7" stroke="#111" stroke-width=".18"/>`);
+  S.push(`<rect x="${RULE.side}" y="${RULE.front}" width="${Math.max(P.w - 2*RULE.side, 0)}" height="${Math.max(P.h - RULE.front - RULE.rear, 0)}" fill="none" stroke="#999" stroke-width=".1" stroke-dasharray=".6 .5"/>`);
+  S.push(`<text x="${P.w/2}" y="-5.5" text-anchor="middle" fill="#555" letter-spacing=".3">ROAD${hasFacing() ? " · FACES " + dirName(P.facing).toUpperCase() : ""}</text>`);
+  S.push(`<text x="${P.w/2}" y="-2" text-anchor="middle" fill="#333">${P.w} ft</text>`);
+  S.push(`<text x="-2" y="${P.h/2}" text-anchor="middle" fill="#333" transform="rotate(-90 -2 ${P.h/2})">${P.h} ft</text>`);
+  const rooms = state.rooms.filter(r => r.floor === floor);
+  for (const r of rooms) {
+    S.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${UNCONDITIONED.has(r.type) ? "#f0efe9" : "#fff"}" stroke="#bbb" stroke-width=".08"/>`);
+    for (const p of placeItems(r).placed)
+      S.push(`<rect x="${p.x - p.w/2}" y="${p.y - p.d/2}" width="${p.w}" height="${p.d}" fill="none" stroke="#aaa" stroke-width=".07"/>`);
+  }
+  for (const s of wallPlan()) {
+    if (s.floor !== floor) continue;
+    const w = s.kind === "ext" ? .5 : .3;
+    const [x1, y1, x2, y2] = s.horiz ? [s.a, s.coord, s.b, s.coord] : [s.coord, s.a, s.coord, s.b];
+    S.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#111" stroke-width="${w}"/>`);
+    if (!s.opening) continue;
+    const m = (s.a + s.b) / 2;
+    if (s.opening === "door") {
+      const D = s.main ? DOOR_W + .8 : DOOR_W, h0 = m - D/2;
+      const ownerMid = s.horiz ? s.owner.y + s.owner.h/2 : s.owner.x + s.owner.w/2;
+      const sg = ownerMid > s.coord ? 1 : -1;
+      if (s.horiz) S.push(`<line x1="${h0}" y1="${s.coord}" x2="${h0 + D}" y2="${s.coord}" stroke="#fff" stroke-width="${w + .1}"/>`,
+        `<line x1="${h0}" y1="${s.coord}" x2="${h0}" y2="${s.coord + sg*D}" stroke="#111" stroke-width=".12"/>`,
+        `<path d="M ${h0 + D} ${s.coord} A ${D} ${D} 0 0 ${sg > 0 ? 1 : 0} ${h0} ${s.coord + sg*D}" fill="none" stroke="#777" stroke-width=".07"/>`);
+      else S.push(`<line x1="${s.coord}" y1="${h0}" x2="${s.coord}" y2="${h0 + D}" stroke="#fff" stroke-width="${w + .1}"/>`,
+        `<line x1="${s.coord}" y1="${h0}" x2="${s.coord + sg*D}" y2="${h0}" stroke="#111" stroke-width=".12"/>`,
+        `<path d="M ${s.coord} ${h0 + D} A ${D} ${D} 0 0 ${sg > 0 ? 0 : 1} ${s.coord + sg*D} ${h0}" fill="none" stroke="#777" stroke-width=".07"/>`);
+    } else {
+      const wW = Math.min((s.b - s.a) * .46, 7.5);
+      S.push(s.horiz
+        ? `<rect x="${m - wW/2}" y="${s.coord - w/2}" width="${wW}" height="${w}" fill="#fff" stroke="#111" stroke-width=".06"/><line x1="${m - wW/2}" y1="${s.coord}" x2="${m + wW/2}" y2="${s.coord}" stroke="#111" stroke-width=".06"/>`
+        : `<rect x="${s.coord - w/2}" y="${m - wW/2}" width="${w}" height="${wW}" fill="#fff" stroke="#111" stroke-width=".06"/><line x1="${s.coord}" y1="${m - wW/2}" x2="${s.coord}" y2="${m + wW/2}" stroke="#111" stroke-width=".06"/>`);
+    }
+  }
+  for (const r of rooms) {
+    if (r.w < 5 || r.h < 4) continue;
+    S.push(`<text x="${r.x + r.w/2}" y="${r.y + r.h/2 - .3}" text-anchor="middle" fill="#111" font-weight="600">${escH(r.name)}</text>`,
+           `<text x="${r.x + r.w/2}" y="${r.y + r.h/2 + 1.3}" text-anchor="middle" fill="#666" font-size="1.05">${r.w}′ × ${r.h}′</text>`);
+  }
+  if (hasFacing())
+    S.push(`<g transform="translate(${P.w + 5} 3) rotate(${-P.facing})"><circle r="2.5" fill="#fff" stroke="#333" stroke-width=".12"/>`
+      + `<path d="M0 -2.1 L.75 0 L-.75 0 Z" fill="#b33"/><path d="M0 2.1 L.75 0 L-.75 0 Z" fill="#aaa"/>`
+      + `<text y="-2.9" text-anchor="middle" font-weight="700">N</text></g>`);
+  S.push(`<text x="0" y="${P.h + 5}" fill="#111" font-size="1.6">${floor === 0 ? "Ground" : "Floor " + floor} floor plan</text>`,
+         `<text x="${P.w}" y="${P.h + 5}" text-anchor="end" fill="#777" font-size="1.05">Dimensions in feet · schematic, not for construction</text>`);
+  S.push(`</svg>`);
+  return S.join("");
+}
+function elevationSheet() {
+  const P = state.plot, t = measure(), H = FLOOR_H, top = t.floors * H;
+  const roof = itemsFor("exterior").find(i => i.group === "roof");
+  const S = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 ${-top - 14} ${P.w + 12} ${top + 22}" font-size="1.3">`];
+  S.push(`<line x1="-4" y1="0" x2="${P.w + 4}" y2="0" stroke="#111" stroke-width=".25"/>`);
+  let minX = Infinity, maxX = -Infinity;
+  for (const s of wallPlan()) {
+    if (s.kind !== "ext" || s.outward !== "-z") continue;
+    const y0 = -(s.floor + 1) * H;
+    minX = Math.min(minX, s.a); maxX = Math.max(maxX, s.b);
+    S.push(`<rect x="${s.a}" y="${y0}" width="${s.b - s.a}" height="${H}" fill="#fff" stroke="#111" stroke-width=".15"/>`);
+    const m = (s.a + s.b) / 2;
+    if (s.opening === "door") {
+      const D = s.main ? DOOR_W + .8 : DOOR_W;
+      S.push(`<rect x="${m - D/2}" y="${y0 + H - 7}" width="${D}" height="7" fill="#e9e4da" stroke="#111" stroke-width=".1"/>`);
+    } else if (s.opening === "window") {
+      const wW = Math.min((s.b - s.a) * .46, 7.5);
+      S.push(`<rect x="${m - wW/2}" y="${y0 + H - 7}" width="${wW}" height="4" fill="#dfe8ec" stroke="#111" stroke-width=".1"/>`);
+      if (hasItem("exterior", "x-chajja"))
+        S.push(`<rect x="${m - wW/2 - .6}" y="${y0 + H - 7.35}" width="${wW + 1.2}" height=".35" fill="#555"/>`);
+    }
+  }
+  if (Number.isFinite(minX)) {
+    if (roof) S.push(`<path d="M ${minX - 1.5} ${-top} L ${(minX + maxX)/2} ${-top - Math.min(9, (maxX - minX) * .28)} L ${maxX + 1.5} ${-top} Z" fill="#c9a58a" stroke="#111" stroke-width=".15"/>`);
+    else S.push(`<rect x="${minX}" y="${-top - 3}" width="${maxX - minX}" height="3" fill="#fff" stroke="#111" stroke-width=".15"/>`);
+  }
+  S.push(`<text x="0" y="5" fill="#111" font-size="1.6">Front (road) elevation${hasFacing() ? ", facing " + dirName(P.facing) : ""}</text>`,
+         `<text x="${P.w}" y="5" text-anchor="end" fill="#777" font-size="1.05">Schematic · ${FLOOR_H} ft floor-to-floor</text></svg>`);
+  return S.join("");
+}
+
+function buildReport() {
+  const t = measure(), c = cost(t), f = compliance(t), rd = readiness(t, c, f);
+  const lines = costLines(t), ints = interiorLines(), sch = schedule(t, c);
+  const sug = suggestions(t, c, rd);
+  const row = l => `<tr><td>${l.item}<div class="basis">${l.code} · ${l.basis}</div></td>
+    <td class="n">${l.unit === "LS" ? "LS" : Math.round(l.qty).toLocaleString("en-IN") + " " + l.unit}</td>
+    <td class="n">${l.unit === "LS" ? "" : inr(l.rate)}</td><td class="n">${inr(l.amount)}</td></tr>`;
+  const floors = [...Array(t.floors).keys()];
+  $("reportTitle").textContent = state.name;
+  $("reportBody").innerHTML = `
+  <section>
+    <span class="eyebrow">Synapse design report · ${new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" })}</span>
+    <h1>${escH(state.name)}</h1>
+    <p class="lede">${t.bedrooms}-bedroom home on a ${state.plot.w} × ${state.plot.h} ft plot${hasFacing() ? ` with the road to the ${dirName(state.plot.facing)}` : ""},
+      for ${state.brief.family_members} people${state.brief.elderly_residents ? `, including ${state.brief.elderly_residents} elderly` : ""}.
+      ${state.brief.notes ? escH(state.brief.notes) : ""}</p>
+    <div class="kpis">
+      <div><span>Built-up</span><b>${Math.round(t.built).toLocaleString("en-IN")} sf</b></div>
+      <div><span>Estimated cost</span><b>${lakh(c.total)}</b></div>
+      <div><span>Budget</span><b>₹${state.budget}L</b></div>
+      <div><span>Readiness</span><b>${rd.composite}</b></div>
+      <div><span>Floors</span><b>${t.floors}</b></div>
+      <div><span>Build time</span><b>~${sch.months} mo</b></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why this cost</h2>
+    <p class="lede">Every line is a measured quantity times a published rate. Nothing here is predicted by a model.</p>
+    <table><thead><tr><th>Item</th><th class="n">Quantity</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
+      <tbody>${lines.map(row).join("")}
+        <tr><td>Overheads (${RATES.overhead_pct}%)</td><td></td><td></td><td class="n">${inr(c.oh)}</td></tr>
+        <tr><td>Contingency (${RATES.contingency_pct}%)</td><td></td><td></td><td class="n">${inr(c.cont)}</td></tr>
+        <tr><td>Furniture, fittings and exterior (${ints.length} items)</td><td></td><td></td><td class="n">${inr(c.interiors)}</td></tr></tbody>
+      <tfoot><tr><td>Total</td><td></td><td></td><td class="n">${inr(c.total)}</td></tr></tfoot></table>
+    <p class="basis">Rates: ${escH(RATES.source || "representative placeholder rates")}. Replace with the current PWD schedule before relying on any figure.</p>
+  </section>
+
+  <section>
+    <h2>Why this readiness score</h2>
+    <table><thead><tr><th>Factor</th><th class="n">Score</th><th class="n">Weight</th><th>Reason</th></tr></thead><tbody>
+      ${explainReadiness(t, c, f, rd).map(([n, s, w, why]) => `<tr><td>${n}</td><td class="n">${s}</td><td class="n">${Math.round(w*100)}%</td><td>${why}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Readiness</td><td class="n">${rd.composite}</td><td></td><td>${rd.verdict}</td></tr></tfoot></table>
+  </section>
+
+  <section>
+    <h2>Bylaw checks</h2>
+    <table><tbody>${f.map(x => `<tr><td><span class="pill ${x.outcome === "LIKELY_PASS" ? "pass" : x.outcome === "LIKELY_FAIL" ? "fail" : "und"}">${x.outcome === "LIKELY_PASS" ? "pass" : x.outcome === "LIKELY_FAIL" ? "fail" : "open"}</span></td><td>${x.title}</td><td>${x.why}</td></tr>`).join("")}</tbody></table>
+    <p class="basis">${RULE.version}. Preliminary automated checks; the municipality approves plans, not this tool.</p>
+  </section>
+
+  ${sug.length ? `<section><h2>Recommendations</h2><ul>${sug.map(s => `<li><b>${s.t}.</b> ${s.why}</li>`).join("")}</ul></section>` : ""}
+
+  <section>
+    <h2>Room schedule</h2>
+    <table><thead><tr><th>Room</th><th>Floor</th><th class="n">Size</th><th class="n">Area</th><th>Walls</th><th>Floor</th></tr></thead><tbody>
+      ${state.rooms.slice().sort((a, b) => a.floor - b.floor).map(r => { const fi = finishOf(r); return `<tr><td>${escH(r.name)}</td><td>${r.floor === 0 ? "Ground" : r.floor}</td>
+        <td class="n">${r.w} × ${r.h} ft</td><td class="n">${Math.round(r.w*r.h)} sf</td>
+        <td>${finishById("wall", fi.wall).name}</td><td>${finishById("floor", fi.floor).name}</td></tr>`; }).join("")}
+    </tbody></table>
+  </section>
+
+  <section>
+    <h2>Specification sheet</h2>
+    ${ints.length ? `<table><thead><tr><th>Location</th><th>Category</th><th>Item</th><th class="n">Allowance</th></tr></thead><tbody>
+      ${ints.map(i => `<tr><td>${escH(i.where)}</td><td>${i.cat}</td><td>${i.name}</td><td class="n">${inr(i.price)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Total</td><td></td><td></td><td class="n">${inr(c.interiors)}</td></tr></tfoot></table>
+    <p class="basis">Catalogue allowances. Brand, model and vendor are confirmed at procurement.</p>`
+    : `<p class="lede">No furniture or exterior items chosen yet.</p>`}
+  </section>
+
+  <section>
+    <h2>Construction plan</h2>
+    <p class="lede">About ${sch.months} months. Payments below cover construction (${lakh(c.total - c.interiors)});
+      furniture and fittings are paid on order. Indicative; the contractor's schedule replaces this.</p>
+    <table><thead><tr><th>Stage</th><th class="n">Weeks</th><th class="n">Share</th><th class="n">Payment</th></tr></thead><tbody>
+      ${sch.rows.map(s => `<tr><td>${s.name}</td><td class="n">${s.from}–${s.to}</td><td class="n">${Math.round(s.share*100)}%</td><td class="n">${inr(s.amount)}</td></tr>`).join("")}
+    </tbody></table>
+  </section>
+
+  ${floors.map(fl => `<section class="sheetpage"><h2>Drawing A-${fl + 1} · ${fl === 0 ? "Ground" : "Floor " + fl} plan</h2><div class="sheet">${planSheet(fl)}</div></section>`).join("")}
+  <section class="sheetpage"><h2>Drawing A-${floors.length + 1} · Front elevation</h2><div class="sheet">${elevationSheet()}</div></section>
+
+  <section><p class="basis">Generated by Synapse Studio from the live model. Schematic design only: structural design,
+    detailed drawings and municipal approval are required before construction.</p></section>`;
+  $("report").hidden = false;
+}
+$("reportBtn").addEventListener("click", buildReport);
+$("reportClose").addEventListener("click", () => { $("report").hidden = true; });
+$("reportPrint").addEventListener("click", () => print());
+
+/* ---------- BOQ (CSV) and DXF ---------- */
+function buildBoq() {
+  const t = measure(), c = cost(t), sch = schedule(t, c);
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [["Code","Item","Unit","Quantity","Rate","Amount","Basis"]];
+  for (const l of costLines(t))
+    rows.push([l.code, l.item, l.unit, l.unit === "LS" ? 1 : Math.round(l.qty * 10) / 10, Math.round(l.rate), Math.round(l.amount), l.basis]);
+  rows.push(["OH", "Overheads", "%", RATES.overhead_pct, "", Math.round(c.oh), ""]);
+  rows.push(["CT", "Contingency", "%", RATES.contingency_pct, "", Math.round(c.cont), ""]);
+  for (const i of interiorLines()) rows.push([i.id, `${i.name} (${i.where})`, "nos", 1, i.price, i.price, "Catalogue allowance"]);
+  rows.push(["", "TOTAL", "", "", "", Math.round(c.total), ""], []);
+  rows.push(["Stage","Weeks","Share","Payment"]);
+  for (const s of sch.rows) rows.push([s.name, `${s.from}-${s.to}`, `${Math.round(s.share*100)}%`, Math.round(s.amount)]);
+  return rows.map(r => r.map(q).join(",")).join("\r\n");
+}
+/* R12 entities only (POLYLINE, LINE, TEXT) so every CAD package opens it.
+   Units feet; CAD y points to the rear, so the road sits at the bottom.
+   Floors are laid out side by side. */
+function buildDxf() {
+  const P = state.plot, o = [];
+  const put = (...a) => o.push(...a.map(String));
+  const poly = (layer, pts, dx) => { put(0,"POLYLINE",8,layer,66,1,70,1,10,0,20,0,30,0);
+    for (const [x, y] of pts) put(0,"VERTEX",8,layer,10,(x + dx).toFixed(3),20,y.toFixed(3),30,0); put(0,"SEQEND",8,layer); };
+  const line = (layer, x1, y1, x2, y2) => put(0,"LINE",8,layer,10,x1.toFixed(3),20,y1.toFixed(3),30,0,11,x2.toFixed(3),21,y2.toFixed(3),31,0);
+  const text = (layer, x, y, h, s) => put(0,"TEXT",8,layer,10,x.toFixed(3),20,y.toFixed(3),30,0,40,h,1,s);
+  const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  put(0,"SECTION",2,"HEADER",9,"$ACADVER",1,"AC1009",9,"$INSUNITS",70,2,0,"ENDSEC");
+  put(0,"SECTION",2,"ENTITIES");
+  const floors = measure().floors;
+  for (let f = 0; f < floors; f++) {
+    const dx = f * (P.w + 20), L = `F${f}`;
+    poly("PLOT", rect(0, 0, P.w, P.h), dx);
+    poly("SETBACK", rect(RULE.side, RULE.front, P.w - 2*RULE.side, P.h - RULE.front - RULE.rear), dx);
+    text("TEXT", dx, -4, 1.5, f === 0 ? "GROUND FLOOR" : `FLOOR ${f}`);
+    text("TEXT", dx + P.w/2 - 2, -1.8, 1, "ROAD" + (hasFacing() ? ` (faces ${dirName(P.facing)})` : ""));
+    for (const r of state.rooms.filter(r => r.floor === f)) {
+      poly(`${L}_ROOMS`, rect(r.x, r.y, r.w, r.h), dx);
+      text(`${L}_TEXT`, dx + r.x + .8, r.y + r.h/2, .9, `${r.name} ${r.w}x${r.h}`);
+    }
+    for (const s of wallPlan().filter(s => s.floor === f && s.opening)) {
+      const m = (s.a + s.b) / 2, D = s.opening === "door" ? (s.main ? DOOR_W + .8 : DOOR_W) : Math.min((s.b - s.a) * .46, 7.5);
+      const lay = `${L}_${s.opening === "door" ? "DOORS" : "WINDOWS"}`;
+      if (s.horiz) line(lay, dx + m - D/2, s.coord, dx + m + D/2, s.coord);
+      else line(lay, dx + s.coord, m - D/2, dx + s.coord, m + D/2);
+    }
+  }
+  put(0,"ENDSEC",0,"EOF");
+  return o.join("\r\n");
+}
+const fileBase = () => state.name.replace(/[^\w-]+/g, "-").toLowerCase() || "synapse";
+$("exportBoq").addEventListener("click", () => save(`${fileBase()}-boq.csv`, buildBoq(), "text/csv"));
+$("exportDxf").addEventListener("click", () => save(`${fileBase()}.dxf`, buildDxf(), "application/dxf"));
+
+/* ---------- roles and presenting ----------
+   Roles only change what is on screen; there is no login, so they are a
+   convenience, not access control. */
+function setRole(v) {
+  document.body.dataset.role = v; $("role").value = v;
+  try { localStorage.setItem("synapse.role", v); } catch {}
+  requestAnimationFrame(() => { render(); size3d(); });
+}
+$("role").addEventListener("change", e => setRole(e.target.value));
+try { const saved = localStorage.getItem("synapse.role"); if (saved) setRole(saved); } catch {}
+
+function setPresenting(on) {
+  document.body.classList.toggle("present", on);
+  $("presentBtn").setAttribute("aria-pressed", String(on));
+  if (on) {
+    document.querySelector('#viewSeg [data-v="3d"]').click();
+    $("showRoof").checked = true; dirty3d = true;
+    const t = measure(), c = cost(t);
+    $("presentCap").innerHTML = `<span class="eyebrow">${hasFacing() ? "Road to the " + dirName(state.plot.facing) : "Concept design"}</span>
+      <h2>${escH(state.name)}</h2>
+      <div class="m">${t.bedrooms} bed · ${t.baths} bath · ${t.floors} floor(s) · ${Math.round(t.built).toLocaleString("en-IN")} sf · ${lakh(c.total)}</div>`;
+  }
+  if (controls) { controls.autoRotate = on && !reduce; controls.autoRotateSpeed = .7; }
+  requestAnimationFrame(() => { size3d(); if (live) build3d(); });
+}
+$("presentBtn").addEventListener("click", () => setPresenting(!document.body.classList.contains("present")));
+addEventListener("keydown", e => { if (e.key === "Escape") { setPresenting(false); $("report").hidden = true; } });
+
+/* =====================================================================
    WIRING
    ===================================================================== */
 function render() {
@@ -2672,6 +3321,7 @@ addEventListener("resize", () => { render(); size3d(); });
 
 syncButtons();
 renderChips();
+renderBrief();
 render();
 loadFromApi();
 </script>

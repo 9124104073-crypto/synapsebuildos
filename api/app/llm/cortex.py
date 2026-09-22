@@ -142,10 +142,24 @@ def _parse(system: str, user: str, output_model: type[BaseModel]):
 # Specialists
 # --------------------------------------------------------------------------
 
+def _orientation(plot: dict) -> str:
+    """The road edge is y = 0. Tell the model which compass way each side faces
+    so it can put kitchens east, keep bedrooms off the west sun, and so on."""
+    f = plot.get("facing")
+    if f is None:
+        return ""
+    name = lambda b: ["north", "north-east", "east", "south-east", "south",
+                      "south-west", "west", "north-west"][round((b % 360) / 45) % 8]
+    return (f"Orientation: the road (front, y=0) faces {name(f)}; the rear faces "
+            f"{name(f + 180)}; the x=0 side faces {name(f + 90)}; the far x side "
+            f"faces {name(f + 270)}.\n")
+
+
 def architecture(brief: dict, plot: dict, setbacks: dict) -> GeneratedLayout:
     user = (
         f"Plot: {plot.get('w')} ft wide by {plot.get('h')} ft deep "
         f"({float(plot.get('w', 0)) * float(plot.get('h', 0)):,.0f} sq ft).\n"
+        + _orientation(plot) +
         f"Setbacks required: front {setbacks.get('front')} ft, rear {setbacks.get('rear')} ft, "
         f"side {setbacks.get('side')} ft.\n"
         f"Household: {brief.get('family_members')} people, "
@@ -221,6 +235,7 @@ def edit_layout(
     """
     user = (
         f"Plot: {plot.get('w')} ft wide by {plot.get('h')} ft deep.\n"
+        + _orientation(plot) +
         f"Setbacks required: front {setbacks['front']} ft, rear {setbacks['rear']} ft, "
         f"side {setbacks['side']} ft.\n\n"
         f"Current rooms:\n{_room_lines(rooms)}\n\n"

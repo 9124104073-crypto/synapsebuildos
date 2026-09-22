@@ -81,6 +81,9 @@ def patch_project(
 
     if body.name is not None:
         p.name = body.name
+    if body.brief is not None:
+        p.brief = body.brief.model_dump()
+        p.region = body.brief.region
     if body.rooms is not None:
         p.rooms = [r.model_dump() for r in body.rooms]
     if body.plot is not None:

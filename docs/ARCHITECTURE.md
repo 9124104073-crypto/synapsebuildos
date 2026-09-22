@@ -398,6 +398,12 @@ declares a plan approved.
   models is the actual work.
 - Exterior items are lump sums, not measured quantities.
 - The walkthrough has no stair *headroom* modelling.
+- Orientation: `plot.facing` is the compass bearing of the road edge (y = 0).
+  The rear faces facing+180, the x = 0 side facing+90, the far side facing+270.
+  The plan's north arrow, the 3D sun, the west-window and vastu suggestions and
+  the Claude prompts all derive from that one number.
+- The sun path ignores the season (at 9.9°N the noon sun is north of overhead
+  from about April to August).
 - See `docs/GAP_ANALYSIS.md` for what the product documents describe that is
   not built.
 - Redis is declared and unused.

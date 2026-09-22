@@ -7,40 +7,28 @@ critique. Updated 2026-09-22.
 
 | Area | Where |
 |---|---|
-| Plan library + recommendation from a brief | `/plans/recommend`, `engines/recommendation.py` |
-| Cost takeoff with rate cards, finishes, furniture, exterior | `engines/cost.py`, studio cost panel |
-| Compliance checklist (KMBR subset, Kochi) | `engines/compliance.py` |
-| Readiness score with sub-scores | `engines/scoring.py` |
-| What-if and versioned decisions | `/what-if`, `/versions`, `/decisions` |
-| Approval outcome capture (data moat) | `/outcome`, `/outcomes/{region}` |
-| AI layout from brief, AI edit by prompt, structural review, "a day in the house" | `/cortex/*` (Claude) |
-| 2D editor, 3D model, walkthrough, OBJ export | `web/studio.html` |
-| Prompt design, voice input (English, Malayalam, Hindi, Tamil) | studio prompt bar |
-| Doors connecting rooms, windows, chajjas, balcony, stairs | studio 3D + plan overlays |
-| Interiors: finishes, furniture catalogue, Essentials/Comfort/Premium sets | studio side panels |
-| Exterior: roof, facade, sunshades, pergola, gate, garden, solar | studio Exterior panel |
-| Suggestions with one-click fixes | studio Suggestions panel |
-| Site map with climate, PDF report | `web/index.html` |
+| Project brief ("Project DNA") editable in the studio, AI layout from it | studio › Project brief, `PATCH /projects/{id}` `brief`, `/cortex/layout` |
+| Plot orientation: road direction, north arrow, sun path, orientation-aware AI | `plot.facing`, studio plan + 3D, `cortex._orientation` |
+| Design options A/B/C with side-by-side comparison | studio › Design options |
+| Plan library recommendations inside the studio | `/plans/recommend` |
+| Explainable report: cost line by line with basis, readiness factor by factor | studio › Report |
+| Drawing set: plan per floor with doors, windows, furniture, north arrow; front elevation | studio › Report › Print / save PDF |
+| Specification sheet of chosen items | studio › Report |
+| Construction plan: duration, stages, payment schedule (indicative) | studio › Report, BOQ export |
+| BOQ export (CSV) and DXF export (R12, layers per floor) | studio top bar |
+| Client presentation mode | studio › Present |
+| Role views: architect, client, contractor | studio top bar (display only) |
+| Cost, compliance, readiness, what-if, versions, decisions, outcomes | FastAPI engines |
+| Prompt and voice design, furniture, finishes, exterior, suggestions | studio |
 
-## Not built yet (in rough priority order)
+## Still not built, and why
 
-1. **Project intake / "Project DNA" in the studio** — the brief form lives on
-   the landing page; the studio starts from a plan and cannot edit the brief.
-2. **Design options A/B/C side by side** — the API can recommend several plans;
-   the studio shows one at a time. Version comparison is API-only.
-3. **Explainable AI report view** — every number has a `basis`, but there is no
-   screen that walks a client through "why this cost, why this score".
-4. **Drawing set PDF** (dimensioned plans, elevations, sections) and **vendor
-   spec sheets** for the chosen catalogue items.
-5. **Roles** — client / architect / contractor dashboards. There is no auth;
-   `actor` is a free field.
-6. **Client presentation mode** — a read-only share link with the 3D.
-7. **Site orientation and road access** — plots have no north arrow or road
-   edge, so sun, vastu and "west window" suggestions cannot be exact.
-8. **Construction intelligence** — schedules, BOQ export, stage payments.
-9. **DXF / IFC export** — OBJ only.
-10. **Real rate data** — the rate cards are placeholders; load the Kerala PWD
-    schedule before any figure is bankable.
-11. **Redis cache** — declared, unused. Not needed at current scale.
-12. `index.html` and `studio.html` keep separate models; they meet only through
-    the API.
+1. **Real login and permissions.** Roles change the screen only. Real access
+   control needs accounts and sign-in, which is a product decision.
+2. **Real rate data.** Rates are placeholders. Someone has to load the current
+   Kerala PWD schedule; the code already reads rates from the rate-card table.
+3. **IFC export and a full construction drawing set** (sections, structure,
+   services). These need a structural engineer's input, not just geometry.
+4. **Redis cache.** Not needed at this scale.
+5. `index.html` and `studio.html` still keep separate models and meet only
+   through the API.

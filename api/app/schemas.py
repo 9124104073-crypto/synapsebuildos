@@ -26,6 +26,9 @@ class RoomIn(BaseModel):
 class Plot(BaseModel):
     w: float = Field(..., gt=0, le=500)
     h: float = Field(..., gt=0, le=500)
+    # Compass bearing the road (front, y = 0) edge faces: 0 = north, 90 = east.
+    # The rear faces facing+180, the +x side facing+270, the -x side facing+90.
+    facing: float | None = Field(None, ge=0, lt=360)
 
 
 class BriefIn(BaseModel):
@@ -52,6 +55,7 @@ class ProjectPatch(BaseModel):
     alone, the budget slider sends `budget_max` alone."""
 
     name: str | None = None
+    brief: BriefIn | None = None
     rooms: list[RoomIn] | None = None
     plot: Plot | None = None
     interiors: dict[str, list[str]] | None = None
