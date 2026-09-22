@@ -26,14 +26,13 @@ critique. Updated 2026-09-22.
 | Section, preliminary column layout, schematic services per floor | studio › Report |
 | IFC4 export: storeys, spaces, slabs, walls, doors and windows in real openings (opens in IfcOpenShell; geometry builds) | studio top bar `.ifc` |
 | Coastal concrete extra (TN PAR note 13) from the distance to the sea on the brief | `regions.py` `par.coastal`, studio brief |
+| Accounts, sign-in, per-project roles enforced server-side | `api/app/auth.py`, studio account panel |
 
 ## Still not built, and why
 
-1. **Real login and permissions.** Roles change the screen only. Real access
-   control needs accounts and sign-in, which is a product decision.
-2. **Structural design.** The column layout, footing depth and section are
+1. **Structural design.** The column layout, footing depth and section are
    preliminary; sizes and reinforcement need a structural engineer and a soil
    test. Services are schematic for the MEP engineer.
-3. **Redis cache.** Not needed at this scale.
-4. `index.html` and `studio.html` still keep separate models and meet only
+2. **Redis cache.** Not needed at this scale.
+3. `index.html` and `studio.html` still keep separate models and meet only
    through the API.

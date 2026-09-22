@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_project, rate_card_for, rule_for
+from ..deps import get_project, get_project_write, rate_card_for, rule_for
 from ..engines import analysis as analysis_engine
 from ..llm import cortex
 from ..models import Decision, Project
@@ -21,7 +21,7 @@ def _guard(fn, *args, **kwargs):
 
 
 @router.post("/layout")
-def generate_layout(p: Project = Depends(get_project), db: Session = Depends(get_db)) -> dict:
+def generate_layout(p: Project = Depends(get_project_write), db: Session = Depends(get_db)) -> dict:
     """Architecture AI. Generates rooms, then hands them to the editor.
 
     The result is a starting point the user drags into shape — it is written
@@ -46,7 +46,7 @@ def generate_layout(p: Project = Depends(get_project), db: Session = Depends(get
 @router.post("/edit")
 def edit_layout(
     body: dict,
-    p: Project = Depends(get_project),
+    p: Project = Depends(get_project_write),
     db: Session = Depends(get_db),
 ) -> dict:
     """Change the plan from one natural-language instruction.

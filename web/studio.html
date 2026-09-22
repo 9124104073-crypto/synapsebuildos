@@ -284,6 +284,21 @@ body.present .present-cap{display:block}
 .present-cap h2{font-size:1.6rem}
 .present-cap .m{font-family:var(--mono);font-size:var(--s--1);color:var(--muted-foreground);margin-top:.3rem}
 
+/* ---------- account ---------- */
+.acct{position:fixed;top:58px;right:1rem;z-index:60;width:min(26rem,calc(100vw - 2rem));
+  background:var(--surface);border:1px solid var(--border-strong);padding:1rem 1.1rem;
+  max-height:calc(100vh - 72px);overflow-y:auto;box-shadow:0 18px 40px #0003}
+.acct[hidden]{display:none}
+.acct-bar{display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem}
+.acct-bar .sp{flex:1}
+.acct-bar .btn{padding:.1rem .5rem;line-height:1}
+.acct input{font:inherit;font-size:var(--s--1);background:transparent;color:inherit;
+  border:1px solid var(--border);padding:.4rem;width:100%}
+.acct .bad{color:var(--error);font-size:var(--s--1);margin:.4rem 0}
+body.readonly .rail, body.readonly .edit-only, body.readonly .promptbar,
+body.readonly #furnPanel, body.readonly #finishPanel{display:none}
+body.readonly .main{grid-template-columns:1fr var(--side)}
+
 /* ---------- report ---------- */
 .report{position:fixed;inset:0;z-index:50;background:var(--background);display:grid;grid-template-rows:58px 1fr}
 .report[hidden]{display:none}
@@ -341,6 +356,7 @@ body.present .present-cap{display:block}
     <button class="btn" id="redoBtn">Redo</button>
     <div class="sp"></div>
     <span class="status" id="apiStatus">local</span>
+    <button class="btn" id="acctBtn" hidden>Sign in</button>
     <select id="role" class="btn" aria-label="Viewing as">
       <option value="architect">Architect</option>
       <option value="client">Client</option>
@@ -490,6 +506,12 @@ body.present .present-cap{display:block}
       </div>
     </aside>
   </div>
+</div>
+
+<div class="acct" id="acctPanel" hidden>
+  <div class="acct-bar"><span class="eyebrow">Account</span><div class="sp"></div>
+    <button class="btn" id="acctClose" aria-label="Close">×</button></div>
+  <div id="acctBody"></div>
 </div>
 
 <div class="report" id="report" hidden>
@@ -2255,25 +2277,188 @@ let projectId = new URLSearchParams(location.search).get("project");
 let pushTimer = null;
 function setStatus(text, cls=""){ const s = $("apiStatus"); s.textContent = text; s.className = "status " + cls; }
 
+/* ---------- account ----------
+   The token is this browser's session, kept in localStorage and sent as a
+   bearer header. The role the server reports is the one that counts: the
+   top-bar switch only changes what is on screen, so when the server says
+   client or contractor, editing is turned off here too. */
+let account = null, myRole = null;
+const tokenKey = () => "synapse.token." + (API || "local");
+const token = () => { try { return localStorage.getItem(tokenKey()); } catch { return null; } };
+function setToken(t) {
+  try { t ? localStorage.setItem(tokenKey(), t) : localStorage.removeItem(tokenKey()); } catch {}
+}
+async function api(path, init = {}) {
+  const headers = { ...(init.headers || {}) };
+  if (init.body) headers["content-type"] = "application/json";
+  const t = token();
+  if (t) headers.authorization = "Bearer " + t;
+  const res = await fetch(`${API}${path}`, { ...init, headers });
+  if (res.status === 401) { setToken(null); account = null; renderAccount(); }
+  return res;
+}
+const canEdit = () => !API || !projectId || ["owner", "architect"].includes(myRole);
+
+async function refreshAccount() {
+  if (!API) { renderAccount(); return; }
+  if (!token()) { account = null; renderAccount(); return; }
+  try {
+    const res = await api("/auth/me");
+    account = res.ok ? await res.json() : null;
+    if (!account) setToken(null);
+  } catch { account = null; }
+  renderAccount();
+}
+function renderAccount() {
+  const btn = $("acctBtn");
+  btn.hidden = !API;
+  btn.textContent = account ? account.email.split("@")[0] + (myRole ? ` · ${myRole}` : "") : "Sign in";
+  btn.title = account ? `Signed in as ${account.email}` : "Sign in to open and save projects";
+  document.body.classList.toggle("readonly", !canEdit());
+  if ($("acctPanel").hidden) return;
+  renderAcctPanel();
+}
+async function renderAcctPanel() {
+  const box = $("acctBody");
+  if (!account) {
+    box.innerHTML = `
+      <div class="seg sets" id="authTabs">
+        <button type="button" data-tab="login" aria-pressed="true">Sign in</button>
+        <button type="button" data-tab="register" aria-pressed="false">Create account</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <div class="field"><label for="aEmail">Email</label>
+          <input id="aEmail" type="email" autocomplete="username" required></div>
+        <div class="field" style="margin-top:.5rem"><label for="aPass">Password</label>
+          <input id="aPass" type="password" autocomplete="current-password" minlength="10" required></div>
+        <p class="hint" id="authHint">At least 10 characters. It is stored only as a hash.</p>
+        <div class="bad" id="authErr" hidden></div>
+        <button class="btn primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
+      </form>`;
+    let mode = "login";
+    box.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+      mode = b.dataset.tab;
+      box.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      box.querySelector("button[type=submit]").textContent = mode === "login" ? "Sign in" : "Create account";
+      $("aPass").autocomplete = mode === "login" ? "current-password" : "new-password";
+    }));
+    $("authForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const err = $("authErr"); err.hidden = true;
+      try {
+        const res = await api(`/auth/${mode}`, { method:"POST",
+          body: JSON.stringify({ email: $("aEmail").value.trim(), password: $("aPass").value }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          err.textContent = typeof data.detail === "string" ? data.detail
+            : "Check the email and password (at least 10 characters).";
+          err.hidden = false; return;
+        }
+        setToken(data.token); account = data.user;
+        $("aPass").value = "";
+        await refreshAccount();
+        if (projectId) loadFromApi(); else renderAcctPanel();
+      } catch (e2) { err.textContent = "Could not reach the API."; err.hidden = false; }
+    });
+    return;
+  }
+
+  let mine = [], members = [];
+  try { mine = await (await api("/auth/projects")).json(); } catch {}
+  if (projectId && myRole === "owner")
+    try { members = await (await api(`/projects/${projectId}/members`)).json(); } catch {}
+  box.innerHTML = `
+    <div class="row"><span>${escH(account.email)}</span><b>${myRole || "—"}</b></div>
+    <span class="eyebrow" style="display:block;margin-top:.9rem">Your projects</span>
+    <div class="lib">${(mine || []).map(p => `
+      <div class="opt"><b>${p.role[0].toUpperCase()}</b>
+        <div><div>${escH(p.name)}</div><div class="m">${escH(p.region)} · ${escH(p.role)}</div></div>
+        <div class="acts">${p.id === projectId ? `<span class="m">open</span>`
+          : `<button class="btn" data-open="${p.id}">Open</button>`}</div></div>`).join("")
+      || `<p class="empty">No projects yet.</p>`}</div>
+    ${myRole === "owner" ? `
+      <span class="eyebrow" style="display:block;margin-top:.9rem">Who has access</span>
+      <div class="lib">${members.map(m => `<div class="opt"><b>${m.role[0].toUpperCase()}</b>
+        <div><div>${escH(m.email)}</div><div class="m">${escH(m.role)}</div></div>
+        <div class="acts">${m.user_id === account.id ? "" : `<button class="btn" data-drop="${m.user_id}">Remove</button>`}</div></div>`).join("")}</div>
+      <form id="inviteForm" style="margin-top:.6rem">
+        <div class="fields">
+          <div class="field"><label for="iEmail">Give access to</label><input id="iEmail" type="email" placeholder="their email" required></div>
+          <div class="field"><label for="iRole">Role</label><select id="iRole">
+            <option value="architect">Architect — can edit</option>
+            <option value="client" selected>Client — read only</option>
+            <option value="contractor">Contractor — read only</option>
+            <option value="owner">Owner — full control</option></select></div>
+        </div>
+        <div class="bad" id="invErr" hidden></div>
+        <button class="btn" type="submit" style="margin-top:.5rem;width:100%;justify-content:center">Add</button>
+        <p class="hint">They register their own account first; this grants it a role. No email is sent.</p>
+      </form>` : ""}
+    <button class="btn" id="signOut" style="margin-top:.9rem;width:100%;justify-content:center">Sign out</button>`;
+
+  box.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
+    const u = new URL(location.href);
+    u.searchParams.set("project", b.dataset.open);
+    location.href = u.toString();
+  }));
+  box.querySelectorAll("[data-drop]").forEach(b => b.addEventListener("click", async () => {
+    await api(`/projects/${projectId}/members/${b.dataset.drop}`, { method:"DELETE" });
+    renderAcctPanel();
+  }));
+  $("inviteForm")?.addEventListener("submit", async e => {
+    e.preventDefault();
+    const err = $("invErr"); err.hidden = true;
+    const res = await api(`/projects/${projectId}/members`, { method:"POST",
+      body: JSON.stringify({ email: $("iEmail").value.trim(), role: $("iRole").value }) });
+    if (!res.ok) { const d = await res.json().catch(() => ({}));
+      err.textContent = typeof d.detail === "string" ? d.detail : "Could not add that person.";
+      err.hidden = false; return; }
+    $("iEmail").value = ""; renderAcctPanel();
+  });
+  $("signOut").addEventListener("click", async () => {
+    setToken(null); account = null; myRole = null;
+    await refreshAccount(); renderAcctPanel();
+  });
+}
+$("acctBtn").addEventListener("click", () => {
+  const p = $("acctPanel");
+  p.hidden = !p.hidden;
+  if (!p.hidden) renderAcctPanel();
+});
+$("acctClose").addEventListener("click", () => { $("acctPanel").hidden = true; });
+
 function pushToApi() {
   if (!API || !projectId) return;
+  if (!canEdit()) { setStatus("read only", "err"); return; }
   clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`${API}/projects/${projectId}`, {
-        method:"PATCH", headers:{ "content-type":"application/json" },
+      const res = await api(`/projects/${projectId}`, {
+        method:"PATCH",
         body: JSON.stringify({ rooms: state.rooms, plot: state.plot, interiors: state.interiors,
-                               actor: $("role").value === "client" ? "client" : "architect",
                                budget_max: Math.round(state.budget * 100000) })
       });
-      setStatus(res.ok ? "synced" : "sync failed", res.ok ? "ok" : "err");
+      setStatus(res.ok ? "synced" : res.status === 403 ? "read only" : "sync failed", res.ok ? "ok" : "err");
     } catch { setStatus("offline", "err"); }
   }, 420);
 }
 async function loadFromApi() {
   if (!API || !projectId) { setStatus("local"); return; }
+  await refreshAccount();
+  if (!account) { setStatus("sign in", "err"); $("acctPanel").hidden = false; renderAcctPanel(); return; }
   try {
-    const p = await (await fetch(`${API}/projects/${projectId}`)).json();
+    const res = await api(`/projects/${projectId}`);
+    if (!res.ok) {
+      setStatus(res.status === 404 ? "no access" : "load failed", "err");
+      warn(res.status === 404
+        ? "This project does not exist, or your account has no access to it. Ask the owner to add you."
+        : "Could not load the project.");
+      return;
+    }
+    const p = await res.json();
+    myRole = p.my_role || null;
+    if (!canEdit()) { setRole(myRole === "contractor" ? "contractor" : "client"); $("role").disabled = true; }
+    renderAccount();
     if (p.rooms?.length) state.rooms = p.rooms;
     state.interiors = p.interiors || {};
     state.name = p.name || state.name;
@@ -2701,9 +2886,8 @@ async function runPrompt(raw, claudeOnly = false) {
              <div class="note">Proposing a layout, then checking it against the plot,
              the setbacks and every other room before offering it to you.</div>`);
   try {
-    const res = await fetch(`${API}/projects/${projectId}/cortex/edit`, {
-      method:"POST", headers:{ "content-type":"application/json" },
-      body: JSON.stringify({ instruction: text, apply: false })
+    const res = await api(`/projects/${projectId}/cortex/edit`, {
+      method:"POST", body: JSON.stringify({ instruction: text, apply: false })
     });
     if (!res.ok) {
       const detail = (await res.json().catch(() => ({}))).detail || res.statusText;
@@ -2874,7 +3058,7 @@ function renderBrief() {
 async function pushBrief() {
   if (!API || !projectId) return;
   try {
-    await fetch(`${API}/projects/${projectId}`, { method:"PATCH", headers:{ "content-type":"application/json" },
+    await api(`/projects/${projectId}`, { method:"PATCH",
       body: JSON.stringify({ brief: { ...state.brief, plot: state.plot, budget_max: Math.round(state.budget * 100000),
                                       plot_size_sqft: state.plot.w * state.plot.h } }) });
   } catch {}
@@ -2890,7 +3074,7 @@ async function generateFromBrief() {
              <div class="note">Drawing a layout for this brief and plot.</div>`);
   try {
     await pushBrief(); await pushToApiNow();
-    const res = await fetch(`${API}/projects/${projectId}/cortex/layout`, { method:"POST" });
+    const res = await api(`/projects/${projectId}/cortex/layout`, { method:"POST" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { promptOut(`<div class="who">Claude unavailable</div><div class="bad">${escH(data.detail || res.statusText)}</div>`); return; }
     state.rooms = data.rooms; state.selected = null;
@@ -2907,7 +3091,7 @@ async function generateFromBrief() {
 async function pushToApiNow() {
   if (!API || !projectId) return;
   clearTimeout(pushTimer);
-  await fetch(`${API}/projects/${projectId}`, { method:"PATCH", headers:{ "content-type":"application/json" },
+  await api(`/projects/${projectId}`, { method:"PATCH",
     body: JSON.stringify({ rooms: state.rooms, plot: state.plot, interiors: state.interiors,
                            budget_max: Math.round(state.budget * 100000) }) });
 }
@@ -2971,7 +3155,7 @@ function renderOptions() {
   $("libBtn").addEventListener("click", loadLibrary);
   $("options").querySelectorAll("[data-lib]").forEach(b => b.addEventListener("click", async () => {
     try {
-      const plan = await (await fetch(`${API}/plans/${b.dataset.lib}`)).json();
+      const plan = await (await api(`/plans/${b.dataset.lib}`)).json();
       state.rooms = JSON.parse(JSON.stringify(plan.rooms)); state.selected = null; activeOpt = null;
       render(); commit(); pushToApi();
     } catch (e) { warn("Could not load that plan: " + e.message); }
@@ -2983,7 +3167,7 @@ async function loadLibrary() {
     plot_size_sqft: state.plot.w * state.plot.h, budget_max: Math.round(state.budget * 100000),
     family_members: B.family_members, elderly_residents: B.elderly_residents, region: B.region || "Chennai", limit: 3 });
   if (B.theme) q.set("theme", B.theme);
-  try { library = (await (await fetch(`${API}/plans/recommend?${q}`)).json()).results || []; }
+  try { library = (await (await api(`/plans/recommend?${q}`)).json()).results || []; }
   catch { library = []; }
   renderOptions();
 }

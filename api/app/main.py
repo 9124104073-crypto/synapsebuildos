@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import seed as seeder
 from .config import settings
 from .db import SessionLocal, create_all
-from .routers import cortex, plans, projects, reference
+from .routers import auth, cortex, plans, projects, reference
 
 logging.basicConfig(level=logging.INFO)
 
@@ -51,6 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(plans.router)
 app.include_router(reference.router)

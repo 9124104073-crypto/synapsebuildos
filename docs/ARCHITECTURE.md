@@ -305,6 +305,34 @@ rather than adding to masonry, and balconies counted as built-up.
 
 ---
 
+### Accounts and access
+
+Sign-up and sign-in are `POST /auth/register` and `/auth/login`; both return a
+signed JWT the studio keeps in `localStorage` and sends as a bearer token.
+Passwords are stored as PBKDF2-HMAC-SHA256 (260k iterations, per-user salt) and
+are never returned or logged. `SYNAPSE_JWT_SECRET` signs the tokens — at least
+32 characters, or the API refuses to start; unset, a random one is generated
+per boot and everyone is signed out on restart.
+
+Access is per project, through `project_member`:
+
+| Role | Can |
+|---|---|
+| `owner` | everything, plus granting and removing access |
+| `architect` | read and change the design |
+| `client`, `contractor` | read only — every write returns 403 |
+
+`deps.get_project` resolves a project *and* membership; a non-member gets 404,
+not 403, so an id cannot be probed. `get_project_write` is the dependency for
+anything that changes state, which is what makes the studio's role switch a
+view rather than the rule. Reference data (rate cards, bylaws, the plan
+library) stays public — it is published government data.
+
+A project created before accounts existed has no members; the first signed-in
+user to open it becomes its owner, and the decision log records that.
+
+---
+
 ## 6. 3D pipeline
 
 Same rectangles, extruded.

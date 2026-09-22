@@ -114,3 +114,5 @@ class ProjectOut(BaseModel):
     budget_max: int
     status: str
     current_version: int
+    # The signed-in user's role here: owner | architect | client | contractor.
+    my_role: str | None = None

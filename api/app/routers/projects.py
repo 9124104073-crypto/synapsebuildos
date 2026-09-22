@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import add_member, current_user, role_for
 from ..db import get_db
-from ..deps import get_project, rate_card_for, rule_for
+from ..deps import get_project, get_project_write, rate_card_for, rule_for
 from ..engines import analysis as analysis_engine
-from ..models import ApprovalOutcome, Decision, Plan, Project, ProjectVersion
+from ..models import ApprovalOutcome, Decision, Plan, Project, ProjectVersion, User
 from ..schemas import (
     DecisionIn, OutcomeIn, ProjectCreate, ProjectOut, ProjectPatch, WhatIfRequest,
 )
@@ -22,7 +23,8 @@ def _analyse(db: Session, p: Project):
 
 
 @router.post("", response_model=ProjectOut, status_code=201)
-def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Project:
+def create_project(body: ProjectCreate, user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> Project:
     brief = body.brief
     if brief.plot is None:
         # Square the plot when only an area is given. An assumption, so it is
@@ -41,6 +43,7 @@ def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Projec
 
     p = Project(
         name=body.name,
+        owner_id=user.id,
         region=brief.region,
         brief=brief.model_dump(),
         selected_plan_id=body.plan_id,
@@ -56,20 +59,24 @@ def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Projec
     if plot_dict.get("assumed"):
         note += (f" Plot assumed square at {plot_dict['w']} x {plot_dict['h']} ft from the "
                  f"stated area — correct it in the editor if the site is not.")
+    add_member(db, p, user, "owner")
     db.add(Decision(project_id=p.id, actor="synapse", summary=note))
     db.commit()
+    p.my_role = "owner"
     return p
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def read_project(p: Project = Depends(get_project)) -> Project:
+def read_project(p: Project = Depends(get_project), user: User = Depends(current_user),
+                 db: Session = Depends(get_db)) -> Project:
+    p.my_role = role_for(db, p, user)
     return p
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)
 def patch_project(
     body: ProjectPatch,
-    p: Project = Depends(get_project),
+    p: Project = Depends(get_project_write),
     db: Session = Depends(get_db),
 ) -> Project:
     """The editor's write path. Every drag, resize and selection lands here."""
@@ -147,7 +154,7 @@ def what_if(
 @router.post("/{project_id}/commit-what-if", response_model=ProjectOut)
 def commit_what_if(
     body: WhatIfRequest,
-    p: Project = Depends(get_project),
+    p: Project = Depends(get_project_write),
     db: Session = Depends(get_db),
 ) -> Project:
     change = body.model_dump(exclude_none=True)
@@ -165,7 +172,7 @@ def commit_what_if(
 
 
 @router.post("/{project_id}/versions", status_code=201)
-def snapshot(label: str | None = None, p: Project = Depends(get_project),
+def snapshot(label: str | None = None, p: Project = Depends(get_project_write),
              db: Session = Depends(get_db)) -> dict:
     p.current_version += 1
     v = ProjectVersion(
@@ -215,7 +222,7 @@ def add_decision(body: DecisionIn, p: Project = Depends(get_project),
 
 
 @router.post("/{project_id}/outcome", status_code=201)
-def record_outcome(body: OutcomeIn, p: Project = Depends(get_project),
+def record_outcome(body: OutcomeIn, p: Project = Depends(get_project_write),
                    db: Session = Depends(get_db)) -> dict:
     """What the municipality decided.
 

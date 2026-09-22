@@ -43,11 +43,37 @@ class Plan(Base):
     base_cost_estimate: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class User(Base):
+    """An account. `password_hash` is PBKDF2 — see auth.py; the plain password
+    is never stored, never logged and never returned."""
+
+    __tablename__ = "user"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(190), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120), default="")
+    password_hash: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class ProjectMember(Base):
+    """Who may see and change a project. owner | architect | client | contractor."""
+
+    __tablename__ = "project_member"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(20), default="architect")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Project(Base):
     __tablename__ = "project"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(160), default="Untitled project")
+    owner_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     region: Mapped[str] = mapped_column(String(64), default="Chennai")
     brief: Mapped[dict] = mapped_column(JSON, default=dict)
     selected_plan_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
