@@ -6,6 +6,11 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from .config import settings
 
 _url = settings().database_url
+# Hosts hand out postgres:// URLs; SQLAlchemy 2 wants the driver named.
+if _url.startswith("postgres://"):
+    _url = "postgresql+psycopg://" + _url.split("://", 1)[1]
+elif _url.startswith("postgresql://"):
+    _url = "postgresql+psycopg://" + _url.split("://", 1)[1]
 _engine = create_engine(
     _url,
     echo=False,

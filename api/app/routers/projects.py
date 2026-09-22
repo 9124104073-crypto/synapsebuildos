@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import cache
 from ..auth import add_member, current_user, role_for
 from ..db import get_db
 from ..deps import get_project, get_project_write, rate_card_for, rule_for
@@ -123,8 +124,18 @@ def full_analysis(p: Project = Depends(get_project), db: Session = Depends(get_d
 
     The editor calls exactly this after each edit — there is no separate
     /cost, /compliance and /score to fall out of step with one another.
+
+    Cached on the project's version and timestamp, so every viewer of a
+    shared project after the first gets the same computed answer without it
+    being computed again, and an edit invalidates it by construction.
     """
-    return {"project_id": p.id, "version": p.current_version, **_analyse(db, p).as_dict()}
+    key = cache.key_for(p)
+    hit = cache.get(key)
+    if hit is not None:
+        return hit
+    out = {"project_id": p.id, "version": p.current_version, **_analyse(db, p).as_dict()}
+    cache.put(key, out)
+    return out
 
 
 @router.post("/{project_id}/what-if")

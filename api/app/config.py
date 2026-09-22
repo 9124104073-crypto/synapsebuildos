@@ -41,6 +41,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    # Where the two pages live, when the API serves them itself. Empty means
+    # "../web next to the api directory", which is the repo layout.
+    static_dir: str | None = None
+
 
 @lru_cache
 def settings() -> Settings:

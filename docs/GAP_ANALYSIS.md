@@ -29,6 +29,10 @@ critique. Updated 2026-09-22.
 | Accounts, sign-in, per-project roles enforced server-side | `api/app/auth.py`, studio account panel |
 | Preliminary structural sizing: loads, slab, beams, columns, footings (IS 456 / IS 875) | studio › Report › S-1 |
 | One shared model and engine for both pages; the configurator hands its design to the studio | `web/engine.js` |
+| Ceilings as a priced choice; 15 wall, 12 floor and 5 ceiling finishes; 96 catalogue items | `web/engine.js`, `engines/finishes.py`, `seed.py` |
+| Locked 3D view (turn the model without moving it) and a spin toggle | studio 3D toolbar |
+| Single-origin Docker image, compose with Postgres and Redis, Render blueprint | `docker/synapse.Dockerfile`, `docker-compose.yml`, `render.yaml` |
+| Analysis cache, Redis when configured and in-process otherwise | `api/app/cache.py` |
 
 ## Still not built, and why
 
@@ -36,4 +40,6 @@ critique. Updated 2026-09-22.
    the standard method. Reinforcement detailing, lateral load, and a real soil
    report need a licensed structural engineer; the services layouts need an
    MEP engineer. Software cannot sign a drawing.
-2. **Redis cache.** Not needed at this scale.
+2. **Legacy `backend/` and `frontend/` directories** are the earlier stack,
+   replaced by `api/` and `web/`. They are still in the repository; nothing
+   builds or deploys them any more.

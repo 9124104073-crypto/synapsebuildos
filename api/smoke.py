@@ -1,4 +1,6 @@
 """End-to-end smoke test against the real app, no server needed."""
+import secrets
+
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -7,6 +9,13 @@ c.__enter__()          # fire lifespan: create_all + seed
 ok = lambda r: (r.status_code, r.json())
 
 print("health:", c.get("/health").status_code)
+
+# 0. an account: project endpoints are members-only, so the smoke test signs
+# up like any other user. Throwaway address, throwaway password.
+email = f"smoke-{secrets.token_hex(4)}@example.com"
+reg = c.post("/auth/register", json={"email": email, "password": secrets.token_urlsafe(20)})
+c.headers["authorization"] = "Bearer " + reg.json()["token"]
+print("account:", reg.status_code, email)
 
 # 1. recommendation
 r = c.get("/plans/recommend", params={"plot_size_sqft": 2000, "budget_max": 6500000,

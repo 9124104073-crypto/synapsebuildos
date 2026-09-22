@@ -25,7 +25,7 @@ The organising idea, and the thing to understand before anything else:
 | Backend | **FastAPI** (Python 3.11+) | Pydantic gives request validation and LLM structured output from the same type. |
 | ORM | **SQLAlchemy 2.0** (typed `Mapped[]`) | |
 | Database | **SQLite** default, **PostgreSQL** in anything real | Runs with nothing installed; one env var to switch. |
-| Cache | **Redis** (declared, not yet used) | Recomputation is sub-millisecond at this scale. Caching now would be premature. |
+| Cache | **Redis**, optional | `/analysis` is cached on the project's version and `updated_at`, so an edit invalidates it by construction. Without `SYNAPSE_REDIS_URL` it caches in-process instead — the API must run with nothing else installed. |
 | LLM | **Claude (`claude-opus-5`)** via the `anthropic` SDK | Adaptive thinking, `messages.parse()` for schema-validated output. |
 | Fonts | Fraunces / Inter / JetBrains Mono | Display / UI / numerals. |
 
@@ -382,6 +382,24 @@ uvicorn app.main:app --reload                       # http://127.0.0.1:8000/docs
 ```bash
 cd web && python -m http.server 5173
 ```
+
+### Deploying
+
+`docker/synapse.Dockerfile` builds one image that serves the API **and** both
+pages, so the deployment is single-origin: no CORS, and the studio finds the
+backend by itself (`?api=` is only needed when the pages are served
+separately, as in the split dev setup above).
+
+```bash
+SYNAPSE_JWT_SECRET=$(python -c "import secrets;print(secrets.token_urlsafe(48))") \
+ANTHROPIC_API_KEY=sk-ant-... docker compose up --build   # → http://localhost:8000
+```
+
+`docker-compose.yml` adds Postgres and Redis. `render.yaml` is the same image
+on Render with a managed Postgres; paste `ANTHROPIC_API_KEY` into the
+service's environment there (the blueprint marks it `sync: false` so a key is
+never committed). Set `SYNAPSE_JWT_SECRET` once and keep it: changing it signs
+everyone out.
 
 Studio standalone: <http://127.0.0.1:5173/studio.html>
 Studio wired to the API: `…/studio.html?api=http://127.0.0.1:8000&project=<id>`

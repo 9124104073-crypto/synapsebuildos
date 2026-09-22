@@ -1,66 +1,51 @@
-name: nirman-ai
+# Synapse BuildOS — the whole thing on one machine:
+#
+#   SYNAPSE_JWT_SECRET=$(python -c "import secrets;print(secrets.token_urlsafe(48))") \
+#   ANTHROPIC_API_KEY=sk-ant-... docker compose up --build
+#
+# Then open http://localhost:8000 — the landing page, the studio and the API
+# are all on that one origin.
+name: synapse
 
 services:
-  db:
-    image: postgis/postgis:16-3.4
-    environment:
-      POSTGRES_USER: nirman
-      POSTGRES_PASSWORD: nirman
-      POSTGRES_DB: nirman
-    ports:
-      - "5432:5432"
-    volumes:
-      - nirman_db:/var/lib/postgresql/data
-      # Runs once on an empty volume: PostGIS + pgvector extensions and the
-      # geometry/vector column promotion.
-      - ./database/migrations:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nirman -d nirman"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  backend:
+  api:
     build:
       context: .
-      dockerfile: docker/backend.Dockerfile
+      dockerfile: docker/synapse.Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://nirman:nirman@db:5432/nirman
-      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
-      DEMO_MODE: "true"
-      AUTO_SEED: "true"
-      AI_PROVIDER: ${AI_PROVIDER:-mock}
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      MQTT_BROKER_URL: mqtt://mqtt:1883
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SYNAPSE_DATABASE_URL: postgresql+psycopg://synapse:synapse@db:5432/synapse
+      SYNAPSE_REDIS_URL: redis://cache:6379/0
+      # Signs session tokens. Set it, or every restart signs everyone out.
+      SYNAPSE_JWT_SECRET: ${SYNAPSE_JWT_SECRET:?set SYNAPSE_JWT_SECRET to a random 32+ character string}
+      # Optional: without it the /cortex/* endpoints return 503 and the studio
+      # falls back to its own rules engine.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SYNAPSE_CORS_ORIGINS: ""          # same origin, so no cross-origin calls
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      cache:
+        condition: service_started
 
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
-      args:
-        # Empty: nginx proxies /api to the backend on the same origin.
-        VITE_API_BASE_URL: ""
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
-
-  # Optional. The application runs normally when MQTT is unavailable.
-  mqtt:
-    image: eclipse-mosquitto:2
-    profiles: ["iot"]
-    ports:
-      - "1883:1883"
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: synapse
+      POSTGRES_DB: synapse
     volumes:
-      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - synapse_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
 
 volumes:
-  nirman_db:
+  synapse_db:

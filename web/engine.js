@@ -260,14 +260,16 @@ export const FURNISH_SETS = {
                 bedroom:["b-bed","b-ward","b-side","b-lt-ceil","b-win"],
                 kitchen:["k-cab","k-top-gran","k-hob","k-chim","k-lt"],
                 bath:["t-wc","t-basin","t-shower","t-van"], dining:["d-table","d-crock","d-lt"],
-                office:["o-desk","o-chair","o-shelf"], pooja:["p-unit"], utility:["u-washer"],
-                balcony:["bl-chairs","bl-plant"] },
-  premium:    { living:["l-sofa","l-recliner","l-coffee","l-tv","l-shelf","l-d-rug","l-lt-cove","l-lt-pend","l-win-curt","l-d-art","l-d-plant"],
-                bedroom:["b-bed","b-ward","b-side","b-study","b-lt-ceil","b-lt-read","b-win"],
-                kitchen:["k-cab","k-island","k-top-quartz","k-hob","k-chim","k-oven","k-dish","k-splash","k-lt"],
-                bath:["t-wc","t-basin","t-shower","t-tub","t-van","t-mirror","t-acc"],
-                dining:["d-table","d-crock","d-lt"], office:["o-desk","o-chair","o-shelf"],
-                pooja:["p-unit"], utility:["u-washer"], balcony:["bl-chairs","bl-plant"] }
+                office:["o-desk","o-chair","o-shelf"], pooja:["p-unit"],
+                utility:["u-washer","u-sink"], balcony:["bl-chairs","bl-plant"] },
+  premium:    { living:["l-sofa","l-recliner","l-arm","l-swing","l-coffee","l-tv","l-shelf","l-console","l-d-rug","l-lt-cove","l-lt-pend","l-lt-floor","l-win-curt","l-d-art","l-d-plant"],
+                bedroom:["b-bed","b-ward","b-side","b-study","b-dress","b-bench","b-lt-ceil","b-lt-read","b-win","b-ac"],
+                kitchen:["k-cab","k-tall","k-island","k-top-quartz","k-hob","k-chim","k-oven","k-dish","k-sink","k-ro","k-fridge","k-splash","k-lt"],
+                bath:["t-wc","t-basin","t-shower","t-tub","t-van","t-mirror","t-acc","t-geyser","t-faucet","t-niche"],
+                dining:["d-table","d-crock","d-bar","d-lt","d-mirror"],
+                office:["o-desk","o-chair","o-shelf","o-file"],
+                pooja:["p-unit","p-jaali","p-lamp"], utility:["u-washer","u-dryer","u-sink"],
+                balcony:["bl-chairs","bl-plant","bl-deck","bl-swing"] }
 };
 export function furnishRoom(M, r, level) {
   const ids = FURNISH_SETS[level]?.[r.type];

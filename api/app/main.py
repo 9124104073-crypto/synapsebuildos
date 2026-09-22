@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import cache
 from . import seed as seeder
 from .config import settings
 from .db import SessionLocal, create_all
@@ -58,6 +59,24 @@ app.include_router(reference.router)
 app.include_router(cortex.router)
 
 
+def _mount_web() -> None:
+    """Serve the two pages from the API when they sit next to it.
+
+    In development you can run them on their own static server; in the Docker
+    image `web/` is copied in and served here, which makes the deployment
+    single-origin: the browser never makes a cross-origin call, so no CORS,
+    and the studio's `?api=` argument can be left off.
+    """
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    root = Path(settings().static_dir) if settings().static_dir else Path(__file__).resolve().parents[2] / "web"
+    if (root / "studio.html").exists():
+        app.mount("/", StaticFiles(directory=str(root), html=True), name="web")
+        logging.info("Serving the studio from %s", root)
+
+
 @app.get("/health", tags=["meta"])
 def health() -> dict:
     cfg = settings()
@@ -67,6 +86,11 @@ def health() -> dict:
         # Whether a key is present — never the key itself.
         "claude_configured": bool(cfg.anthropic_api_key),
         "database": cfg.database_url.split("://", 1)[0],
+        "cache": cache.backend(),
         "note": "Cost is arithmetic over a rate card. Compliance is a rule "
                 "checklist. Neither is a prediction.",
     }
+
+
+# Last: a catch-all static mount would shadow the routes above.
+_mount_web()

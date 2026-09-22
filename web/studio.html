@@ -2054,8 +2054,21 @@ function loop3d(now = 0) {
 /* =====================================================================
    API SYNC
    ===================================================================== */
-const API = new URLSearchParams(location.search).get("api");
+/* Where the backend is. `?api=…` wins; otherwise, when this page is served
+   over http it is assumed to be the same origin — which is how the Docker
+   image and the Render deployment run. A page opened from a file or from the
+   artifact host has no backend, so the probe below turns it off and the
+   studio works offline. */
+let API = new URLSearchParams(location.search).get("api")
+       || (location.protocol.startsWith("http") ? location.origin : null);
 let projectId = new URLSearchParams(location.search).get("project");
+async function probeApi() {
+  if (!API) return;
+  try {
+    const r = await fetch(`${API}/health`, { cache:"no-store" });
+    if (!r.ok || !(await r.json()).status) throw new Error("no api");
+  } catch { API = null; }
+}
 let pushTimer = null;
 function setStatus(text, cls=""){ const s = $("apiStatus"); s.textContent = text; s.className = "status " + cls; }
 
@@ -2176,7 +2189,8 @@ async function renderAcctPanel() {
         <button class="btn" type="submit" style="margin-top:.5rem;width:100%;justify-content:center">Add</button>
         <p class="hint">They register their own account first; this grants it a role. No email is sent.</p>
       </form>` : ""}
-    <button class="btn" id="signOut" style="margin-top:.9rem;width:100%;justify-content:center">Sign out</button>`;
+    <button class="btn primary" id="newProject" style="margin-top:.9rem;width:100%;justify-content:center">Save this design as a new project</button>
+    <button class="btn" id="signOut" style="margin-top:.5rem;width:100%;justify-content:center">Sign out</button>`;
 
   box.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
     const u = new URL(location.href);
@@ -2196,6 +2210,22 @@ async function renderAcctPanel() {
       err.textContent = typeof d.detail === "string" ? d.detail : "Could not add that person.";
       err.hidden = false; return; }
     $("iEmail").value = ""; renderAcctPanel();
+  });
+  $("newProject").addEventListener("click", async () => {
+    const btn = $("newProject"); btn.disabled = true;
+    try {
+      const res = await api("/projects", { method:"POST", body: JSON.stringify({
+        name: state.name === "Untitled house" ? `House on a ${state.plot.w} × ${state.plot.h} ft plot` : state.name,
+        brief: { ...state.brief, plot: state.plot, budget_max: Math.round(state.budget * 100000),
+                 plot_size_sqft: state.plot.w * state.plot.h } }) });
+      const p = await res.json();
+      if (!res.ok) { warn(typeof p.detail === "string" ? p.detail : "Could not create the project."); return; }
+      projectId = p.id; myRole = "owner";
+      await pushToApiNow();
+      const u = new URL(location.href); u.searchParams.set("project", p.id);
+      history.replaceState(null, "", u);
+      setStatus("synced", "ok"); renderAccount(); renderAcctPanel();
+    } finally { btn.disabled = false; }
   });
   $("signOut").addEventListener("click", async () => {
     setToken(null); account = null; myRole = null;
@@ -2225,7 +2255,9 @@ function pushToApi() {
   }, 420);
 }
 async function loadFromApi() {
-  if (!API || !projectId) { setStatus("local"); return; }
+  await probeApi();
+  if (!API) { setStatus("local"); renderAccount(); return; }
+  if (!projectId) { setStatus("no project"); await refreshAccount(); return; }
   await refreshAccount();
   if (!account) { setStatus("sign in", "err"); $("acctPanel").hidden = false; renderAcctPanel(); return; }
   try {
