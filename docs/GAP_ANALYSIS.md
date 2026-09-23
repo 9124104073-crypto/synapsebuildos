@@ -40,6 +40,6 @@ critique. Updated 2026-09-22.
    the standard method. Reinforcement detailing, lateral load, and a real soil
    report need a licensed structural engineer; the services layouts need an
    MEP engineer. Software cannot sign a drawing.
-2. **Legacy `backend/` and `frontend/` directories** are the earlier stack,
-   replaced by `api/` and `web/`. They are still in the repository; nothing
-   builds or deploys them any more.
+Everything else on the list is built. The earlier stack (`backend/`,
+`frontend/` and its Dockerfiles) has been removed; its orphaned datasets and
+docs are listed at the end of the README.
