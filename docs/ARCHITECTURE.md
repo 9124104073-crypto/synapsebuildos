@@ -26,7 +26,7 @@ The organising idea, and the thing to understand before anything else:
 | ORM | **SQLAlchemy 2.0** (typed `Mapped[]`) | |
 | Database | **SQLite** default, **PostgreSQL** in anything real | Runs with nothing installed; one env var to switch. |
 | Cache | **Redis**, optional | `/analysis` is cached on the project's version and `updated_at`, so an edit invalidates it by construction. Without `SYNAPSE_REDIS_URL` it caches in-process instead — the API must run with nothing else installed. |
-| LLM | **Claude (`claude-opus-5`)** via the `anthropic` SDK | Adaptive thinking, `messages.parse()` for schema-validated output. |
+| LLM | **Claude (`claude-opus-5`)** via the `anthropic` SDK, or any **OpenAI-compatible** endpoint | Claude uses the typed `messages.parse()`. With `SYNAPSE_LLM_PROVIDER=openai` the schema goes in the prompt, JSON mode is requested, and the reply is validated by the same Pydantic model with one repair round — so a free key (Gemini, Groq, OpenRouter, Ollama) works too. |
 | Fonts | Fraunces / Inter / JetBrains Mono | Display / UI / numerals. |
 
 ### Why not React Three Fiber

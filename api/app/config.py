@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +24,14 @@ class Settings(BaseSettings):
     # Read from the environment OR api/.env. Un-prefixed on purpose: it is the
     # name the SDK and every Anthropic doc uses. Never logged, never returned.
     anthropic_api_key: str | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+
+    # Which LLM answers. "anthropic" uses Claude and the typed SDK; "openai"
+    # uses any OpenAI-compatible endpoint — Google AI Studio (Gemini), Groq,
+    # OpenRouter, Ollama — which is how a free key is plugged in.
+    llm_provider: Literal["anthropic", "openai"] = "anthropic"
+    llm_base_url: str | None = None
+    llm_model: str = "gemini-2.5-flash"
+    llm_api_key: str | None = None
 
     model: str = "claude-opus-5"
     effort: str = "high"

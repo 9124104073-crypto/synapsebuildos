@@ -103,7 +103,9 @@ docs/            ARCHITECTURE.md · GAP_ANALYSIS.md · product blueprints
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | unset | Prompt editing, layout generation, structural notes, lived experience. Without it those endpoints return 503 and the studio uses its rules engine |
+| `SYNAPSE_LLM_PROVIDER` | `anthropic` | `openai` switches to any OpenAI-compatible endpoint — Google AI Studio (Gemini), Groq, OpenRouter or Ollama — which is how a **free** key is used |
+| `SYNAPSE_LLM_BASE_URL`, `SYNAPSE_LLM_MODEL`, `SYNAPSE_LLM_API_KEY` | unset | The endpoint, model and key for that provider (`api/.env.example` lists the free ones) |
+| `ANTHROPIC_API_KEY` | unset | Used when the provider is `anthropic`. Without any key the `/cortex/*` endpoints return 503 and the studio uses its rules engine |
 | `SYNAPSE_JWT_SECRET` | random per boot | Signs session tokens; 32+ characters. Set it, or a restart signs everyone out |
 | `SYNAPSE_DATABASE_URL` | SQLite file | PostgreSQL in anything shared |
 | `SYNAPSE_REDIS_URL` | unset | Caches `/analysis`; without it the cache is in-process |

@@ -8,10 +8,12 @@ restructuring anything around it.
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from ..config import settings
 from . import prompts
@@ -100,8 +102,60 @@ def _client():
         ) from e
 
 
+def _openai_compatible(system: str, messages: list[dict], output_model: type[BaseModel]):
+    """Any OpenAI-compatible endpoint: Gemini, Groq, OpenRouter, Ollama, …
+
+    Those APIs do not share Anthropic's typed `messages.parse`, so the schema
+    is put in the system prompt, JSON mode is requested, and the reply is
+    validated by the same Pydantic model. A malformed reply is handed back
+    once with the validation error — the same validate-and-repair discipline
+    the geometry engine applies to the layout itself.
+    """
+    cfg = settings()
+    try:
+        from openai import OpenAI
+    except ImportError as e:
+        raise CortexUnavailable(
+            "The openai package is needed for SYNAPSE_LLM_PROVIDER=openai. "
+            "Run: pip install -r api/requirements.txt") from e
+    if not cfg.llm_api_key:
+        raise CortexUnavailable(
+            "No key for the configured provider. Set SYNAPSE_LLM_API_KEY in api/.env "
+            "(see api/.env.example for free options) and restart the API.")
+
+    client = OpenAI(api_key=cfg.llm_api_key, base_url=cfg.llm_base_url or None)
+    schema = json.dumps(output_model.model_json_schema())
+    convo = [{"role": "system",
+              "content": f"{system}\n\nReply with JSON only — no prose, no code fence — "
+                         f"matching this JSON Schema exactly:\n{schema}"}] + messages
+
+    for attempt in range(2):
+        try:
+            resp = client.chat.completions.create(
+                model=cfg.llm_model, messages=convo, max_tokens=cfg.max_tokens,
+                temperature=0.2, response_format={"type": "json_object"})
+            raw = (resp.choices[0].message.content or "").strip()
+        except Exception as e:
+            log.exception("Cortex call failed (%s)", cfg.llm_base_url or "openai")
+            raise CortexUnavailable(f"{cfg.llm_model}: {e}") from e
+        raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.M).strip()
+        try:
+            return output_model.model_validate_json(raw)
+        except ValidationError as e:
+            if attempt:
+                raise CortexUnavailable(
+                    f"{cfg.llm_model} did not return the expected structure. "
+                    f"A stronger model usually fixes this.") from e
+            convo += [{"role": "assistant", "content": raw},
+                      {"role": "user", "content": f"That did not match the schema: {e}. "
+                                                  f"Return corrected JSON only."}]
+    raise CortexUnavailable("No valid response.")
+
+
 def _parse_messages(system: str, messages: list[dict], output_model: type[BaseModel]):
     cfg = settings()
+    if cfg.llm_provider != "anthropic":
+        return _openai_compatible(system, messages, output_model)
     client = _client()
     try:
         resp = client.messages.parse(

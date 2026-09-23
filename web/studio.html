@@ -3717,6 +3717,17 @@ if (new URLSearchParams(location.search).get("from") === "configurator") {
   } catch {}
 }
 
+/* Deep links: ?view=3d opens the 3D view, ?report=1 opens the report — so a
+   link can point someone straight at the thing you want them to see. */
+addEventListener("load", () => {
+  const q = new URLSearchParams(location.search);
+  if (q.get("view") === "3d") {
+    document.querySelector('#viewSeg [data-v="3d"]').click();
+    $("showRoof").checked = true; $("showRoof").dispatchEvent(new Event("change"));
+  }
+  if (q.get("report")) setTimeout(() => $("reportBtn").click(), 400);
+});
+
 syncButtons();
 renderChips();
 renderBrief();

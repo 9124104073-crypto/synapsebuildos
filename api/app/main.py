@@ -84,6 +84,10 @@ def health() -> dict:
         "status": "ok",
         "model": cfg.model,
         # Whether a key is present — never the key itself.
+        "llm_provider": cfg.llm_provider,
+        "llm_model": cfg.model if cfg.llm_provider == "anthropic" else cfg.llm_model,
+        # Whether a key is present — never the key itself.
+        "llm_configured": bool(cfg.anthropic_api_key if cfg.llm_provider == "anthropic" else cfg.llm_api_key),
         "claude_configured": bool(cfg.anthropic_api_key),
         "database": cfg.database_url.split("://", 1)[0],
         "cache": cache.backend(),
