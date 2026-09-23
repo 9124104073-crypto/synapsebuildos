@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1020" width="1640" height="1020" font-family="Segoe UI, Inter, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8f9a86"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#c98b62"/>
+    </marker>
+    <style>
+      .lane   { fill:#20201e; stroke:#33332f; }
+      .lbl    { fill:#8a8f84; font-size:13px; letter-spacing:2.2px; font-family:Consolas,monospace; }
+      .box    { fill:#26261f; stroke:#43433c; rx:10; }
+      .boxs   { fill:#2b322a; stroke:#a9b9a0; rx:10; }
+      .t      { fill:#f2efe8; font-size:17px; font-weight:600; }
+      .s      { fill:#9aa094; font-size:13px; }
+      .m      { fill:#a9b9a0; font-size:12.5px; font-family:Consolas,monospace; }
+      .acc    { fill:#d9b69a; font-size:12.5px; font-family:Consolas,monospace; }
+      .flow   { stroke:#8f9a86; stroke-width:2; fill:none; marker-end:url(#a); }
+      .flowr  { stroke:#c98b62; stroke-width:2; fill:none; marker-end:url(#ar); stroke-dasharray:7 4; }
+      .note   { fill:#6f766c; font-size:12px; font-style:italic; }
+    </style>
+  </defs>
+
+  <rect width="1640" height="1020" fill="#1a1a18"/>
+  <rect x="0" y="0" width="1640" height="5" fill="#a9b9a0"/>
+
+  <text x="60" y="62" fill="#f2efe8" font-size="30" font-family="Georgia, serif">Synapse BuildOS — architecture and flow</text>
+  <text x="60" y="88" class="s">One geometric model. Every number, drawing and export is measured from the same rectangles.</text>
+
+  <!-- ══ people ══ -->
+  <rect class="lane" x="40" y="116" width="1560" height="92" rx="12"/>
+  <text x="60" y="142" class="lbl">PEOPLE</text>
+  <g>
+    <rect class="box" x="60" y="150" width="190" height="44"/>
+    <text x="78" y="178" class="t">Owner / architect</text>
+    <rect class="box" x="264" y="150" width="150" height="44"/>
+    <text x="282" y="178" class="t">Client</text>
+    <rect class="box" x="428" y="150" width="170" height="44"/>
+    <text x="446" y="178" class="t">Contractor</text>
+  </g>
+  <text x="640" y="167" class="s">drag a room · type or speak a change · pick finishes · open the report</text>
+  <text x="640" y="188" class="acc">roles decided on the server: owner &amp; architect write · client &amp; contractor read</text>
+
+  <!-- ══ browser ══ -->
+  <rect class="lane" x="40" y="228" width="1560" height="228" rx="12"/>
+  <text x="60" y="254" class="lbl">BROWSER — no build step</text>
+
+  <rect class="box" x="60" y="268" width="420" height="104"/>
+  <text x="80" y="298" class="t">studio.html</text>
+  <text x="80" y="322" class="s">SVG plan editor (viewBox in feet)</text>
+  <text x="80" y="342" class="s">Three.js r160 · 3D, walkthrough, sun path</text>
+  <text x="80" y="362" class="s">report · drawings · exports</text>
+
+  <rect class="box" x="60" y="382" width="420" height="58"/>
+  <text x="80" y="408" class="t">index.html</text>
+  <text x="80" y="428" class="s">landing page and live configurator</text>
+
+  <rect class="boxs" x="540" y="268" width="330" height="172"/>
+  <text x="560" y="298" class="t">web/engine.js</text>
+  <text x="560" y="320" class="m">the shared model</text>
+  <text x="560" y="346" class="s">rooms · plot · interiors · brief</text>
+  <text x="560" y="368" class="s">measure( ) → take-off</text>
+  <text x="560" y="388" class="s">cost( ) → priced lines</text>
+  <text x="560" y="408" class="s">compliance( ) → findings</text>
+  <text x="560" y="428" class="s">readiness( ) → score</text>
+
+  <rect class="box" x="930" y="268" width="290" height="80"/>
+  <text x="950" y="296" class="t">Instant feedback</text>
+  <text x="950" y="318" class="s">cost, FSI, setbacks and score</text>
+  <text x="950" y="338" class="s">update on every keystroke</text>
+
+  <rect class="box" x="930" y="360" width="290" height="80"/>
+  <text x="950" y="388" class="t">Exports</text>
+  <text x="950" y="410" class="m">IFC4 · DXF · OBJ</text>
+  <text x="950" y="430" class="m">BOQ csv · report PDF</text>
+
+  <rect class="box" x="1266" y="268" width="314" height="172"/>
+  <text x="1286" y="296" class="t">Works offline</text>
+  <text x="1286" y="320" class="s">The engines run in the browser, so the</text>
+  <text x="1286" y="340" class="s">studio keeps working with no backend.</text>
+  <text x="1286" y="368" class="s">When the API is reachable it must agree</text>
+  <text x="1286" y="388" class="s">exactly — parity is a tested property,</text>
+  <text x="1286" y="408" class="s">not an assumption.</text>
+
+  <line class="flow" x1="480" y1="320" x2="534" y2="320"/>
+  <line class="flow" x1="480" y1="410" x2="534" y2="400"/>
+  <line class="flow" x1="870" y1="308" x2="924" y2="308"/>
+  <line class="flow" x1="870" y1="392" x2="924" y2="398"/>
+  <line class="flow" x1="330" y1="200" x2="330" y2="262"/>
+
+  <!-- ══ transport ══ -->
+  <text x="60" y="482" class="lbl">HTTPS · SINGLE ORIGIN — one server returns the pages and the API, so no CORS</text>
+  <text x="60" y="508" class="m">PATCH /projects/{id}   ·   GET /projects/{id}/analysis   ·   POST /projects/{id}/cortex/edit</text>
+  <line class="flow" x1="1100" y1="458" x2="1100" y2="528"/>
+
+  <!-- ══ api ══ -->
+  <rect class="lane" x="40" y="534" width="1560" height="250" rx="12"/>
+  <text x="60" y="560" class="lbl">API — FastAPI · Pydantic v2 · SQLAlchemy 2</text>
+
+  <rect class="box" x="60" y="574" width="250" height="190"/>
+  <text x="78" y="602" class="t">Routers</text>
+  <text x="78" y="626" class="s">auth · projects</text>
+  <text x="78" y="646" class="s">cortex · plans</text>
+  <text x="78" y="666" class="s">reference</text>
+  <text x="78" y="700" class="acc">every write passes</text>
+  <text x="78" y="718" class="acc">a role check first</text>
+  <text x="78" y="744" class="s">non-member → 404</text>
+
+  <rect class="boxs" x="330" y="574" width="360" height="190"/>
+  <text x="350" y="602" class="t">Engines — the authority</text>
+  <text x="350" y="630" class="s">geometry.py   take-off, overlaps, setbacks</text>
+  <text x="350" y="654" class="s">cost.py       plinth-area rates, line by line</text>
+  <text x="350" y="678" class="s">compliance.py TNCDBR 2019 subset</text>
+  <text x="350" y="702" class="s">scoring.py    readiness composite</text>
+  <text x="350" y="738" class="m">mirrors web/engine.js exactly</text>
+
+  <rect class="box" x="710" y="574" width="300" height="190"/>
+  <text x="730" y="602" class="t">Reference data</text>
+  <text x="730" y="628" class="s">regions.py</text>
+  <text x="730" y="650" class="m">TN PWD plinth area rates</text>
+  <text x="730" y="670" class="m">2025-26, by city band</text>
+  <text x="730" y="694" class="m">TNCDBR 2019 setbacks,</text>
+  <text x="730" y="714" class="m">FSI, height, parking</text>
+  <text x="730" y="744" class="s">96-item catalogue · finishes</text>
+
+  <rect class="box" x="1030" y="574" width="270" height="190"/>
+  <text x="1050" y="602" class="t">Storage</text>
+  <text x="1050" y="628" class="s">SQLite → PostgreSQL</text>
+  <text x="1050" y="652" class="s">projects · versions</text>
+  <text x="1050" y="672" class="s">decisions · members</text>
+  <text x="1050" y="692" class="s">approval outcomes</text>
+  <text x="1050" y="726" class="t">Redis cache</text>
+  <text x="1050" y="748" class="s">keyed on version + time</text>
+
+  <rect class="box" x="1320" y="574" width="260" height="190"/>
+  <text x="1340" y="602" class="t">One response</text>
+  <text x="1340" y="626" class="m">GET /analysis</text>
+  <text x="1340" y="654" class="s">take-off + cost +</text>
+  <text x="1340" y="674" class="s">compliance + readiness,</text>
+  <text x="1340" y="694" class="s">together, always.</text>
+  <text x="1340" y="726" class="s">No separate /cost that</text>
+  <text x="1340" y="746" class="s">could drift.</text>
+
+  <line class="flow" x1="310" y1="660" x2="324" y2="660"/>
+  <line class="flow" x1="690" y1="660" x2="704" y2="660"/>
+  <line class="flow" x1="1010" y1="660" x2="1024" y2="660"/>
+  <line class="flow" x1="1300" y1="660" x2="1314" y2="660"/>
+
+  <!-- ══ llm ══ -->
+  <rect class="lane" x="40" y="806" width="1560" height="176" rx="12"/>
+  <text x="60" y="832" class="lbl">LANGUAGE MODEL — proposes geometry, never prices and never rules</text>
+
+  <rect class="box" x="60" y="846" width="300" height="118"/>
+  <text x="80" y="874" class="t">1 · Instruction</text>
+  <text x="80" y="898" class="s">“add a bedroom upstairs”</text>
+  <text x="80" y="920" class="s">typed or spoken — English,</text>
+  <text x="80" y="940" class="s">Tamil, Malayalam, Hindi</text>
+
+  <rect class="box" x="392" y="846" width="320" height="118"/>
+  <text x="412" y="874" class="t">2 · Model proposes</text>
+  <text x="412" y="898" class="s">Claude (messages.parse) or any</text>
+  <text x="412" y="918" class="s">OpenAI-compatible endpoint —</text>
+  <text x="412" y="938" class="m">Gemini · Groq · OpenRouter · Ollama</text>
+
+  <rect class="boxs" x="744" y="846" width="330" height="118"/>
+  <text x="764" y="874" class="t">3 · Engine judges</text>
+  <text x="764" y="898" class="s">plot · setbacks · overlaps</text>
+  <text x="764" y="918" class="s">minimum sizes · vertical access</text>
+  <text x="764" y="940" class="acc">still invalid → cannot be applied</text>
+
+  <rect class="box" x="1106" y="846" width="474" height="118"/>
+  <text x="1126" y="874" class="t">4 · You approve</text>
+  <text x="1126" y="898" class="s">The change is shown with its cost and compliance impact.</text>
+  <text x="1126" y="918" class="s">Apply or discard — nothing is written without you.</text>
+  <text x="1126" y="940" class="m">the engine, not the model, decides what is admissible</text>
+
+  <line class="flow" x1="360" y1="905" x2="386" y2="905"/>
+  <line class="flow" x1="712" y1="905" x2="738" y2="905"/>
+  <line class="flow" x1="1074" y1="905" x2="1100" y2="905"/>
+  <path class="flowr" d="M 860 846 L 860 800 L 620 800 L 620 846"/>
+  <text x="640" y="792" class="acc">violations returned once for repair</text>
+
+  <line class="flow" x1="1450" y1="784" x2="1450" y2="840"/>
+</svg>
