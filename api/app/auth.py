@@ -17,7 +17,6 @@ import base64
 import hashlib
 import hmac
 import logging
-import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -26,6 +25,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .config import settings
 from .db import get_db
 from .models import Project, ProjectMember, User
 
@@ -36,7 +36,7 @@ ROLES = ("owner", "architect", "client", "contractor")
 WRITERS = ("owner", "architect")
 TOKEN_DAYS = 14
 
-_secret = os.environ.get("SYNAPSE_JWT_SECRET") or ""
+_secret = settings().jwt_secret or ""
 if not _secret:
     _secret = secrets.token_urlsafe(48)
     log.warning("SYNAPSE_JWT_SECRET is not set; using a random secret. "

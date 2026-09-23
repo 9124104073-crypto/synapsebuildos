@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     w_buildability: float = 0.25
     w_sustainability: float = 0.15
 
+    # Signs session tokens (SYNAPSE_JWT_SECRET). At least 32 characters; unset
+    # means a random one per boot, which signs everyone out on restart.
+    jwt_secret: str | None = None
+
     cors_origins: str = "*"
 
     # Where the two pages live, when the API serves them itself. Empty means
