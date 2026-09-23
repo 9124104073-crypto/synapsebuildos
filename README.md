@@ -115,10 +115,5 @@ docs/            ARCHITECTURE.md · GAP_ANALYSIS.md · product blueprints
 - [Architecture](docs/ARCHITECTURE.md) — the model, every algorithm, the prompt
   pipeline, the 3D pipeline, accounts and deployment
 - [Gap analysis](docs/GAP_ANALYSIS.md) — what is built, and what is not
-
-## Also in this repository
-
-`database/`, `docs/nirman/`, `data/`, `dpr_sample.pdf` and
-`shopping_assistant.py` are left over from an earlier, unrelated prototype
-(NIRMAN AI, public-infrastructure siting). Nothing here builds, serves or reads
-them.
+- [POC spec](docs/poc-architecture.md) · [Blueprint](docs/blueprint-v3.md) ·
+  [Product flow](docs/product-flow.md) — the original briefs this was built to
