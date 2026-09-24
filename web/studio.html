@@ -1552,62 +1552,332 @@ const TONE = {
   soft: 0x8b8578, wood: 0x8a6a48, white: 0xe8e6e0, rug: 0xb49a7a, plant: 0x5d7a4f,
   brass: 0xb08d3f
 };
+/* ---------- furniture, modelled rather than boxed ----------
+   Every piece is built in its own local frame — origin on the floor, +z the
+   way it faces — then rotated to the wall it was anchored against. A sofa
+   gets arms, cushions and legs; a bed gets a mattress, a duvet and pillows;
+   a WC gets a cistern and a seat. Small parts, but they are what makes a
+   walkthrough read as a room instead of a diagram. */
+const FMAT = () => ({
+  fabric:  new THREE.MeshLambertMaterial({ color:0x8d8578 }),
+  fabric2: new THREE.MeshLambertMaterial({ color:0xa39a8b }),
+  wood:    new THREE.MeshLambertMaterial({ color:0x8a6a48 }),
+  wood2:   new THREE.MeshLambertMaterial({ color:0x6f5438 }),
+  white:   new THREE.MeshLambertMaterial({ color:0xeceae4 }),
+  ceramic: new THREE.MeshLambertMaterial({ color:0xf4f3ef }),
+  metal:   new THREE.MeshLambertMaterial({ color:0x9aa0a6 }),
+  dark:    new THREE.MeshLambertMaterial({ color:0x2b2b2e }),
+  brass:   new THREE.MeshLambertMaterial({ color:0xb08d3f }),
+  leaf:    new THREE.MeshLambertMaterial({ color:0x5d7a4f }),
+  terra:   new THREE.MeshLambertMaterial({ color:0xa8623f }),
+  glass:   GLASS,
+});
+
+/* local-space helpers: y is measured up from the floor */
+const fb = (g, w, h, d, x, y, z, m, cast = true) => { g.add(box(w, h, d, x, y + h / 2, z, m, cast)); };
+const fcyl = (g, r, h, x, y, z, m, seg = 12, rot) => {
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m);
+  c.position.set(x, y + h / 2, z); if (rot) c.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
+  c.castShadow = true; g.add(c);
+};
+const fsph = (g, r, x, y, z, m, squash = 1) => {
+  const s = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), m);
+  s.position.set(x, y + r * squash, z); s.scale.y = squash; s.castShadow = true; g.add(s);
+};
+const legs = (g, W, D, h, m, inset = .18) => {
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    fb(g, .16, h, .16, sx * (W / 2 - inset), 0, sz * (D / 2 - inset), m);
+};
+const handles = (g, n, W, h, z, m) => {
+  for (let i = 0; i < n; i++)
+    fcyl(g, .045, Math.min(.9, W / n * .5), -W / 2 + W * (i + .5) / n + (i % 2 ? -.18 : .18), h, z, m, 8, [0, 0, Math.PI / 2]);
+};
+
+/* one builder per kind of thing; `k` picks it from the catalogue id */
+function buildPiece(g, kind, W, D, H, M, it) {
+  switch (kind) {
+    case "sofa": {
+      const armW = Math.min(.55, W * .12), seatH = H * .42, backH = H;
+      fb(g, W, seatH * .55, D, 0, .28, 0, M.fabric);                                  // base
+      fb(g, W, backH - seatH, .42, 0, seatH, -D / 2 + .21, M.fabric2);                // backrest
+      for (const s of [-1, 1]) fb(g, armW, seatH * 1.25, D - .3, s * (W / 2 - armW / 2), .28, .1, M.fabric2);
+      const n = Math.max(2, Math.round(W / 2.6)), cw = (W - armW * 2 - .2) / n;
+      for (let i = 0; i < n; i++) {                                                   // seat cushions
+        fb(g, cw - .1, .32, D - .7, -W / 2 + armW + .1 + cw * (i + .5), seatH * .55 + .28, .12, M.fabric);
+        fb(g, cw - .35, .5, .22, -W / 2 + armW + .1 + cw * (i + .5), seatH + .1, -D / 2 + .42, M.fabric); // back cushion
+      }
+      legs(g, W, D, .28, M.wood2, .3);
+      break;
+    }
+    case "chair": {
+      fb(g, W, .18, D, 0, H * .42, 0, M.fabric);
+      fb(g, W, H * .5, .14, 0, H * .42 + .18, -D / 2 + .07, M.fabric2);
+      legs(g, W, D, H * .42, M.wood2, .12);
+      break;
+    }
+    case "table": {
+      const topH = .14;
+      fb(g, W, topH, D, 0, H - topH, 0, M.wood);
+      fb(g, W - .5, .18, D - .5, 0, H - topH - .2, 0, M.wood2);                        // apron
+      legs(g, W, D, H - topH - .2, M.wood2);
+      if (it.chairs) {
+        const n = Math.max(2, Math.round(W / 2.2));
+        for (const s of [-1, 1]) for (let i = 0; i < n; i++) {
+          const cg = new THREE.Group();
+          cg.position.set(-W / 2 + W * (i + .5) / n, 0, s * (D / 2 + .75));
+          cg.rotation.y = s > 0 ? Math.PI : 0;
+          buildPiece(cg, "chair", 1.35, 1.35, 2.9, M, {});
+          g.add(cg);
+        }
+      }
+      break;
+    }
+    case "desk": {
+      fb(g, W, .12, D, 0, H - .12, 0, M.wood);
+      fb(g, W * .38, H - .3, D - .25, W / 2 - W * .19, 0, .05, M.wood2);               // drawer pedestal
+      handles(g, 3, W * .3, H * .55, D / 2 - .06, M.metal);
+      fb(g, .12, H - .2, .12, -W / 2 + .2, 0, D / 2 - .2, M.wood2);
+      fb(g, .12, H - .2, .12, -W / 2 + .2, 0, -D / 2 + .2, M.wood2);
+      break;
+    }
+    case "storage": {                                                                  // wardrobe, crockery, tall unit
+      fb(g, W, H, D, 0, 0, 0, M.wood);
+      const doors = Math.max(2, Math.round(W / 2.2));
+      for (let i = 0; i < doors; i++)                                                  // door faces, slightly proud
+        fb(g, W / doors - .06, H - .2, .06, -W / 2 + W * (i + .5) / doors, .1, D / 2 + .01, M.wood2);
+      handles(g, doors, W, H * .5, D / 2 + .08, M.metal);
+      fb(g, W - .1, .12, D - .06, 0, 0, 0, M.dark);                                     // plinth shadow
+      break;
+    }
+    case "shelf": {
+      fb(g, .12, H, D, -W / 2 + .06, 0, 0, M.wood2);
+      fb(g, .12, H, D, W / 2 - .06, 0, 0, M.wood2);
+      fb(g, W, .1, D, 0, H - .1, 0, M.wood2);
+      const tiers = Math.max(2, Math.round(H / 1.5));
+      for (let i = 1; i < tiers; i++) {
+        const y = H * i / tiers;
+        fb(g, W - .24, .09, D - .1, 0, y, 0, M.wood);
+        const books = Math.max(3, Math.round(W / .5));                                  // a few spines
+        for (let b = 0; b < books; b++) {
+          if ((b * 7 + i * 3) % 4 === 0) continue;
+          const bh = .55 + ((b * 13 + i) % 5) * .07;
+          const col = [0x7d5a44, 0x5a6b53, 0x8d6b6b, 0x4f5a63, 0xb08d3f][(b + i) % 5];
+          fb(g, W / books * .8, bh, D * .55, -W / 2 + .12 + (W - .24) * (b + .5) / books,
+             y + .09, 0, new THREE.MeshLambertMaterial({ color: col }), false);
+        }
+      }
+      break;
+    }
+    case "tv": {                                                                        // console + screen + soundbar
+      fb(g, W, H * .75, D, 0, 0, 0, M.wood);
+      handles(g, 2, W, H * .4, D / 2 + .06, M.metal);
+      const sw = Math.min(W * .95, 5), sh = sw * .56;
+      fb(g, sw, sh, .09, 0, H + .55, -D / 2 + .06, M.dark);
+      fb(g, sw - .12, sh - .12, .02, 0, H + .61, -D / 2 + .11, new THREE.MeshLambertMaterial({ color:0x11161c }), false);
+      fb(g, sw * .5, .12, .18, 0, H + .3, -D / 2 + .1, M.dark, false);
+      break;
+    }
+    case "bed": {
+      const frameH = .85, matH = .62;
+      fb(g, W, frameH, D, 0, 0, 0, M.wood2);
+      fb(g, W - .24, matH, D - .3, 0, frameH, .1, M.white);                              // mattress
+      fb(g, W - .24, .18, (D - .3) * .62, 0, frameH + matH, .45, M.fabric);              // duvet fold
+      for (const s of [-1, 1])                                                           // pillows
+        fb(g, W * .38, .28, .95, s * W * .22, frameH + matH, -D / 2 + .85, M.white);
+      fb(g, W + .2, 3.1, .22, 0, 0, -D / 2 - .05, M.fabric2);                            // headboard
+      for (const s of [-1, 1]) {                                                         // side tables + lamps
+        fb(g, 1.25, 1.6, 1.15, s * (W / 2 + .75), 0, -D / 2 + .55, M.wood);
+        fcyl(g, .12, .5, s * (W / 2 + .75), 1.6, -D / 2 + .55, M.metal, 8);
+        const shade = new THREE.Mesh(new THREE.CylinderGeometry(.34, .26, .5, 12), M.white);
+        shade.position.set(s * (W / 2 + .75), 2.35, -D / 2 + .55); g.add(shade);
+      }
+      break;
+    }
+    case "wc": {
+      fb(g, W * .75, 1.55, D * .42, 0, .55, -D / 2 + D * .21, M.ceramic);                // cistern
+      fcyl(g, W * .33, .5, 0, 1.05, .1, M.ceramic, 14);                                  // bowl
+      fb(g, W * .68, .5, D * .55, 0, .55, .12, M.ceramic);
+      fcyl(g, W * .34, .09, 0, 1.55, .1, M.white, 14);                                   // seat
+      break;
+    }
+    case "basin": {
+      fb(g, W, .16, D, 0, 2.5, 0, M.wood2);                                              // counter
+      fb(g, W - .2, 1.1, D - .12, 0, 1.35, 0, M.wood);                                    // vanity
+      handles(g, 2, W - .4, 1.8, D / 2 + .06, M.metal);
+      fcyl(g, Math.min(W, D) * .3, .34, 0, 2.66, 0, M.ceramic, 16);                       // bowl
+      fcyl(g, .05, .75, 0, 2.66, -D / 2 + .16, M.metal, 8);                               // tap
+      fb(g, .06, .06, .32, 0, 3.3, -D / 2 + .3, M.metal, false);
+      fb(g, W * .8, 1.5, .05, 0, 3.5, -D / 2 + .04, M.glass, false);                       // mirror
+      break;
+    }
+    case "shower": {
+      fb(g, W, .2, D, 0, 0, 0, M.ceramic);                                                 // tray
+      fb(g, W, H - .2, .06, 0, .2, -D / 2, M.glass, false);
+      fb(g, .06, H - .2, D, -W / 2, .2, 0, M.glass, false);
+      fcyl(g, .07, 3.2, -W / 2 + .35, H - 3.4, -D / 2 + .3, M.metal, 8);
+      fcyl(g, .42, .1, -W / 2 + .35, H - .45, -D / 2 + .62, M.metal, 14);                  // rose
+      break;
+    }
+    case "tub": {
+      fb(g, W, H, D, 0, 0, 0, M.ceramic);
+      fb(g, W - .5, H * .55, D - .45, 0, H * .45 + .02, 0, new THREE.MeshLambertMaterial({ color:0xdfe7ea }), false);
+      fcyl(g, .05, .55, -W / 2 + .4, H, -D / 2 + .3, M.metal, 8);
+      break;
+    }
+    case "appliance": {                                                                    // fridge, washer, dryer
+      fb(g, W, H, D, 0, 0, 0, M.white);
+      fb(g, W - .08, H * .55, .05, 0, H * .44, D / 2 + .02, new THREE.MeshLambertMaterial({ color:0xdcdcd8 }), false);
+      fcyl(g, W * .26, .06, 0, H * .45, D / 2 + .05, M.metal, 16, [Math.PI / 2, 0, 0]);     // drum door
+      fcyl(g, .05, H * .5, W / 2 - .18, H * .3, D / 2 + .08, M.metal, 8);                   // handle
+      break;
+    }
+    case "plant": {
+      fcyl(g, Math.min(W, D) * .34, .95, 0, 0, 0, M.terra, 14);
+      fcyl(g, .07, H * .45, 0, .9, 0, M.wood2, 6);
+      const r = Math.min(W, D) * .46;
+      fsph(g, r, 0, H * .45, 0, M.leaf, .85);
+      fsph(g, r * .7, r * .5, H * .45 + .25, r * .3, M.leaf, .8);
+      fsph(g, r * .6, -r * .45, H * .45 + .1, -r * .35, M.leaf, .8);
+      break;
+    }
+    case "rug": {
+      fb(g, W, .05, D, 0, 0, 0, new THREE.MeshLambertMaterial({ color: TONE.rug }), false);
+      fb(g, W - .5, .06, D - .5, 0, .005, 0, new THREE.MeshLambertMaterial({ color:0xc7b193 }), false);
+      break;
+    }
+    case "lamp": {
+      fcyl(g, .45, .1, 0, 0, 0, M.dark, 14);
+      fcyl(g, .05, H - .8, 0, .1, 0, M.metal, 8);
+      const shade = new THREE.Mesh(new THREE.CylinderGeometry(.55, .42, .8, 14), M.white);
+      shade.position.set(0, H - .35, 0); g.add(shade);
+      break;
+    }
+    case "pooja": {
+      fb(g, W, H * .55, D, 0, 0, 0, M.wood);                                               // cabinet
+      fb(g, W, .12, D + .18, 0, H * .55, .06, M.wood2);                                     // platform
+      for (const s of [-1, 1]) fb(g, .14, H * .42, .14, s * (W / 2 - .12), H * .55, -D / 2 + .12, M.wood2);
+      fb(g, W, .18, D, 0, H * .97, 0, M.wood2);                                             // canopy
+      for (const s of [-1, 1]) { fcyl(g, .11, .5, s * W * .22, H * .55 + .12, .1, M.brass, 10);
+        fsph(g, .13, s * W * .22, H * .55 + .6, .1, M.brass, .8); }
+      break;
+    }
+    case "swing": {
+      fb(g, W, .28, D, 0, 2.1, 0, M.wood);
+      fb(g, W, 1.3, .16, 0, 2.38, -D / 2 + .08, M.wood2);
+      for (const s of [-1, 1]) fb(g, .16, .9, D, s * (W / 2 - .08), 2.38, 0, M.wood2);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1])
+        fcyl(g, .045, FLOOR_H - 2.4, sx * (W / 2 - .25), 2.38, sz * (D / 2 - .18), M.metal, 6);
+      break;
+    }
+    case "jaali": {
+      const n = Math.max(4, Math.round(W / .7));
+      for (let i = 0; i < n; i++) fb(g, W / (n * 2), H, D, -W / 2 + W * (i + .5) / n, 0, 0, M.wood2);
+      for (const y of [0, H * .5, H - .2]) fb(g, W, .2, D + .02, 0, y, 0, M.wood);
+      break;
+    }
+    default:
+      fb(g, W, H, D, 0, 0, 0, M[it.tone] || M.fabric);
+  }
+}
+
+/* catalogue id → builder */
+const PIECE = {
+  "l-sofa":"sofa", "l-recliner":"sofa", "l-arm":"sofa", "bl-chairs":"chair", "bl-swing":"swing",
+  "l-coffee":"table", "d-table":"table", "k-break":"table",
+  "b-study":"desk", "o-desk":"desk", "o-chair":"chair",
+  "b-ward":"storage", "d-crock":"storage", "k-tall":"storage", "o-file":"storage",
+  "l-console":"storage", "u-sink":"storage", "d-bar":"storage", "k-island":"storage",
+  "b-dress":"basin", "t-van":"basin", "t-basin":"basin",
+  "l-shelf":"shelf", "o-shelf":"shelf", "l-tv":"tv",
+  "t-wc":"wc", "t-shower":"shower", "t-tub":"tub",
+  "k-fridge":"appliance", "u-washer":"appliance", "u-dryer":"appliance",
+  "l-d-plant":"plant", "bl-plant":"plant", "l-d-rug":"rug", "l-lt-floor":"lamp",
+  "p-unit":"pooja", "p-jaali":"jaali", "l-partition":"jaali", "l-swing":"swing",
+  "b-bench":"chair", "b-side":"storage",
+};
+
 function furniture3d(group, r, baseY, cx, cz) {
-  const mat = c => new THREE.MeshLambertMaterial({ color:c });
+  const M = FMAT();
   const { placed } = placeItems(r);
   for (const p of placed) {
-    const X = p.x - cx, Z = p.y - cz, it = p.it;
-    if (it.tone === "glass") {
-      group.add(box(p.w, p.h, p.d, X, baseY + p.h/2, Z, GLASS, false));
-      group.add(box(p.w, .12, p.d, X, baseY + .06, Z, mat(TONE.white)));
-    } else if (it.tone === "plant") {
-      group.add(box(p.w * .7, 1.2, p.d * .7, X, baseY + .6, Z, mat(0x6b5a48)));
-      const leaves = new THREE.Mesh(new THREE.SphereGeometry(Math.min(p.w, p.d) * .75, 10, 8), mat(TONE.plant));
-      leaves.position.set(X, baseY + 1.2 + p.h * .35, Z); leaves.castShadow = true;
-      group.add(leaves);
-    } else if (it.jaali) {
-      // a pierced screen: slats with gaps, so light passes through it in 3D too
-      const n = Math.max(3, Math.round(p.w / .8)), slat = p.w / (n * 2);
-      for (let i = 0; i < n; i++)
-        group.add(box(slat, p.h, p.d, X - p.w/2 + slat/2 + i * p.w/n, baseY + p.h/2, Z, mat(TONE.wood)));
-      group.add(box(p.w, .3, p.d, X, baseY + p.h, Z, mat(TONE.wood)));
-    } else if (it.swing) {
-      const chain = mat(0x4a4a4a);
-      group.add(box(p.w, .35, p.d, X, baseY + 2.2, Z, mat(TONE.wood)));            // seat plank
-      group.add(box(p.w, 1.4, .2, X, baseY + 3, Z - p.d/2 + .1, mat(TONE.wood)));  // backrest
-      for (const dx of [-p.w/2 + .3, p.w/2 - .3])
-        for (const dz of [-p.d/2 + .2, p.d/2 - .2])
-          group.add(box(.08, FLOOR_H - 2.4, .08, X + dx, baseY + 2.4 + (FLOOR_H - 2.4)/2, Z + dz, chain, false));
-    } else if (it.bed) {
-      group.add(box(p.w, 1.1, p.d, X, baseY + .55, Z, mat(TONE.wood)));
-      group.add(box(p.w - .3, .6, p.d - .5, X, baseY + 1.4, Z + .15, mat(0xe9e4da)));      // mattress
-      group.add(box(p.w, 3.2, .35, X, baseY + 1.6, Z - p.d/2 + .18, mat(TONE.soft)));       // headboard
-    } else {
-      group.add(box(p.w, p.h, p.d, X, baseY + p.h/2, Z, mat(TONE[it.tone] || TONE.soft)));
-      if (it.screen)
-        group.add(box(Math.min(p.w * .8, 4.2), 2.4, .15, X, baseY + p.h + 1.35, Z - p.d/2 + .2, mat(0x1d1f22)));
-      if (it.chairs)
-        for (const [dx, dz] of [[-1.6,-1],[0,-1],[1.6,-1],[-1.6,1],[0,1],[1.6,1]])
-          group.add(box(1.3, 1.6, 1.3, X + dx * (p.w/5.6), baseY + .8, Z + dz * (p.d/2 + .7), mat(TONE.soft)));
-    }
+    const it = p.it;
+    if (it.counter) { kitchenRun(group, p, baseY, cx, cz, M); continue; }
+    // face away from the wall it was anchored to, so backs are against walls
+    const face = ({ n:"s", s:"n", w:"e", e:"w", nw:"s", ne:"s", sw:"n", se:"n", c:"s" })[it.at] || "s";
+    const yaw = { s:0, n:Math.PI, e:Math.PI / 2, w:-Math.PI / 2 }[face];
+    const sideways = face === "e" || face === "w";
+    const g = new THREE.Group();
+    g.position.set(p.x - cx, baseY, p.y - cz);
+    g.rotation.y = yaw;
+    buildPiece(g, it.bed ? "bed" : PIECE[it.id] || (it.tone === "plant" ? "plant" : "storage"),
+               sideways ? p.d : p.w, sideways ? p.w : p.d, p.h, M, it);
+    group.add(g);
   }
-  // lighting reads as fittings, not light sources — real lights per room
-  // would cost a frame per bulb and add nothing to a design decision
+  fittings3d(group, r, baseY, cx, cz, M);
+}
+
+/* The kitchen: base cabinets with a counter, an upper run, a sink and a hob. */
+function kitchenRun(group, p, baseY, cx, cz, M) {
+  const along = p.w >= p.d, L = along ? p.w : p.d, T = along ? p.d : p.w;
+  const g = new THREE.Group();
+  g.position.set(p.x - cx, baseY, p.y - cz);
+  if (!along) g.rotation.y = Math.PI / 2;
+  fb(g, L, 2.6, T, 0, .35, 0, M.white);                        // carcass
+  fb(g, L - .3, .35, T - .4, 0, 0, 0, M.dark);                  // toe kick
+  fb(g, L, .22, T + .12, 0, 2.95, .06, new THREE.MeshLambertMaterial({ color:0x55575a }));  // counter
+  const doors = Math.max(2, Math.round(L / 2));
+  handles(g, doors, L, 2.4, T / 2 + .06, M.metal);
+  fb(g, L * .6, 2.1, T * .55, -L * .2, FLOOR_H - 4.4, -T / 2 + T * .28, M.white);           // uppers
+  handles(g, 2, L * .5, FLOOR_H - 4.6, -T / 2 + T * .55, M.metal);
+  fb(g, 1.9, .06, 1.35, L * .26, 3.11, .05, M.metal, false);                                 // sink
+  fcyl(g, .05, .8, L * .26, 3.17, -T / 2 + .2, M.metal, 8);
+  fb(g, 2.1, .05, 1.5, -L * .3, 3.17, .05, M.dark, false);                                   // hob
+  for (const dx of [-.5, .5]) for (const dz of [-.35, .35])
+    fcyl(g, .3, .04, -L * .3 + dx, 3.2, .05 + dz, new THREE.MeshLambertMaterial({ color:0x1b1b1d }), 12);
+  group.add(g);
+}
+
+/* Light fittings, curtains and wall art — the things that finish a room. */
+function fittings3d(group, r, baseY, cx, cz, M) {
   const glow = new THREE.MeshBasicMaterial({ color:0xfff1c9 });
+  const X = r.x + r.w / 2 - cx, Z = r.y + r.h / 2 - cz, Y = baseY + FLOOR_H;
   for (const it of itemsFor(r.id)) {
     if (it.light === "pendant") {
-      const X = r.x + r.w/2 - cx, Z = r.y + r.h/2 - cz;
-      group.add(box(.05, 2, .05, X, baseY + FLOOR_H - 1, Z, mat(0x333333), false));
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(.55, 12, 10), glow);
-      bulb.position.set(X, baseY + FLOOR_H - 2.2, Z);
-      group.add(bulb);
+      group.add(box(.05, 1.6, .05, X, Y - .8, Z, M.dark, false));
+      const shade = new THREE.Mesh(new THREE.ConeGeometry(.75, .8, 16, 1, true), M.dark);
+      shade.position.set(X, Y - 1.75, Z); group.add(shade);
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), glow);
+      bulb.position.set(X, Y - 2, Z); group.add(bulb);
     } else if (it.light === "cove") {
-      const y = baseY + FLOOR_H - .7, x0 = r.x + .6 - cx, x1 = r.x + r.w - .6 - cx,
+      const y = Y - .7, x0 = r.x + .6 - cx, x1 = r.x + r.w - .6 - cx,
             z0 = r.y + .6 - cz, z1 = r.y + r.h - .6 - cz;
-      group.add(box(r.w - 1.2, .12, .12, (x0+x1)/2, y, z0, glow, false));
-      group.add(box(r.w - 1.2, .12, .12, (x0+x1)/2, y, z1, glow, false));
-      group.add(box(.12, .12, r.h - 1.2, x0, y, (z0+z1)/2, glow, false));
-      group.add(box(.12, .12, r.h - 1.2, x1, y, (z0+z1)/2, glow, false));
+      group.add(box(r.w - 1.2, .12, .12, (x0 + x1) / 2, y, z0, glow, false));
+      group.add(box(r.w - 1.2, .12, .12, (x0 + x1) / 2, y, z1, glow, false));
+      group.add(box(.12, .12, r.h - 1.2, x0, y, (z0 + z1) / 2, glow, false));
+      group.add(box(.12, .12, r.h - 1.2, x1, y, (z0 + z1) / 2, glow, false));
+    } else if (it.id === "b-lt-ceil" || it.id === "k-lt" || it.id === "t-mirror") {
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, .12, 16), glow);
+      disc.position.set(X, Y - .25, Z); group.add(disc);
+    }
+    // curtains and blinds hang on this room's exterior windows
+    if (/win|curt|blind/.test(it.id)) {
+      for (const s of wallPlan()) {
+        if (s.owner !== r || s.kind !== "ext" || s.opening !== "window") continue;
+        const m = (s.a + s.b) / 2, wW = Math.min((s.b - s.a) * .46, 7.5) + 1.2;
+        const fabric = new THREE.MeshLambertMaterial({ color: it.id === "b-win" ? 0x6a6357 : 0xd8d2c4 });
+        for (const side of [-1, 1]) {
+          const w = wW * .3;
+          group.add(s.horiz
+            ? box(w, 6.4, .28, m + side * (wW / 2 - w / 2) - cx, baseY + 4.2, s.coord + (s.owner.y + s.owner.h / 2 > s.coord ? .35 : -.35) - cz, fabric)
+            : box(.28, 6.4, w, s.coord + (s.owner.x + s.owner.w / 2 > s.coord ? .35 : -.35) - cx, baseY + 4.2, m + side * (wW / 2 - w / 2) - cz, fabric));
+        }
+      }
+    }
+    if (it.id === "l-d-art" || it.id === "d-mirror") {                    // a framed piece on the rear wall
+      const frame = new THREE.MeshLambertMaterial({ color: it.id === "d-mirror" ? 0xb8bcc0 : 0x6d5b45 });
+      group.add(box(Math.min(r.w * .35, 4), 2.6, .12, X, baseY + 5.2, r.y + .25 - cz, frame));
+      group.add(box(Math.min(r.w * .35, 4) - .3, 2.3, .04, X, baseY + 5.2, r.y + .33 - cz,
+        new THREE.MeshLambertMaterial({ color: it.id === "d-mirror" ? 0xdfe6ea : 0x9c8f76 }), false));
     }
   }
 }
@@ -2433,6 +2703,82 @@ function localIntent(raw) {
   const s = norm(raw);
   const P = state.plot;
 
+  // --- furnish a room, or the whole house ---------------------------
+  const setM = s.match(/\b(essentials?|comfort|premium|basic|luxury)\b/);
+  if (setM && /\b(furnish|furniture|fit out|fitout|set)\b/.test(s)) {
+    const level = { basic:"essentials", essential:"essentials", essentials:"essentials",
+                    comfort:"comfort", premium:"premium", luxury:"premium" }[setM[1]];
+    const room = findRoom(" " + s + " ");
+    if (/\b(all|every|whole|entire|house)\b/.test(s) || !room) {
+      for (const r of state.rooms) furnishRoom(r, level);
+      return { done:true, summary:[`Furnished every room to ${level}.`] };
+    }
+    furnishRoom(room, level);
+    return { done:true, summary:[`Furnished ${room.name} to ${level}.`] };
+  }
+
+  // --- a catalogue item by name, in a room or outside ----------------
+  if (/\b(add|put|include|remove|drop|delete|take out|without)\b/.test(s)) {
+    const drop = /\b(remove|drop|delete|take out|without)\b/.test(s);
+    // the words people actually use, mapped to catalogue ids
+    const WORD_ITEM = {
+      garden:"x-garden", landscaping:"x-garden", gate:"x-gate", "compound wall":"x-wall",
+      chajja:"x-chajja", chajjas:"x-chajja", sunshade:"x-chajja", sunshades:"x-chajja",
+      pergola:"x-pergola", solar:"x-solar", porch:"x-porch", portico:"x-portico",
+      thinnai:"x-thinnai", grills:"x-grills", grill:"x-grills", railing:"x-railing-ms",
+      driveway:"x-driveway", "water tank":"x-tank", tank:"x-tank",
+      sofa:"l-sofa", tv:"l-tv", rug:"l-d-rug", oonjal:"l-swing", swing:"l-swing",
+      plants:"l-d-plant", plant:"l-d-plant", bed:"b-bed", wardrobe:"b-ward", almirah:"b-ward",
+      ac:"b-ac", "air conditioner":"b-ac", fridge:"k-fridge", refrigerator:"k-fridge",
+      chimney:"k-chim", hob:"k-hob", oven:"k-oven", dishwasher:"k-dish", geyser:"t-geyser",
+      bathtub:"t-tub", shower:"t-shower", mirror:"t-mirror", "washing machine":"u-washer",
+    };
+    let best = null, bestLen = 0;
+    for (const [word, id] of Object.entries(WORD_ITEM))
+      if (s.includes(" " + word) && word.length > bestLen) { best = catalogById[id]; bestLen = word.length; }
+    const STOP = new Set(["with", "and", "unit", "units", "set", "wall", "floor", "room", "tile", "tiles", "light", "lights"]);
+    for (const it of CATALOG) {
+      const name = it.name.toLowerCase().replace(/\(.*?\)/g, "").trim();
+      // the whole leading phrase first, then any distinctive word from the name,
+      // so “add solar” finds “Rooftop solar, 3 kW”
+      for (const key of [name.split(",")[0], ...name.split(/[\s,]+/)]) {
+        if (key.length < 4 || STOP.has(key)) continue;
+        if (s.includes(" " + key) && key.length > bestLen) { best = it; bestLen = key.length; }
+      }
+    }
+    if (best) {
+      const key = best.room === "exterior" ? "exterior"
+        : (state.rooms.find(r => r.type === best.room && s.includes(r.name.toLowerCase()))
+           || findRoom(" " + s + " ") || state.rooms.find(r => r.type === best.room) || {}).id;
+      if (key) {
+        const had = hasItem(key, best.id);
+        if (drop ? had : !had) toggleItem(key, best.id);
+        const where = key === "exterior" ? "the exterior" : state.rooms.find(r => r.id === key).name;
+        return { done:true, summary:[`${drop ? "Removed" : "Added"} ${best.name.toLowerCase()} ${drop ? "from" : "to"} ${where} (${lakh(best.price)}).`] };
+      }
+    }
+  }
+
+  // --- which way the road faces -------------------------------------
+  const faceM = s.match(/\b(?:road|plot|house|entrance|front)\b[^.]*\bfac(?:es|ing)?\b\s+(north|south|east|west|north[- ]?east|north[- ]?west|south[- ]?east|south[- ]?west)/)
+             || s.match(/\bfac(?:es|ing)\s+(north|south|east|west)\b/);
+  if (faceM) {
+    const key = faceM[1].replace(/[- ]/g, "");
+    const deg = { north:0, northeast:45, east:90, southeast:135,
+                  south:180, southwest:225, west:270, northwest:315 }[key];
+    if (deg !== undefined) {
+      state.plot.facing = deg;
+      return { done:true, summary:[`Road side now faces ${dirName(deg)}.`] };
+    }
+  }
+
+  // --- which town's rates and rules ----------------------------------
+  for (const name of Object.keys(REGIONS))
+    if (s.includes(name.toLowerCase()) && /\b(location|city|town|region|rates|move|set|in)\b/.test(s)) {
+      state.brief.region = name; setRegion(name); renderBrief();
+      return { done:true, summary:[`Rates and bylaws switched to ${name}.`] };
+    }
+
   // --- budget -------------------------------------------------------
   const budgetM = s.match(/budget (?:to |of |is )?(?:rs\.?\s*)?(\d+(?:\.\d+)?)\s*(l|lakh|lakhs|cr|crore)?/);
   if (/\bbudget\b/.test(s) && budgetM) {
@@ -2635,6 +2981,115 @@ function snapshotMetrics() {
   return { t, c, rd, fails: f.filter(x => x.outcome === "LIKELY_FAIL").length };
 }
 
+/* ---------- the assistant that answers ----------
+   Half of what people ask a design tool is a question, not an instruction:
+   “what does it cost”, “why am I over budget”, “what breaks the rules”, “how
+   big is the kitchen”. Those are answered here, from the same engines the
+   panels use — instantly, offline, with no key. Only genuinely open-ended
+   work goes to the model. */
+const QUESTION = /^(what|whats|what's|how|why|which|where|when|is|are|can|do|does|show|tell|list|explain|give)\b|\?$/;
+
+function answerQuestion(raw) {
+  const s = norm(raw), t = measure(), c = cost(t), f = compliance(t), rd = readiness(t, c, f);
+  const say = (title, ...lines) => ({ title, html: lines.filter(Boolean).join("") });
+  const li = arr => `<ul>${arr.map(x => `<li>${x}</li>`).join("")}</ul>`;
+  const P = state.plot;
+
+  if (!QUESTION.test(s.trim()) && !/\b(cost|budget|score|help)\b/.test(s)) return null;
+
+  // ---- what can you do -------------------------------------------------
+  if (/\b(help|what can you do|commands|how do i use)\b/.test(s))
+    return say("What I can do", li([
+      "<b>Change the design</b> — “add a bedroom upstairs”, “make the kitchen 3 ft wider”, “move the parking to the front”, “remove bathroom 2”",
+      "<b>Finishes</b> — “marble floor in the living room”, “sage walls in bedroom 2”, “wood ceiling in the living room”",
+      "<b>Interiors and exterior</b> — “furnish the bedroom premium”, “add solar”, “add a compound wall”",
+      "<b>Site and budget</b> — “plot 40 by 60”, “road faces east”, “budget 60 lakhs”, “location Coimbatore”",
+      "<b>Questions</b> — “what does it cost?”, “why am I over budget?”, “what breaks the rules?”, “how big is the kitchen?”, “how long will it take?”",
+    ]));
+
+  // ---- cost ------------------------------------------------------------
+  if (/\b(cost|price|budget|expensive|total|estimate)/.test(s)) {
+    if (/\b(why|over|reduce|save|cut|cheaper|lower)\b/.test(s)) {
+      const sug = suggestions(t, c, rd).filter(x => x.fix);
+      return say(rd.over > 0 ? `Over budget by ${lakh(rd.over)}` : `Under budget by ${lakh(-rd.over)}`,
+        `<div class="note">${lakh(c.total)} against a ₹${state.budget}L budget. The biggest movable pieces:</div>`,
+        li([
+          `Furniture and exterior: <b>${lakh(c.interiors)}</b> — the easiest to defer`,
+          `Chosen finishes: <b>${lakh(t.wallCost + t.floorCost + t.ceilCost)}</b> over the base specification`,
+          `Built-up area: <b>${Math.round(t.built)} sf</b> — every 100 sf is roughly ${lakh(c.total / Math.max(t.built, 1) * 100)}`,
+        ]),
+        sug.length ? `<div class="note">Try: ${sug.slice(0, 2).map(x => `“${x.t}”`).join(", ")} — the Suggestions panel can apply them.</div>` : "");
+    }
+    const lines = costLines(t).filter(l => l.amount > 0)
+      .sort((a, b) => b.amount - a.amount).slice(0, 5)
+      .map(l => `${l.item}: <b>${inr(l.amount)}</b>`);
+    return say(`${lakh(c.total)} all in`,
+      li(lines.concat([`Furniture and exterior: <b>${inr(c.interiors)}</b>`,
+                       `Contingency: <b>${inr(c.cont)}</b>`])),
+      `<div class="note">${Math.round(t.built)} sf built-up · ${inr(c.total / Math.max(t.built, 1))} per sq ft · ${escH(RATES.source.split("—")[0].trim())}</div>`);
+  }
+
+  // ---- compliance ------------------------------------------------------
+  if (/\b(rule|bylaw|legal|complian|setback|fsi|coverage|approv|sanction|permit)/.test(s)) {
+    const fails = f.filter(x => x.outcome === "LIKELY_FAIL"), open = f.filter(x => x.outcome === "UNDETERMINED");
+    return say(fails.length ? `${fails.length} problem(s) to fix` : "Nothing fails right now",
+      li(f.slice(0, 7).map(x => `${x.outcome === "LIKELY_FAIL" ? "✗" : x.outcome === "LIKELY_PASS" ? "✓" : "?"} <b>${x.title}</b> — ${x.why}`)),
+      open.length ? `<div class="note">${open.length} check(s) could not be evaluated yet.</div>` : "",
+      `<div class="note">${RULE.version} · advisory only. Your municipality approves plans, not this tool.</div>`);
+  }
+
+  // ---- readiness -------------------------------------------------------
+  if (/\b(ready|readiness|score|how am i doing)/.test(s))
+    return say(`Readiness ${rd.composite} — ${rd.verdict}`,
+      li([`Budget fit <b>${rd.bFit}</b>`, `Compliance <b>${rd.comp}</b>`,
+          `Buildability <b>${rd.build}</b>`, `Sustainability <b>${rd.sus}</b>`]),
+      `<div class="note">Weighted 35 / 25 / 25 / 15. The weights are a stated guess, to be tuned against real projects.</div>`);
+
+  // ---- time ------------------------------------------------------------
+  if (/\b(how long|duration|month|schedule|timeline)/.test(s)) {
+    const sch = schedule(t, c);
+    return say(`About ${sch.months} months`,
+      li(sch.rows.slice(0, 4).map(r => `${r.name}: weeks ${r.from}–${r.to}, ${lakh(r.amount)}`)),
+      `<div class="note">Indicative. The contractor's own programme replaces it.</div>`);
+  }
+
+  // ---- structure -------------------------------------------------------
+  if (/\b(column|beam|slab|footing|structur|foundation)/.test(s)) {
+    const z = structuralSizing();
+    return say("Preliminary structure",
+      li([`Slab <b>${z.slab_mm} mm</b>`, `Beams <b>230 × ${z.beam_d} mm</b>`,
+          `Columns <b>${z.colSizes.join(", ")} mm</b> (${z.columns.length} of them)`,
+          `Footings <b>${z.footings[0].toFixed(2)}–${z.footings[z.footings.length - 1].toFixed(2)} m</b> at ${z.sbc} kN/m² assumed bearing`]),
+      `<div class="note">IS 456 / IS 875 first pass. A licensed engineer designs and seals it.</div>`);
+  }
+
+  // ---- a specific room, or the whole house -----------------------------
+  const room = findRoom(" " + s + " ");
+  if (room && /\b(big|size|area|dimension|wide|long|cost|finish|floor|wall|ceiling)/.test(s)) {
+    const fin = finishOf(room), area = room.w * room.h;
+    return say(`${room.name} — ${room.w} × ${room.h} ft`,
+      li([`Area <b>${Math.round(area)} sq ft</b> on ${room.floor === 0 ? "the ground floor" : "floor " + room.floor}`,
+          `Floor <b>${finishById("floor", fin.floor).name}</b> · walls <b>${finishById("wall", fin.wall).name}</b> · ceiling <b>${finishById("ceiling", fin.ceiling).name}</b>`,
+          `Furniture here: <b>${itemsFor(room.id).length} item(s), ${inr(itemsFor(room.id).reduce((a, i) => a + i.price, 0))}</b>`]));
+  }
+  if (/\b(room|plan|house|layout|what have i|summary)/.test(s))
+    return say(`${t.bedrooms} bed · ${t.baths} bath · ${Math.round(t.built)} sf`,
+      li(state.rooms.slice().sort((a, b) => a.floor - b.floor).slice(0, 12)
+        .map(r => `${r.name} — ${r.w} × ${r.h} ft${r.floor ? ", floor " + r.floor : ""}`)),
+      `<div class="note">Plot ${P.w} × ${P.h} ft · FSI ${t.fsi.toFixed(2)} · ${(t.cover * 100).toFixed(0)}% covered</div>`);
+
+  // ---- orientation -----------------------------------------------------
+  if (/\b(sun|orient|facing|north|south|east|west|vastu|direction)/.test(s))
+    return say(hasFacing() ? `The road faces ${dirName(P.facing)}` : "Road direction not set",
+      hasFacing()
+        ? li([`Rear faces ${dirName(P.facing + 180)}`,
+              `Afternoon sun comes from the ${dirName(270)} side — windows there want chajjas`,
+              `Set under Plot if it changes.`])
+        : `<div class="note">Pick it under Plot → “Road side faces”. Sun path, shading advice and vastu notes all depend on it.</div>`);
+
+  return null;
+}
+
 /* "add a pooja room and marble floor in the living room" is two instructions.
    Handled whole, the type matcher picks the longest room word anywhere in the
    sentence — "living room" — and adds the wrong thing. So split on conjunctions
@@ -2667,6 +3122,16 @@ async function runPrompt(raw, claudeOnly = false) {
   if (!text || promptBusy) return;
 
   $("promptChips").style.display = "none";   // training wheels, once only
+
+  // A question is answered, not acted on — instantly, from the engines.
+  const asked = claudeOnly ? null : answerQuestion(text);
+  if (asked) {
+    promptOut(`<div class="who">${escH(asked.title)}</div>${asked.html}`);
+    $("promptInput").value = "";
+    speak(asked.title);
+    return;
+  }
+
   const before = snapshotMetrics();
   const local = claudeOnly ? null : runClauses(text);
 
@@ -2680,6 +3145,7 @@ async function runPrompt(raw, claudeOnly = false) {
        <div class="acts"><button class="btn" id="pUndo">Undo</button></div>`);
     $("pUndo").addEventListener("click", () => { $("undoBtn").click(); $("promptOut").classList.remove("on"); });
     $("promptInput").value = "";
+    speak(local.summary.join(". "));
     return;
   }
 
@@ -2758,35 +3224,84 @@ let pendingProposal = null;
 $("promptForm").addEventListener("submit", e => { e.preventDefault(); runPrompt(); });
 
 /* ---------- voice ----------
-   The Web Speech API: Chrome and Edge only, and the browser sends the audio to
-   its own speech service. Indian languages go straight to Claude, because the
-   rules engine only parses English. */
+   Web Speech API (Chrome and Edge; the browser sends the audio to its own
+   speech service). Hold a conversation: it keeps listening between turns,
+   shows what it is hearing as it hears it, and reads the answer back. The
+   rules engine parses English; the other languages go to the model. */
+let speakBack = true;
+function speak(text) {
+  if (!speakBack || !window.speechSynthesis || !text) return;
+  try {
+    const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]*>/g, "").slice(0, 240));
+    u.lang = $("micLang").value || "en-IN";
+    u.rate = 1.02;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch {}
+}
+
 (() => {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const mic = $("micBtn"), lang = $("micLang");
+  const mic = $("micBtn"), lang = $("micLang"), input = $("promptInput");
   if (!SR) { mic.hidden = true; lang.hidden = true; return; }
-  let rec = null;
-  mic.addEventListener("click", () => {
-    if (rec) { rec.stop(); return; }
+  let rec = null, listening = false, final = "";
+
+  const stop = () => { listening = false; rec?.stop(); };
+  const setUI = on => {
+    mic.setAttribute("aria-pressed", String(on));
+    mic.classList.toggle("rec", on);
+    input.placeholder = on ? "Listening… say what you want changed, or ask a question"
+                           : "Describe a change — “add a bedroom upstairs”, “make the kitchen 3 ft wider”";
+  };
+
+  function start() {
     rec = new SR();
-    rec.lang = lang.value; rec.interimResults = true; rec.continuous = false;
-    let final = "";
+    rec.lang = lang.value;
+    rec.interimResults = true;
+    rec.continuous = true;          // keep the turn open through a pause
+    rec.maxAlternatives = 3;
+    final = "";
+    let idleTimer = null;
+
+    const send = () => {
+      const text = final.trim();
+      final = ""; input.value = "";
+      if (!text) return;
+      if (lang.value.startsWith("en")) runPrompt(text); else runPromptClaude(text);
+    };
+
     rec.onresult = e => {
       let interim = "";
-      for (const r of e.results) (r.isFinal ? (final = r[0].transcript) : (interim += r[0].transcript));
-      $("promptInput").value = final || interim;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) final += (final ? " " : "") + r[0].transcript.trim();
+        else interim += r[0].transcript;
+      }
+      input.value = (final + " " + interim).trim();
+      clearTimeout(idleTimer);
+      // a second of silence after a complete phrase means "go"
+      if (final) idleTimer = setTimeout(send, 1100);
     };
-    rec.onerror = e => promptOut(`<div class="who">Voice input stopped</div>
-      <div class="note">${e.error === "not-allowed" ? "Microphone permission was refused." : e.error}</div>`);
+    rec.onerror = e => {
+      if (e.error === "no-speech" || e.error === "aborted") return;
+      listening = false; setUI(false);
+      promptOut(`<div class="who">Voice stopped</div><div class="note">${
+        e.error === "not-allowed" ? "Microphone permission was refused — allow it in the address bar and try again."
+        : e.error === "network" ? "The browser's speech service could not be reached."
+        : escH(e.error)}</div>`);
+    };
     rec.onend = () => {
-      rec = null; mic.setAttribute("aria-pressed", "false"); mic.classList.remove("rec");
-      const text = final.trim();
-      if (!text) return;
-      if (lang.value.startsWith("en")) runPrompt(text);
-      else runPromptClaude(text);
+      clearTimeout(idleTimer);
+      send();
+      if (listening) { try { rec.start(); } catch {} } else setUI(false);   // keep the mic open
     };
-    mic.setAttribute("aria-pressed", "true"); mic.classList.add("rec");
-    rec.start();
+    try { rec.start(); listening = true; setUI(true); }
+    catch { listening = false; setUI(false); }
+  }
+
+  mic.addEventListener("click", () => (listening ? stop() : start()));
+  lang.addEventListener("change", () => { if (listening) { stop(); setTimeout(start, 250); } });
+  addEventListener("keydown", e => {
+    if (e.key === "Escape" && listening) stop();
   });
 })();
 
