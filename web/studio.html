@@ -1257,6 +1257,7 @@ const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(
 const WALL_EXT = .75, WALL_INT = .5, DOOR_W = 3.2, DOOR_H = 7, SILL = 3, HEAD = 7, EYE = 5.6;
 let colliders = [];     // wall AABBs for the walkthrough
 let stairZones = [];    // ramp volumes the player can climb
+let spinners = [];      // ceiling fans, turned by the render loop
 
 function init3d() {
   const canvas = $("canvas3d");
@@ -1775,6 +1776,76 @@ function buildPiece(g, kind, W, D, H, M, it) {
       for (const y of [0, H * .5, H - .2]) fb(g, W, .2, D + .02, 0, y, 0, M.wood);
       break;
     }
+    case "ottoman": {                                   // a soft round pouffe
+      const r = Math.min(W, D) / 2;
+      fcyl(g, r, H - .35, 0, .3, 0, M.fabric, 18);
+      fcyl(g, r * .94, .3, 0, 0, 0, M.fabric, 18);
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + i * Math.PI / 2;
+        fcyl(g, .06, .3, Math.cos(a) * r * .7, 0, Math.sin(a) * r * .7, M.wood2, 6);
+      }
+      break;
+    }
+    case "stools": {                                    // breakfast stools in a row
+      const n = Math.max(2, Math.round(W / 1.6));
+      for (let i = 0; i < n; i++) {
+        const x = -W / 2 + W * (i + .5) / n;
+        fcyl(g, .55, .18, x, H - .18, 0, M.wood, 16);
+        fcyl(g, .12, H - .18, x, 0, 0, M.metal, 10);
+        fcyl(g, .42, .06, x, .02, 0, M.metal, 14);
+        fcyl(g, .06, .5, x, H * .35, .52, M.metal, 8);    // footrest
+      }
+      break;
+    }
+    case "tower": {                                     // slim speaker tower
+      fb(g, W, H - .2, D, 0, .2, 0, M.dark);
+      fb(g, W * .8, .2, D * .8, 0, 0, 0, M.metal);
+      for (const y of [H * .3, H * .55, H * .78])
+        fcyl(g, W * .3, .06, 0, y, D / 2 + .03, M.metal, 14, [Math.PI / 2, 0, 0]);
+      break;
+    }
+    case "rack": {                                      // clothes drying rack
+      for (const s of [-1, 1]) {
+        fcyl(g, .05, H, s * (W / 2 - .1), 0, D / 2 - .08, M.metal, 6);
+        fcyl(g, .05, H, s * (W / 2 - .1), 0, -D / 2 + .08, M.metal, 6);
+      }
+      for (let i = 0; i < 4; i++)
+        fb(g, W - .2, .06, .06, 0, H - .5 - i * .55, -D / 2 + .08 + i * (D - .16) / 3, M.metal, false);
+      break;
+    }
+    case "wallcab": {                                   // cabinet hung off the wall
+      fb(g, W, H * .6, D, 0, 3.4, 0, M.white);
+      fb(g, W - .12, .05, .06, 0, 3.4 + H * .3, D / 2 + .04, M.metal, false);
+      break;
+    }
+    case "mirror-tall": {
+      fb(g, W, H, D, 0, .2, 0, M.wood2);
+      fb(g, W - .3, H - .3, .04, 0, .35, D / 2 + .03, M.glass, false);
+      break;
+    }
+    case "nest": {                                      // two tables, one tucked under
+      for (const [k, s] of [[0, 1], [1, .72]]) {
+        const w = W * s, d = D * s, h = H - k * .35;
+        fb(g, w, .14, d, k * .35, h - .14, k * .3, M.wood);
+        for (const sx of [-1, 1]) for (const sz of [-1, 1])
+          fcyl(g, .05, h - .14, k * .35 + sx * (w / 2 - .12), 0, k * .3 + sz * (d / 2 - .12), M.metal, 6);
+      }
+      break;
+    }
+    case "bell": {
+      fcyl(g, .35, .12, 0, 0, 0, M.wood2, 12);
+      for (const s of [-1, 1]) fcyl(g, .05, H - .6, s * .28, .12, 0, M.brass, 6);
+      fb(g, .68, .06, .08, 0, H - .48, 0, M.brass, false);
+      const bell = new THREE.Mesh(new THREE.ConeGeometry(.22, .45, 12), M.brass);
+      bell.position.set(0, H - .72, 0); g.add(bell);
+      break;
+    }
+    case "bistro": {
+      fcyl(g, Math.min(W, D) / 2, .1, 0, H - .1, 0, M.metal, 16);
+      fcyl(g, .12, H - .1, 0, 0, 0, M.metal, 10);
+      fcyl(g, Math.min(W, D) * .4, .08, 0, 0, 0, M.metal, 16);
+      break;
+    }
     default:
       fb(g, W, H, D, 0, 0, 0, M[it.tone] || M.fabric);
   }
@@ -1794,6 +1865,10 @@ const PIECE = {
   "l-d-plant":"plant", "bl-plant":"plant", "l-d-rug":"rug", "l-lt-floor":"lamp",
   "p-unit":"pooja", "p-jaali":"jaali", "l-partition":"jaali", "l-swing":"swing",
   "b-bench":"chair", "b-side":"storage",
+  "l-ottoman":"ottoman", "l-speaker":"tower", "l-nest":"nest", "k-stool":"stools",
+  "k-open":"shelf", "u-shelf":"shelf", "u-rack":"rack", "t-cab":"wallcab",
+  "b-mirror":"mirror-tall", "b-rug":"rug", "d-rug":"rug", "o-rug":"rug", "p-mat":"rug",
+  "p-bell":"bell", "o-lamp":"lamp", "bl-table":"bistro",
 };
 
 function furniture3d(group, r, baseY, cx, cz) {
@@ -1871,6 +1946,42 @@ function fittings3d(group, r, baseY, cx, cz, M) {
             ? box(w, 6.4, .28, m + side * (wW / 2 - w / 2) - cx, baseY + 4.2, s.coord + (s.owner.y + s.owner.h / 2 > s.coord ? .35 : -.35) - cz, fabric)
             : box(.28, 6.4, w, s.coord + (s.owner.x + s.owner.w / 2 > s.coord ? .35 : -.35) - cx, baseY + 4.2, m + side * (wW / 2 - w / 2) - cz, fabric));
         }
+      }
+    }
+    if (it.fan) {                                                     // a ceiling fan, turning slowly
+      const rod = box(.12, 1.1, .12, X, Y - .55, Z, M.metal, false); group.add(rod);
+      const hub = new THREE.Group(); hub.position.set(X, Y - 1.25, Z);
+      hub.add(new THREE.Mesh(new THREE.CylinderGeometry(.42, .5, .5, 14), M.metal));
+      for (let i = 0; i < 3; i++) {
+        const b = box(4.2, .06, .55, 0, -.1, 0, M.wood, false);
+        b.position.set(Math.cos(i * 2.094) * 2.1, -.1, Math.sin(i * 2.094) * 2.1);
+        b.rotation.y = -i * 2.094; hub.add(b);
+      }
+      group.add(hub); spinners.push(hub);
+    }
+    if (it.walltv) {                                                  // a screen on the rear wall
+      group.add(box(Math.min(r.w * .45, 5.2), 3, .12, X, baseY + 5.4, r.y + .28 - cz, M.dark));
+      group.add(box(Math.min(r.w * .45, 5.2) - .2, 2.8, .04, X, baseY + 5.4, r.y + .36 - cz,
+        new THREE.MeshLambertMaterial({ color:0x11161c }), false));
+    }
+    if (it.wallbox) {                                                 // exhaust fan high on the wall
+      group.add(box(1.1, 1.1, .16, X, baseY + FLOOR_H - 1.6, r.y + .26 - cz, M.white));
+      group.add(box(.85, .85, .05, X, baseY + FLOOR_H - 1.6, r.y + .35 - cz, M.dark, false));
+    }
+    if (it.panel) {                                                   // vertical wood battens, one wall
+      const n = Math.max(6, Math.round(r.w / .9));
+      for (let i = 0; i < n; i++)
+        group.add(box((r.w - .8) / (n * 2), 7.4, .12, r.x + .4 + (r.w - .8) * (i + .5) / n - cx,
+                      baseY + 3.9, r.y + .26 - cz, M.wood2));
+      group.add(box(r.w - .8, .18, .2, X, baseY + .3, r.y + .28 - cz, M.wood));
+    }
+    if (it.string) {                                                  // bulbs strung along the rail
+      const glowS = new THREE.MeshBasicMaterial({ color:0xffdf9e });
+      for (let i = 0; i < 9; i++) {
+        const t = (i + .5) / 9, sag = Math.sin(t * Math.PI) * .6;
+        const b = new THREE.Mesh(new THREE.SphereGeometry(.16, 8, 6), glowS);
+        b.position.set(r.x + r.w * t - cx, baseY + FLOOR_H - 1.4 - sag, r.y + .4 - cz);
+        group.add(b);
       }
     }
     if (it.id === "l-d-art" || it.id === "d-mirror") {                    // a framed piece on the rear wall
@@ -2093,7 +2204,7 @@ function build3d() {
       });
     });
   }
-  colliders = []; stairZones = [];
+  colliders = []; stairZones = []; spinners = [];
 
   const darkUi = (getComputedStyle(document.body).backgroundColor.match(/\d+/g)?.[0] | 0) < 100;
   const SITE = new THREE.MeshLambertMaterial({ color: darkUi ? 0x4a5245 : 0xbfc8b5 });
@@ -2127,6 +2238,12 @@ function build3d() {
                      mats.get(r.id).floor, false);
     slab.userData = { id:r.id, floor:r.floor, pickable:true };
     g.add(slab);
+    if (WALLED(r.type)) {                      // skirting — the detail rooms always have
+      const sk = new THREE.MeshLambertMaterial({ color:0x6f6558 }), y = r.floor * FLOOR_H + .7;
+      for (const [w, d, dx, dz] of [[r.w, .18, 0, -r.h / 2], [r.w, .18, 0, r.h / 2],
+                                    [.18, r.h, -r.w / 2, 0], [.18, r.h, r.w / 2, 0]])
+        g.add(box(w, .6, d, r.x + r.w / 2 + dx - cx, y, r.y + r.h / 2 + dz - cz, sk, false));
+    }
     groups.set(r.id, g);
   }
 
@@ -2317,6 +2434,7 @@ function loop3d(now = 0) {
   requestAnimationFrame(loop3d);
   const dt = Math.min((now - lastT)/1000, .05); lastT = now;
   if (dirty3d) build3d();
+  for (const f of spinners) f.rotation.y += dt * 2.2;
   if (walking) walkStep(dt); else controls.update();
   renderer.render(scene, camera);
 }
