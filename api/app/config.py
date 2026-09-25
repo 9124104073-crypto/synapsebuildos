@@ -13,7 +13,11 @@ class Settings(BaseSettings):
     degrades to a local equivalent rather than failing at import time.
     """
 
-    model_config = SettingsConfigDict(env_prefix="SYNAPSE_", env_file=".env")
+    # Both paths, because the README tells people to create api/.env and the
+    # app is started from the repository root as often as from api/. Looking
+    # in one place only meant a filled-in file that silently did nothing.
+    model_config = SettingsConfigDict(env_prefix="SYNAPSE_", extra="ignore",
+                                      env_file=(".env", "api/.env", "../.env"))
 
     database_url: str = "sqlite:///./synapse.db"
     redis_url: str | None = None
