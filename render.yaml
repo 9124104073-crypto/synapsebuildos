@@ -1,15 +1,25 @@
 # Render blueprint — one web service serving the API and both pages from a
-# single origin, with Postgres.
+# single origin, on Render's free tiers.
 #
-# Deploy: Render dashboard → New → Blueprint → point at this repository, then
-# paste ANTHROPIC_API_KEY into the service's environment (it is marked sync:
-# false so it is never committed here).
+# Deploy: Render dashboard → New → Blueprint → point at this repository.
+# Nothing here costs anything. Two things to know about free:
+#
+#   * The web service sleeps after 15 minutes of no traffic, and the next
+#     visitor waits roughly a minute while it wakes up.
+#   * A free Postgres instance expires 30 days after it is created. When it
+#     does, either create another one or drop the SYNAPSE_DATABASE_URL
+#     variable, at which point the app falls back to SQLite inside the
+#     container — which is wiped on every deploy, so accounts and projects
+#     do not survive. Neither is a problem for a demo; both are, for real use.
+#
+# An LLM key is optional. Everything except open-ended prompt editing runs
+# without one: the rules engine measures, prices and checks on its own.
 
 services:
   - type: web
     name: synapse-buildos
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerfilePath: ./docker/synapse.Dockerfile
     dockerContext: .
@@ -27,10 +37,14 @@ services:
       # Same-origin deployment: the browser never makes a cross-origin call.
       - key: SYNAPSE_CORS_ORIGINS
         value: ""
+      # Optional. Anthropic, or any OpenAI-compatible endpoint via
+      # SYNAPSE_LLM_PROVIDER / _BASE_URL / _MODEL / _API_KEY. Paste it into
+      # the service's environment in the dashboard — sync: false keeps it
+      # out of this file and out of the repository.
       - key: ANTHROPIC_API_KEY
         sync: false
 
 databases:
   - name: synapse-db
-    plan: basic-256mb
+    plan: free
     postgresMajorVersion: "16"
