@@ -2946,6 +2946,22 @@ const VOCAB = ("add remove delete move make bigger smaller wider narrower taller
   + "essentials comfort premium marble granite wood tile vitrified teak sage white warm floor "
   + "wall walls ceiling window door balcony solar compound wall metre metres meter feet foot "
   + "wide deep long cost price rules setback fsi coverage readiness what why how big size").split(" ");
+/* Words that are already correct. Without this the speller "fixes" ordinary
+   English into vocabulary terms — "keep the kitchen" became "deep the
+   kitchen" — which is far worse than leaving a genuine typo alone. */
+const COMMON = new Set(("the a an and or but if then than that this these those with without "
+  + "for from into onto over under near next beside between behind front back side there here "
+  + "keep make made move moved put place placed give given take taken want need should would "
+  + "could must have has had been being does did done goes going come came look looks like "
+  + "also just only even still more most less least very much many some any all both each "
+  + "other another same different new old big small long short high low wide open close "
+  + "please thanks thank okay yes not never always maybe about around after before while "
+  + "when where which what why how who whom whose can cannot will shall may might let lets "
+  + "its his her their our your mine ours yours theirs them they she him himself herself "
+  + "house home family children kids parents mother father wife husband people person "
+  + "money cost costs price prices lakh lakhs crore crores rupees budget total area size "
+  + "left right upper lower inside outside above below along across through around toward "
+  + "instead rather enough already almost nearly quite really actually probably possibly").split(" "));
 const VOCAB_SET = new Set(VOCAB);
 
 function editDistance(a, b) {
@@ -2966,7 +2982,7 @@ function spell(raw) {
   const fixes = [];
   const out = String(raw).split(/(\s+)/).map(tok => {
     const w = tok.toLowerCase();
-    if (!/^[a-z]{4,}$/.test(w) || VOCAB_SET.has(w)) return tok;
+    if (!/^[a-z]{4,}$/.test(w) || VOCAB_SET.has(w) || COMMON.has(w)) return tok;
     // a room the user named counts as a known word
     if (state.rooms.some(r => r.name.toLowerCase().split(/\s+/).includes(w))) return tok;
     let best = null, bestD = 3;
@@ -3527,6 +3543,11 @@ function answerQuestion(raw) {
   const li = arr => `<ul>${arr.map(x => `<li>${x}</li>`).join("")}</ul>`;
   const P = state.plot;
 
+  // "set the budget to 72 lakh" mentions the budget but is plainly an order.
+  // Anything that opens with an imperative is for the editor, not the
+  // answerer — only a real question, or a bare noun, gets answered here.
+  const ORDER = /^\s*(set|make|change|add|remove|delete|move|put|use|keep|split|divide|merge|join|furnish|apply|resize|rename|increase|reduce|raise|lower|turn|swap|drop)\b/;
+  if (ORDER.test(s) && !/\?\s*$/.test(s)) return null;
   if (!QUESTION.test(s.trim()) && !/\b(cost|budget|score|help)\b/.test(s)) return null;
 
   // ---- what can you do -------------------------------------------------
@@ -4057,6 +4078,47 @@ $("promptForm").addEventListener("submit", e => { e.preventDefault(); runPrompt(
    speech service). Hold a conversation: it keeps listening between turns,
    shows what it is hearing as it hears it, and reads the answer back. The
    rules engine parses English; the other languages go to the model. */
+/* Speech writes words where this tool needs numbers, and "five metres"
+   has to become "5 m" before any regex will see a measurement. */
+const SPOKEN_NUM = { zero:0, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8,
+  nine:9, ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16,
+  seventeen:17, eighteen:18, nineteen:19, twenty:20, thirty:30, forty:40, fourty:40, fifty:50,
+  sixty:60, seventy:70, eighty:80, ninety:90 };
+
+function digitise(text) {
+  let out = " " + text.toLowerCase() + " ";
+  // "forty five" and "twenty two" before the single words, or 40 5 comes out
+  out = out.replace(/\b(twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety)[ -](one|two|three|four|five|six|seven|eight|nine)\b/g,
+    (_, tens, ones) => String(SPOKEN_NUM[tens] + SPOKEN_NUM[ones]));
+  out = out.replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety)\b/g,
+    w => String(SPOKEN_NUM[w]));
+  // units and money, as they are said
+  out = out.replace(/\b(\d+(?:\.\d+)?)\s*(metres?|meters?)\b/g, "$1 m")
+           .replace(/\b(\d+(?:\.\d+)?)\s*(feet|foot)\b/g, "$1 ft")
+           .replace(/\blakhs?\b|\blacs?\b/g, "lakh")
+           .replace(/\bsquare feet\b|\bsquare foot\b/g, "sq ft")
+           .replace(/\bb ?h ?k\b/g, "bhk")
+           .replace(/\binto\b(?=\s*\d+\s*(ft|m)\b)/g, "by");     // "40 into 60" is said here
+  return out.trim();
+}
+
+/* The browser returns several guesses. Prefer the one the engine can act on:
+   a transcript that names a room and a verb beats a better-scoring one that
+   does not. */
+function bestAlternative(result) {
+  let best = result[0].transcript, bestScore = -1;
+  for (let i = 0; i < result.length; i++) {
+    const text = digitise(result[i].transcript);
+    const norm2 = " " + text + " ";
+    let score = (result[i].confidence || 0);
+    if (state.rooms.some(r => norm2.includes(" " + r.name.toLowerCase()))) score += 1;
+    if (/\b(add|remove|move|make|split|merge|furnish|budget|plot|floor|wider|bigger)\b/.test(norm2)) score += 1;
+    if (/\d/.test(text)) score += .5;
+    if (score > bestScore) { bestScore = score; best = result[i].transcript; }
+  }
+  return best;
+}
+
 let speakBack = true;
 function speak(text) {
   if (!speakBack || !window.speechSynthesis || !text) return;
@@ -4072,7 +4134,7 @@ function speak(text) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const mic = $("micBtn"), lang = $("micLang"), input = $("promptInput");
   if (!SR) { mic.hidden = true; lang.hidden = true; return; }
-  let rec = null, listening = false, final = "";
+  let rec = null, listening = false, final = "", retries = 0;
 
   const stop = () => { listening = false; rec?.stop(); };
   const setUI = on => {
@@ -4086,6 +4148,7 @@ function speak(text) {
     rec = new SR();
     rec.lang = lang.value;
     rec.interimResults = true;
+    retries = 0;
     rec.continuous = true;          // keep the turn open through a pause
     rec.maxAlternatives = 3;
     final = "";
@@ -4095,6 +4158,9 @@ function speak(text) {
       const text = final.trim();
       final = ""; input.value = "";
       if (!text) return;
+      // "stop listening" is the one thing the mic should act on itself
+      if (/^(stop|stop listening|that'?s all|cancel|never mind)\.?$/i.test(text)) { stop(); return; }
+      if (text.replace(/[^a-z0-9]/gi, "").length < 3) return;   // a cough, not an instruction
       if (lang.value.startsWith("en")) runPrompt(text); else runPromptClaude(text);
     };
 
@@ -4102,7 +4168,7 @@ function speak(text) {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
-        if (r.isFinal) final += (final ? " " : "") + r[0].transcript.trim();
+        if (r.isFinal) final += (final ? " " : "") + digitise(bestAlternative(r)).trim();
         else interim += r[0].transcript;
       }
       input.value = (final + " " + interim).trim();
@@ -4112,6 +4178,13 @@ function speak(text) {
     };
     rec.onerror = e => {
       if (e.error === "no-speech" || e.error === "aborted") return;
+      if (e.error === "network" && listening && retries < 3) {
+        // the browser's speech service dropped; give it a moment and resume
+        retries++;
+        setTimeout(() => { if (listening) { try { rec.start(); } catch {} } }, 800 * retries);
+        input.placeholder = "Reconnecting to the speech service…";
+        return;
+      }
       listening = false; setUI(false);
       promptOut(`<div class="who">Voice stopped</div><div class="note">${
         e.error === "not-allowed" ? "Microphone permission was refused — allow it in the address bar and try again."
