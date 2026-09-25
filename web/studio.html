@@ -2784,15 +2784,15 @@ function findRoom(s, floorHint) {
   const pool = state.rooms;
   // exact-ish name match wins over a type match
   let hit = pool.find(r => s.includes(" " + r.name.toLowerCase() + " "));
-  if (hit) return hit;
+  if (hit) return chat.saw(hit);
   const type = findType(s);
   if (!type) return null;
   const f = floorHint ?? findFloor(s);
   const ofType = pool.filter(r => r.type === type && (f === null || f === undefined || r.floor === f));
   if (!ofType.length) return null;
   const m = s.match(/\b(\d)\b/);
-  if (m) { const idx = Number(m[1]) - 1; if (ofType[idx]) return ofType[idx]; }
-  return ofType[0];
+  if (m) { const idx = Number(m[1]) - 1; if (ofType[idx]) return chat.saw(ofType[idx]); }
+  return chat.saw(ofType[0]);
 }
 function findCount(s) {
   const d = s.match(/\b(\d+)\s+(?:more\s+)?[a-z]/);
@@ -2816,10 +2816,308 @@ function findMaterial(s) {
   return { id, kind };
 }
 
+/* ---------- spelling ----------
+   People type "seperate", "bedrrom", "kitcen" and mean exactly what you think
+   they mean. Rather than widen every regex, unknown words are snapped to the
+   nearest word the engine knows, and only when the nearest one is close: an
+   edit distance of 1 for short words, 2 for long ones. Numbers, units and
+   anything already understood are left alone. */
+const VOCAB = ("add remove delete move make bigger smaller wider narrower taller "
+  + "split divide separate partition merge combine join knock together apart away from "
+  + "bedroom bathroom toilet living hall kitchen dining office study pooja puja utility "
+  + "stairs staircase balcony parking porch room rooms house floor ground first upstairs "
+  + "downstairs plot budget lakhs region north south east west facing road furnish furniture "
+  + "essentials comfort premium marble granite wood tile vitrified teak sage white warm floor "
+  + "wall walls ceiling window door balcony solar compound wall metre metres meter feet foot "
+  + "wide deep long cost price rules setback fsi coverage readiness what why how big size").split(" ");
+const VOCAB_SET = new Set(VOCAB);
+
+function editDistance(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const prev = Array(b.length + 1).fill(0).map((_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let last = prev[0]; prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cur = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, last + (a[i - 1] === b[j - 1] ? 0 : 1));
+      last = cur;
+    }
+  }
+  return prev[b.length];
+}
+
+function spell(raw) {
+  const fixes = [];
+  const out = String(raw).split(/(\s+)/).map(tok => {
+    const w = tok.toLowerCase();
+    if (!/^[a-z]{4,}$/.test(w) || VOCAB_SET.has(w)) return tok;
+    // a room the user named counts as a known word
+    if (state.rooms.some(r => r.name.toLowerCase().split(/\s+/).includes(w))) return tok;
+    let best = null, bestD = 3;
+    const limit = w.length <= 5 ? 1 : 2;
+    for (const cand of VOCAB) {
+      const d = editDistance(w, cand);
+      if (d < bestD && d <= limit) { bestD = d; best = cand; }
+    }
+    if (!best) return tok;
+    fixes.push(`${tok.trim()} → ${best}`);
+    return best;
+  }).join("");
+  return { text: out, fixes };
+}
+
+/* Feet are the unit the model is in; people speak both. */
+function feetFrom(s) {
+  const m = s.match(/(\d+(?:\.\d+)?)\s*(m|metre|metres|meter|meters|ft|feet|foot|')/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return /^m/.test(m[2]) ? { ft: n * 3.28084, said: `${n} m` } : { ft: n, said: `${n} ft` };
+}
+
+/* "keep the bedroom 5 m away from the living room" — move the second room
+   until the clear gap between the two rectangles is what was asked for. */
+function setGap(a, b, ft) {
+  const P = state.plot;
+  // Along x the two rooms need their widths plus the gap; along y, their
+  // depths. Try the axis they are already separated on, then the other one,
+  // and only give up when neither fits — a plot is usually longer one way.
+  const fitsX = a.w + b.w + ft <= P.w, fitsY = a.h + b.h + ft <= P.h;
+  const gapX = Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w));
+  const gapY = Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h));
+  let useX = gapX >= gapY;
+  if (useX && !fitsX) useX = false;
+  else if (!useX && !fitsY) useX = true;
+
+  if (useX ? !fitsX : !fitsY) {
+    const need = useX ? a.w + b.w + ft : a.h + b.h + ft;
+    return { bad: `A ${ft.toFixed(1)} ft gap does not fit either way on a ${P.w} × ${P.h} ft plot — ` +
+                  `${a.name} and ${b.name} plus the gap need ${need.toFixed(1)} ft.` };
+  }
+  const snapHalf = v => Math.round(v * 2) / 2;
+  if (useX) {
+    const right = b.x >= a.x;
+    let nx = right ? a.x + a.w + ft : a.x - ft - b.w;
+    if (nx < 0 || nx + b.w > P.w) nx = right ? a.x - ft - b.w : a.x + a.w + ft;
+    b.x = snapHalf(clamp(nx, 0, P.w - b.w));
+  } else {
+    const below = b.y >= a.y;
+    let ny = below ? a.y + a.h + ft : a.y - ft - b.h;
+    if (ny < 0 || ny + b.h > P.h) ny = below ? a.y - ft - b.h : a.y + a.h + ft;
+    b.y = snapHalf(clamp(ny, 0, P.h - b.h));
+  }
+  return { ok: true, axis: useX ? "across the plot" : "front to back" };
+}
+
+/* ---------- what was said before ----------
+   A conversation is not a series of unrelated commands. "Make it bigger"
+   only means something if you remember what "it" was, and "the same for
+   bedroom 2" only if you remember what was just done. This keeps the last
+   subject, the last instruction and a short transcript — in the page, and in
+   localStorage, so closing the tab does not wipe the session. */
+const chat = {
+  room: null,          // the last room anyone referred to, by id
+  last: null,          // the last instruction that was understood
+  turns: [],           // [{ role, text }] — the transcript, most recent last
+  saw(room) { if (room) this.room = room.id; return room; },
+  subject() { return state.rooms.find(r => r.id === this.room) || null; },
+  say(role, text) {
+    this.turns.push({ role, text });
+    if (this.turns.length > 24) this.turns.shift();
+    this.save();
+  },
+  save() {
+    try { localStorage.setItem("synapse.chat",
+      JSON.stringify({ room:this.room, last:this.last, turns:this.turns })); } catch {}
+  },
+  load() {
+    try {
+      const o = JSON.parse(localStorage.getItem("synapse.chat") || "{}");
+      this.room = o.room ?? null; this.last = o.last ?? null; this.turns = o.turns || [];
+    } catch {}
+  },
+  forget() {
+    this.room = null; this.last = null; this.turns = [];
+    try { localStorage.removeItem("synapse.chat"); } catch {}
+  }
+};
+chat.load();
+
+/* Rewrites a follow-up into a whole instruction, using what came before.
+   Returns { text, note }; the note is shown, so the resolution is never a
+   guess the user has to take on trust. */
+const PRONOUN = /\b(it|that|this|there|the room|the same|same one)\b/;
+function resolveContext(raw) {
+  let text = raw.trim(), note = "";
+
+  if (/^(again|do (it|that) again|once more|repeat)\b/i.test(text) && chat.last) {
+    return { text: chat.last, note: `Repeating “${chat.last}”` };
+  }
+  // "and the kitchen too", "same for bedroom 2" — reuse the last verb
+  const carry = text.match(/^(?:and|also|same (?:for|in|with)|do the same (?:for|in|to))\s+(.*)$/i);
+  if (carry && chat.last) {
+    const subject = carry[1].replace(/\s+(too|as well|please)\.?$/i, "");
+    const prev = chat.subject();
+    const room = findRoom(" " + norm(subject) + " ");
+    if (room) {
+      const rebuilt = prev && prev !== room
+        ? chat.last.replace(new RegExp(prev.name, "i"), room.name)
+        : `${chat.last} in ${room.name}`;
+      return { text: rebuilt, note: `Reading that as “${rebuilt}”` };
+    }
+  }
+  // "make it bigger" — put the remembered room back in
+  if (PRONOUN.test(text.toLowerCase()) && !findRoom(" " + norm(text) + " ")) {
+    const room = chat.subject();
+    if (room) {
+      text = text.replace(PRONOUN, room.name);
+      note = `“it” = ${room.name}`;
+    }
+  }
+  return { text, note };
+}
+
+/* ---------- dividing one room, and merging two ----------
+   Both are ordinary geometry on the same rectangles everything else measures,
+   so the result shows up at once in the plan, the 3D, the cost and the bylaw
+   checks — there is no separate wall model to keep in step. */
+function splitRoom(room, parts, newType) {
+  const n = clamp(parts || 2, 2, 4);
+  const alongW = room.w >= room.h;
+  const span = (alongW ? room.w : room.h) / n;
+  const [minW, minH] = minFor(newType || room.type);
+  const need = alongW ? minW : minH;
+  if (span < need)
+    return { bad: `${room.name} is too small to divide into ${n} — each part would be under ${need} ft.` };
+  const made = [];
+  const uniqueName = type => {                 // "Living room 2", never a second "Living room"
+    const base = LABEL[type];
+    const taken = new Set(state.rooms.map(r => r.name).concat(made.map(m => m.name)));
+    if (!taken.has(base)) return base;
+    for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`)) return `${base} ${i}`;
+  };
+  for (let i = 1; i < n; i++) {
+    const type = newType || room.type;
+    const id = `${type}_${seq++}`;
+    made.push({
+      id, type, floor: room.floor,
+      name: uniqueName(type),
+      x: alongW ? room.x + span * i : room.x,
+      y: alongW ? room.y : room.y + span * i,
+      w: alongW ? span : room.w,
+      h: alongW ? room.h : span
+    });
+  }
+  if (alongW) room.w = span; else room.h = span;
+  state.rooms.push(...made);
+  state.selected = made[0].id;
+  const w = alongW ? span : room.w, h = alongW ? room.h : span;
+  return { summary: `Divided ${room.name} into ${n} — ${[room.name, ...made.map(m => m.name)].join(", ")}, ` +
+                    `${alongW ? "side by side" : "front to back"}, ${w.toFixed(1)} × ${h.toFixed(1)} ft each.` };
+}
+
+function mergeRooms(a, b) {
+  if (a.floor !== b.floor) return { bad: `${a.name} and ${b.name} are on different floors.` };
+  const x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y);
+  const x1 = Math.max(a.x + a.w, b.x + b.w), y1 = Math.max(a.y + a.h, b.y + b.h);
+  // anything else caught inside the new rectangle would be swallowed silently
+  const caught = state.rooms.filter(r => r !== a && r !== b && r.floor === a.floor &&
+    r.x + r.w > x0 + .05 && r.x < x1 - .05 && r.y + r.h > y0 + .05 && r.y < y1 - .05);
+  if (caught.length)
+    return { bad: `That would swallow ${caught.map(r => r.name).join(" and ")}. ` +
+                  `Move ${caught.length > 1 ? "those" : "that"} out of the way first.` };
+  const keep = a.w * a.h >= b.w * b.h ? a : b, drop = keep === a ? b : a;
+  keep.x = x0; keep.y = y0; keep.w = x1 - x0; keep.h = y1 - y0;
+  state.rooms = state.rooms.filter(r => r !== drop);
+  delete state.interiors[drop.id];
+  state.selected = keep.id;
+  chat.saw(keep);
+  return { summary: `Knocked ${a.name} and ${b.name} together — one ${keep.w.toFixed(1)} × ${keep.h.toFixed(1)} ft ` +
+                    `${LABEL[keep.type].toLowerCase()}, ${Math.round(keep.w * keep.h)} sq ft.` };
+}
+
+/* Two rooms named in one breath: "merge the dining and the kitchen", "keep
+   the bedroom 5 m from the living room". People say "bedroom" and mean
+   "Master bedroom", so full names, type words and numbered types all count,
+   and the pair comes back in the order they were spoken — which matters,
+   because the first room is the one that stays put. */
+function findTwoRooms(s) {
+  const hits = [];
+  const claim = (room, at) => {
+    if (room && at >= 0 && !hits.some(h => h.r === room)) hits.push({ r: room, at });
+  };
+  for (const r of state.rooms)                      // an exact name wins
+    claim(r, s.indexOf(" " + r.name.toLowerCase()));
+  for (const [type, words] of Object.entries(TYPE_WORDS))   // then type words
+    for (const w of words) {
+      const at = s.indexOf(" " + w);
+      if (at < 0) continue;
+      // "bedroom 2" picks the second one; a bare type word picks the first
+      // of that type nobody has claimed yet
+      const after = s.slice(at + w.length + 1, at + w.length + 4).match(/\s*(\d)/);
+      const pool = state.rooms.filter(r => r.type === type);
+      const pick = after && pool[Number(after[1]) - 1]
+        ? pool[Number(after[1]) - 1]
+        : pool.find(r => !hits.some(h => h.r === r));
+      claim(pick, at);
+    }
+  hits.sort((p, q) => p.at - q.at);
+  return hits.length >= 2 ? [hits[0].r, hits[1].r] : null;
+}
+
 /* Returns {done, summary} when it understood the instruction. */
 function localIntent(raw) {
   const s = norm(raw);
   const P = state.plot;
+
+  // --- a measured gap between two rooms ------------------------------
+  if (/\b(apart|away|gap|distance|separate|separated|split|between|clear|far|from|off)\b/.test(s)) {
+    // A stated measurement plus two named rooms can only mean the space
+    // between them — "separate the bedroom from the living room by 5 m" is
+    // not a request to cut a room in half.
+    const d = feetFrom(s), pair = findTwoRooms(s);
+    if (d && pair && pair[0] !== pair[1]) {
+      const [a, b] = pair;
+      const out = setGap(a, b, d.ft);
+      if (out.bad) return { done:true, summary:[out.bad] };
+      return { done:true, summary:[
+        `Moved ${b.name} to sit ${d.said} (${d.ft.toFixed(1)} ft) clear of ${a.name}, ${out.axis}.`] };
+    }
+  }
+
+  // --- divide one room into two, or knock two into one ---------------
+  if (/\b(split|divide|separate|partition|halve|into two|into three)\b/.test(s)
+      && !/\b(merge|combine|join)\b/.test(s) && !feetFrom(s)) {
+    // "separate the kitchen and the dining" is a different problem from
+    // "divide the living room": two rooms that exist, not one to be cut.
+    const pair = /\band\b/.test(s) && !/\binto\b/.test(s) ? findTwoRooms(s) : null;
+    if (pair && pair[0] !== pair[1]) {
+      const [a, b] = pair;
+      const over = !(a.x + a.w <= b.x + .05 || b.x + b.w <= a.x + .05 ||
+                     a.y + a.h <= b.y + .05 || b.y + b.h <= a.y + .05);
+      if (!over) {
+        toggleItem(a.id, "l-partition");
+        return { done:true, summary:[`Put a partition between ${a.name} and ${b.name}. ` +
+          `They already sit apart, so nothing moved.`] };
+      }
+      const shiftX = a.x + a.w + .5;
+      if (shiftX + b.w <= P.w) b.x = shiftX; else b.y = a.y + a.h + .5;
+      return { done:true, summary:[`Pulled ${b.name} clear of ${a.name} — they were overlapping.`] };
+    }
+    const room = findRoom(" " + s + " ") || chat.subject();
+    if (!room) return null;
+    const n = /\bthree\b|\binto 3\b/.test(s) ? 3 : 2;
+    const after = s.split(/\binto\b/)[1] || "";
+    const t = after ? findType(" " + after + " ") : null;
+    const out = splitRoom(room, n, t && t !== room.type ? t : null);
+    return { done:true, summary:[out.bad || out.summary] };
+  }
+
+  if (/\b(merge|combine|join|knock (them |the )?(through|together)|open up|make (it|them) one)\b/.test(s)) {
+    const pair = findTwoRooms(s);
+    if (!pair || pair[0] === pair[1]) return null;
+    const out = mergeRooms(pair[0], pair[1]);
+    return { done:true, summary:[out.bad || out.summary] };
+  }
 
   // --- furnish a room, or the whole house ---------------------------
   const setM = s.match(/\b(essentials?|comfort|premium|basic|luxury)\b/);
@@ -3236,16 +3534,27 @@ function runClauses(text) {
 let promptBusy = false;
 const runPromptClaude = text => runPrompt(text, true);
 async function runPrompt(raw, claudeOnly = false) {
-  const text = (raw ?? $("promptInput").value).trim();
-  if (!text || promptBusy) return;
+  const said = (raw ?? $("promptInput").value).trim();
+  if (!said || promptBusy) return;
 
   $("promptChips").style.display = "none";   // training wheels, once only
+  chat.say("you", said);
+
+  // Typos first, then what the last turn was about, so "make it wider" and
+  // "seperate the bedrrom" both arrive as something the engine can read.
+  const fixed = spell(said);
+  const ctx = resolveContext(fixed.text);
+  const text = ctx.text;
+  const aside = [fixed.fixes.length ? "Read as: " + fixed.fixes.join(", ") : "", ctx.note]
+                  .filter(Boolean).join(" · ");
+  const asideHtml = aside ? `<div class="note">${escH(aside)}</div>` : "";
 
   // A question is answered, not acted on — instantly, from the engines.
   const asked = claudeOnly ? null : answerQuestion(text);
   if (asked) {
-    promptOut(`<div class="who">${escH(asked.title)}</div>${asked.html}`);
+    promptOut(`<div class="who">${escH(asked.title)}</div>${asked.html}${asideHtml}`);
     $("promptInput").value = "";
+    chat.say("synapse", asked.title);
     speak(asked.title);
     return;
   }
@@ -3259,10 +3568,11 @@ async function runPrompt(raw, claudeOnly = false) {
     promptOut(
       `<div class="who">Rules engine · instant</div>
        <ul>${local.summary.map(s => `<li>${s}</li>`).join("")}</ul>
-       ${impactRow(before, after)}
+       ${asideHtml}${impactRow(before, after)}
        <div class="acts"><button class="btn" id="pUndo">Undo</button></div>`);
     $("pUndo").addEventListener("click", () => { $("undoBtn").click(); $("promptOut").classList.remove("on"); });
     $("promptInput").value = "";
+    chat.last = text; chat.say("synapse", local.summary.join(". ")); chat.save();
     speak(local.summary.join(". "));
     return;
   }
