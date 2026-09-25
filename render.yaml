@@ -37,12 +37,14 @@ services:
       # Same-origin deployment: the browser never makes a cross-origin call.
       - key: SYNAPSE_CORS_ORIGINS
         value: ""
-      # Optional. Anthropic, or any OpenAI-compatible endpoint via
-      # SYNAPSE_LLM_PROVIDER / _BASE_URL / _MODEL / _API_KEY. Paste it into
-      # the service's environment in the dashboard — sync: false keeps it
-      # out of this file and out of the repository.
-      - key: ANTHROPIC_API_KEY
-        sync: false
+      #
+      # No LLM key is listed here on purpose, so the Blueprint never stops to
+      # ask for one at deploy time. Everything except open-ended prompt
+      # editing runs without a key — the rules engine measures, prices and
+      # checks on its own. To add one later: the service's Environment tab →
+      # Add Environment Variable → ANTHROPIC_API_KEY, or the free-provider
+      # set SYNAPSE_LLM_PROVIDER / _BASE_URL / _MODEL / _API_KEY (Gemini,
+      # Groq, OpenRouter, Ollama). Keys belong in the dashboard, never here.
 
 databases:
   - name: synapse-db
