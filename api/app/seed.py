@@ -10,7 +10,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import ComplianceRule, Plan, RateCard
+from .models import ComplianceRule, Plan, Project, RateCard
 from .regions import REGIONS
 
 REGION = "Chennai"
@@ -187,6 +187,60 @@ def _rooms_compact() -> list[dict]:
     ]
 
 
+# Three accounts on one project, so what each role can see is something you
+# can look at rather than take on trust. The password is deliberately public
+# and the accounts hold nothing private; they are re-seeded on every boot, so
+# whatever a visitor does to the demo project is undone by a restart.
+DEMO_PASSWORD = "demo-synapse-2026"
+DEMO_USERS = [
+    ("architect@demo.synapse", "Demo architect", "owner"),
+    ("client@demo.synapse", "Demo client", "client"),
+    ("contractor@demo.synapse", "Demo contractor", "contractor"),
+]
+DEMO_PROJECT_ID = "demo-chennai-house"
+
+
+def _demo(db: Session) -> int:
+    """Create the demo accounts and their shared project if they are missing."""
+    from .auth import add_member, hash_password
+    from .models import ProjectMember, User
+
+    made = 0
+    users: dict[str, User] = {}
+    for email, name, _role in DEMO_USERS:
+        user = db.scalar(select(User).where(User.email == email))
+        if not user:
+            user = User(email=email, name=name, password_hash=hash_password(DEMO_PASSWORD))
+            db.add(user)
+            db.flush()
+            made += 1
+        users[email] = user
+
+    project = db.get(Project, DEMO_PROJECT_ID)
+    if not project:
+        owner = users[DEMO_USERS[0][0]]
+        project = Project(
+            id=DEMO_PROJECT_ID, name="Chennai demo house", owner_id=owner.id, region=REGION,
+            brief={"family_members": 5, "elderly_residents": 1, "children": 2, "theme": "",
+                   "region": REGION, "coastal": "inland", "notes": "The shared demo project.",
+                   "sbc": 150, "concrete": "M25", "steel": "Fe500"},
+            rooms=_rooms_3bhk(), plot={"w": 40, "h": 60, "facing": 90}, interiors={},
+            budget_max=7_200_000, status="Draft", current_version=1,
+        )
+        db.add(project)
+        db.flush()
+        made += 1
+
+    for email, _name, role in DEMO_USERS:
+        user = users[email]
+        existing = db.scalar(select(ProjectMember).where(
+            ProjectMember.project_id == DEMO_PROJECT_ID, ProjectMember.user_id == user.id))
+        if not existing:
+            add_member(db, project, user, role)
+            made += 1
+    return made
+
+
 def run(db: Session) -> dict:
     created = {"plans": 0, "rate_cards": 0, "rules": 0}
 
@@ -230,6 +284,8 @@ def run(db: Session) -> dict:
                  rooms=_rooms_compact(), base_cost_estimate=4_200_000),
         ])
         created["plans"] += 2
+
+    created["demo"] = _demo(db)
 
     db.commit()
     return created

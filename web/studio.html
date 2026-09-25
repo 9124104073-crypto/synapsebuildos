@@ -295,6 +295,33 @@ body.present .present-cap{display:block}
 .acct input{font:inherit;font-size:var(--s--1);background:transparent;color:inherit;
   border:1px solid var(--border);padding:.4rem;width:100%}
 .acct .bad{color:var(--error);font-size:var(--s--1);margin:.4rem 0}
+/* ---------- side panel: three questions, one at a time ---------- */
+.sidetabs{position:sticky;top:0;z-index:5;background:var(--surface);
+  border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr)}
+.sidetabs button{font-size:var(--s--1);padding:.6rem .4rem;background:transparent;border:0;
+  border-bottom:2px solid transparent;color:var(--muted-foreground);font-weight:500}
+.sidetabs button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--primary)}
+.sidetabs button:hover{background:var(--surface-2)}
+.glance{display:grid;grid-template-columns:repeat(3,1fr);gap:.1rem;background:var(--border);
+  border-bottom:1px solid var(--border)}
+.glance div{background:var(--surface);padding:.6rem .7rem}
+.glance b{display:block;font-family:var(--display);font-size:1.25rem;line-height:1.2;
+  font-variant-numeric:tabular-nums}
+.glance span{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted-2)}
+.glance b.over{color:var(--error)} .glance b.ok{color:var(--success)}
+.side .panel[data-group]{display:none}
+.side[data-show=design] .panel[data-group=design],
+.side[data-show=cost]   .panel[data-group=cost],
+.side[data-show=checks] .panel[data-group=checks]{display:block}
+.addrow{display:grid;grid-template-columns:1fr auto;gap:.4rem}
+.addrow select{font:inherit;font-size:var(--s--1);padding:.5rem .55rem;border:1px solid var(--border);
+  background:var(--background);color:var(--ink);width:100%}
+.demo-block{margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--border)}
+.demo-grid{display:grid;gap:.4rem}
+.demo-grid .btn{display:grid;gap:.05rem;text-align:left;padding:.5rem .7rem;justify-items:start}
+.demo-grid .btn b{font-weight:600}
+.demo-grid .btn span{font-size:var(--s--2);color:var(--muted-2)}
 body.readonly .rail, body.readonly .edit-only, body.readonly .promptbar,
 body.readonly #furnPanel, body.readonly #finishPanel{display:none}
 body.readonly .main{grid-template-columns:1fr var(--side)}
@@ -380,17 +407,22 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
     <aside class="rail">
       <div class="group">
         <span class="eyebrow">Add room</span>
-        <button class="addbtn" data-add="bedroom"><span>Bedroom</span><span>130 sf</span></button>
-        <button class="addbtn" data-add="bath"><span>Bathroom</span><span>45 sf</span></button>
-        <button class="addbtn" data-add="living"><span>Living</span><span>220 sf</span></button>
-        <button class="addbtn" data-add="kitchen"><span>Kitchen</span><span>110 sf</span></button>
-        <button class="addbtn" data-add="dining"><span>Dining</span><span>100 sf</span></button>
-        <button class="addbtn" data-add="office"><span>Office</span><span>100 sf</span></button>
-        <button class="addbtn" data-add="pooja"><span>Pooja</span><span>36 sf</span></button>
-        <button class="addbtn" data-add="utility"><span>Utility</span><span>50 sf</span></button>
-        <button class="addbtn" data-add="stairs"><span>Stairs</span><span>48 sf</span></button>
-        <button class="addbtn" data-add="balcony"><span>Balcony</span><span>60 sf</span></button>
-        <button class="addbtn" data-add="parking"><span>Parking</span><span>150 sf</span></button>
+        <div class="addrow">
+          <select id="addType" aria-label="Room to add">
+            <option value="bedroom">Bedroom · 130 sf</option>
+            <option value="bath">Bathroom · 45 sf</option>
+            <option value="living">Living · 220 sf</option>
+            <option value="kitchen">Kitchen · 110 sf</option>
+            <option value="dining">Dining · 100 sf</option>
+            <option value="office">Office · 100 sf</option>
+            <option value="pooja">Pooja · 36 sf</option>
+            <option value="utility">Utility · 50 sf</option>
+            <option value="stairs">Stairs · 48 sf</option>
+            <option value="balcony">Balcony · 60 sf</option>
+            <option value="parking">Parking · 150 sf</option>
+          </select>
+          <button class="btn primary" id="addGo" title="Add it to this floor">Add</button>
+        </div>
       </div>
       <div class="group">
         <span class="eyebrow">Floors</span>
@@ -450,36 +482,46 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
       </div>
     </div>
 
-    <aside class="side">
-      <details class="panel" id="briefPanel">
+    <aside class="side" id="side" data-show="design">
+      <div class="glance" id="glance">
+        <div><b id="gArea">—</b><span>built-up</span></div>
+        <div><b id="gCost">—</b><span>cost</span></div>
+        <div><b id="gReady">—</b><span>ready</span></div>
+      </div>
+      <div class="sidetabs" role="tablist">
+        <button data-show="design" aria-pressed="true">Design</button>
+        <button data-show="cost" aria-pressed="false">Cost</button>
+        <button data-show="checks" aria-pressed="false">Checks</button>
+      </div>
+      <details class="panel" data-group="design" id="briefPanel">
         <summary class="eyebrow">Project brief</summary>
         <div id="brief"></div>
       </details>
-      <div class="panel">
+      <div class="panel" data-group="design">
         <span class="eyebrow">Design options</span>
         <div id="options"></div>
       </div>
-      <div class="panel edit-only">
+      <div class="panel edit-only" data-group="design">
         <span class="eyebrow">Selected room</span>
         <div id="inspector"><p class="empty">Nothing selected. Click a room on the plan, or a wall in the 3D view.</p></div>
       </div>
-      <div class="panel" id="finishPanel" hidden>
+      <div class="panel" data-group="design" id="finishPanel" hidden>
         <span class="eyebrow">Finishes</span>
         <div id="finishes"></div>
       </div>
-      <div class="panel" id="furnPanel" hidden>
+      <div class="panel" data-group="design" id="furnPanel" hidden>
         <span class="eyebrow">Furniture &amp; fittings</span>
         <div id="furniture"></div>
       </div>
-      <div class="panel" id="sugPanel">
+      <div class="panel" data-group="checks" id="sugPanel">
         <span class="eyebrow">Suggestions</span>
         <div id="suggestions"></div>
       </div>
-      <div class="panel">
+      <div class="panel" data-group="cost">
         <span class="eyebrow">Exterior &amp; whole house</span>
         <div id="exterior"></div>
       </div>
-      <div class="panel">
+      <div class="panel" data-group="design">
         <span class="eyebrow">Design</span>
         <div class="big" id="vArea">—</div>
         <div class="row"><span>Built-up</span><b id="vBuilt">—</b></div>
@@ -487,7 +529,7 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
         <div class="row"><span>FSI</span><b id="vFsi">—</b></div>
         <div class="row"><span>Rooms</span><b id="vRooms">—</b></div>
       </div>
-      <div class="panel">
+      <div class="panel" data-group="cost">
         <span class="eyebrow">Cost</span>
         <div class="big" id="vCost">—</div>
         <div class="row"><span>Structure &amp; civil</span><b id="vCivil">—</b></div>
@@ -498,7 +540,7 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
         <div class="field" style="margin-top:.7rem"><label for="budget">Budget ₹L</label>
           <input class="num" type="number" id="budget" min="10" max="500" step="0.5"></div>
       </div>
-      <div class="panel">
+      <div class="panel" data-group="checks">
         <span class="eyebrow">Readiness</span>
         <div class="big" id="vReady">—</div>
         <div class="status" id="vVerdict">—</div>
@@ -509,7 +551,7 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
           <div class="bar"><span>Sustainability</span><span class="track"><b id="bSus"></b></span><span class="num" id="nSus">—</span></div>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel" data-group="checks">
         <span class="eyebrow">Preliminary bylaw checks</span>
         <div id="findings" style="margin-top:.6rem"></div>
         <p class="hint">Advisory only. Your municipality approves plans, not this tool.</p>
@@ -854,7 +896,42 @@ function warn(msg) {
 let prevCost = null;
 function flash(node){ if (reduce) return; node.classList.add("flash"); setTimeout(()=>node.classList.remove("flash"), 800); }
 
+/* The three-way switch, and a summary strip that stays put — the numbers
+   people glance at should not depend on which tab is open. A tab that has
+   something wrong with it says so, so nothing hides behind a closed tab. */
+function sideTabs() {
+  const side = $("side");
+  side.querySelectorAll(".sidetabs button").forEach(b => b.addEventListener("click", () => {
+    side.dataset.show = b.dataset.show;
+    side.querySelectorAll(".sidetabs button").forEach(x =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    side.scrollTop = 0;
+    try { localStorage.setItem("synapse.side", b.dataset.show); } catch {}
+  }));
+  try {
+    const saved = localStorage.getItem("synapse.side");
+    if (saved) side.querySelector(`.sidetabs button[data-show="${saved}"]`)?.click();
+  } catch {}
+}
+
+function renderGlance(t, c, f, rd) {
+  $("gArea").textContent = Math.round(t.built).toLocaleString("en-IN") + " sf";
+  const cost = $("gCost");
+  cost.textContent = lakh(c.total);
+  cost.className = rd.over > 0 ? "over" : "ok";
+  const ready = $("gReady");
+  ready.textContent = rd.composite;
+  ready.className = rd.composite >= 80 ? "ok" : rd.composite >= 55 ? "" : "over";
+  const fails = f.filter(x => x.outcome === "LIKELY_FAIL").length;
+  const tab = document.querySelector('.sidetabs button[data-show="checks"]');
+  if (tab) {
+    tab.textContent = fails ? `Checks · ${fails}` : "Checks";
+    tab.style.color = fails ? "var(--error)" : "";
+  }
+}
+
 function renderPanels(t, c, f, rd) {
+  renderGlance(t, c, f, rd);
   $("vArea").textContent = Math.round(t.built).toLocaleString("en-IN") + " sf";
   $("vBuilt").textContent = Math.round(t.built).toLocaleString("en-IN") + " sf";
   $("vCover").textContent = (t.cover*100).toFixed(0) + "%";
@@ -2524,7 +2601,18 @@ async function renderAcctPanel() {
         <p class="hint" id="authHint">At least 10 characters. It is stored only as a hash.</p>
         <div class="bad" id="authErr" hidden></div>
         <button class="btn primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
-      </form>`;
+      </form>
+      <div class="demo-block">
+        <span class="eyebrow">Or look around as someone</span>
+        <p class="hint" style="margin:.35rem 0 .55rem">Three accounts share one demo project, so what
+          each role can and cannot do is something you can see rather than take on trust.</p>
+        <div class="demo-grid">
+          <button class="btn" data-demo="architect@demo.synapse"><b>Architect</b><span>designs and saves</span></button>
+          <button class="btn" data-demo="client@demo.synapse"><b>Client</b><span>reads and comments</span></button>
+          <button class="btn" data-demo="contractor@demo.synapse"><b>Contractor</b><span>reads the BOQ</span></button>
+        </div>
+        <p class="hint">The demo project resets when the server restarts.</p>
+      </div>`;
     let mode = "login";
     box.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
       mode = b.dataset.tab;
@@ -2532,6 +2620,27 @@ async function renderAcctPanel() {
       box.querySelector("button[type=submit]").textContent = mode === "login" ? "Sign in" : "Create account";
       $("aPass").autocomplete = mode === "login" ? "current-password" : "new-password";
     }));
+    box.querySelectorAll("[data-demo]").forEach(b => b.addEventListener("click", async () => {
+      const err = $("authErr"); err.hidden = true;
+      b.disabled = true; b.style.opacity = ".6";
+      try {
+        const res = await api("/auth/login", { method:"POST", body: JSON.stringify(
+          { email: b.dataset.demo, password: "demo-synapse-2026" }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Sign-in failed.");
+        setToken(data.token); account = data.user;
+        await refreshAccount();
+        // open the shared project, which is the whole point of the demo
+        const mine = await (await api("/auth/projects")).json().catch(() => []);
+        const demo = (mine || []).find(p => p.id === "demo-chennai-house") || (mine || [])[0];
+        if (demo) { projectId = demo.id; localStorage.setItem("synapse.project", demo.id); await loadFromApi(); }
+        else renderAcctPanel();
+      } catch (e2) {
+        err.textContent = e2.message === "Failed to fetch" ? "Could not reach the API." : e2.message;
+        err.hidden = false;
+      } finally { b.disabled = false; b.style.opacity = ""; }
+    }));
+
     $("authForm").addEventListener("submit", async e => {
       e.preventDefault();
       const err = $("authErr"); err.hidden = true;
@@ -4867,6 +4976,7 @@ function render() {
     : `${t.outside.length} room(s) outside the plot boundary.`);
 }
 
+$("addGo").addEventListener("click", () => addRoom($("addType").value));
 document.querySelectorAll("[data-add]").forEach(b =>
   b.addEventListener("click", () => addRoom(b.dataset.add)));
 $("addFloor").addEventListener("click", () => { state.floor = Math.min(measure().floors, 3); render(); });
@@ -4965,6 +5075,7 @@ addEventListener("load", () => {
 
 syncButtons();
 renderChips();
+sideTabs();
 renderBrief();
 briefUploadUI();
 $("briefBtn").addEventListener("click", () => $("briefFile").click());
