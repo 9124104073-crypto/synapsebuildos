@@ -436,6 +436,13 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
           </select>
           <input id="promptInput" type="text" spellcheck="false"
                  placeholder="Describe a change — “add a bedroom upstairs”, “make the kitchen 3 ft wider”, “marble floor in the living room”">
+          <button type="button" class="btn" id="briefBtn"
+                  title="Read a client brief — PDF, Word, text or a photo of a page. Scans go through OCR. Nothing leaves this machine.">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 3v5h5M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h5"/></svg>
+            Brief
+          </button>
+          <input type="file" id="briefFile" hidden accept=".pdf,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp">
           <button class="btn primary" type="submit" id="promptGo">Design</button>
         </form>
         <div class="prompt-chips" id="promptChips"></div>
@@ -3531,6 +3538,291 @@ function runClauses(text) {
   return localIntent(text);
 }
 
+/* =====================================================================
+   READING A CLIENT'S BRIEF
+   Architects are not handed a form. They are handed a PDF, a Word file, a
+   photo of a page from a notebook. This reads any of those, pulls the
+   numbers out, and shows what it found and what it had to assume before it
+   changes anything — the parse is a proposal, not an action.
+
+   Text PDFs are read directly. A scan has no text layer, so those pages are
+   rendered and put through OCR, which is slower and worth saying out loud.
+   Everything happens in the browser: the document never leaves the machine,
+   which matters when it is somebody's house and somebody's budget.
+   ===================================================================== */
+const CDN = {
+  pdf:  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs",
+  pdfw: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs",
+  tess: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js",
+  zip:  "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+};
+const loadScript = src => new Promise((ok, no) => {
+  if (document.querySelector(`script[src="${src}"]`)) return ok();
+  const el = document.createElement("script");
+  el.src = src; el.onload = () => ok(); el.onerror = () => no(new Error("offline: " + src));
+  document.head.appendChild(el);
+});
+
+let pdfjs = null;
+async function pdfLib() {
+  if (!pdfjs) {
+    pdfjs = await import(CDN.pdf);
+    pdfjs.GlobalWorkerOptions.workerSrc = CDN.pdfw;
+  }
+  return pdfjs;
+}
+
+/* ---------- getting text out of whatever was dropped in ---------- */
+async function readDocument(file, onStep) {
+  const name = file.name.toLowerCase();
+  if (/\.(txt|md|csv)$/.test(name)) return { text: await file.text(), how: "text file" };
+  if (/\.docx$/.test(name)) return { text: await readDocx(file), how: "Word document" };
+  if (/\.(png|jpe?g|webp|bmp)$/.test(name)) {
+    onStep?.("Reading the image with OCR — this takes a few seconds.");
+    return { text: await ocrImage(URL.createObjectURL(file), onStep), how: "image, read by OCR" };
+  }
+  if (/\.pdf$/.test(name)) return readPdf(file, onStep);
+  if (/\.docx?$/.test(name))
+    throw new Error("Old .doc files cannot be read in a browser. Save it as .docx or PDF.");
+  throw new Error(`Cannot read ${file.name}. Use PDF, .docx, .txt or an image.`);
+}
+
+async function readDocx(file) {
+  await loadScript(CDN.zip);
+  const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
+  const xml = await zip.file("word/document.xml")?.async("string");
+  if (!xml) throw new Error("That .docx has no document body.");
+  return xml.replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, " ")
+            .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+            .replace(/[ \t]+/g, " ");
+}
+
+async function readPdf(file, onStep) {
+  const pdf = await (await pdfLib()).getDocument({ data: await file.arrayBuffer() }).promise;
+  let text = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    text += content.items.map(i => i.str).join(" ") + "\n";
+  }
+  // A scan has a page count and almost no text. That is the tell.
+  if (text.replace(/\s/g, "").length >= 40) return { text, how: `PDF, ${pdf.numPages} page(s)` };
+
+  onStep?.("No text layer — this looks like a scan. Running OCR, which takes a few seconds per page.");
+  let ocr = "";
+  for (let p = 1; p <= Math.min(pdf.numPages, 5); p++) {
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 2 });      // OCR likes the pixels
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    onStep?.(`Reading page ${p} of ${Math.min(pdf.numPages, 5)}…`);
+    ocr += await ocrImage(canvas.toDataURL("image/png"), onStep) + "\n";
+  }
+  return { text: ocr, how: `scanned PDF, ${pdf.numPages} page(s), read by OCR` };
+}
+
+async function ocrImage(src, onStep) {
+  await loadScript(CDN.tess);
+  const worker = await window.Tesseract.createWorker("eng", 1, {
+    logger: m => m.status === "recognizing text" && onStep?.(`OCR ${Math.round(m.progress * 100)}%`)
+  });
+  try {
+    const { data } = await worker.recognize(src);
+    return data.text;
+  } finally { await worker.terminate(); }
+}
+
+/* ---------- pulling a brief out of prose ----------
+   Deliberately conservative: anything it is not confident about is left
+   alone and reported as an assumption, because a wrong plot size silently
+   applied is worse than a question asked. */
+const WORD_NUM = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
+const numAt = w => WORD_NUM[w] ?? Number(w);
+
+function parseBrief(raw) {
+  const t = " " + raw.toLowerCase().replace(/[‘’]/g, "'")
+                     .replace(/[“”]/g, '"').replace(/\s+/g, " ") + " ";
+  const found = {}, notes = [];
+  const M_PER_FT = 3.28084;
+
+  // plot — "40 x 60", "40ft x 60ft", "12m by 18m", "2400 sq ft plot"
+  const dim = t.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')?\s*(?:x|×|by)\s*(\d+(?:\.\d+)?)\s*(ft|feet|'|m|metres?|meters?)?/);
+  if (dim) {
+    const metric = /^m/.test(dim[3] || "");
+    found.plot_w = Math.round(Number(dim[1]) * (metric ? M_PER_FT : 1));
+    found.plot_h = Math.round(Number(dim[2]) * (metric ? M_PER_FT : 1));
+    notes.push(`Plot ${found.plot_w} × ${found.plot_h} ft${metric ? " (converted from metres)" : ""}`);
+  } else {
+    const area = t.match(/(\d[\d,]{2,})\s*(?:sq\.?\s*ft|sqft|square feet|sft)\s*(?:plot|site|land)/);
+    if (area) {                       // a square-ish plot is the honest guess
+      const a = Number(area[1].replace(/,/g, "")), w = Math.round(Math.sqrt(a * 0.66));
+      found.plot_w = w; found.plot_h = Math.round(a / w);
+      notes.push(`Plot area ${a} sq ft given without dimensions — assumed ${found.plot_w} × ${found.plot_h} ft`);
+    }
+  }
+
+  // bedrooms — "3 bhk", "three bedrooms", "3-bedroom"
+  const bhk = t.match(/(\d|one|two|three|four|five|six)\s*[- ]?\s*(?:bhk|bedrooms?|bed\b)/);
+  if (bhk) { found.bedrooms = clamp(numAt(bhk[1]), 1, 8); notes.push(`${found.bedrooms} bedroom(s)`); }
+
+  const bath = t.match(/(\d|one|two|three|four|five)\s*[- ]?\s*(?:bathrooms?|baths?|toilets?|wc)/);
+  if (bath) { found.bathrooms = clamp(numAt(bath[1]), 1, 6); notes.push(`${found.bathrooms} bathroom(s)`); }
+
+  // budget — "₹65 lakhs", "65 lakh", "Rs. 65,00,000", "1.2 crore"
+  const cr = t.match(/(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:cr|crores?)/);
+  const lk = t.match(/(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?|l\b)/);
+  const rup = t.match(/(?:₹|rs\.?|inr)\s*([\d,]{6,})/);
+  if (cr) found.budget = Math.round(Number(cr[1]) * 100);
+  else if (lk) found.budget = Math.round(Number(lk[1]));
+  else if (rup) found.budget = Math.round(Number(rup[1].replace(/,/g, "")) / 100000);
+  if (found.budget) notes.push(`Budget ₹${found.budget}L`);
+
+  // floors
+  const fl = t.match(/(\d|one|two|three)\s*(?:floors?|storey|story|storeys|stories|levels?)/);
+  if (fl) { found.floors = clamp(numAt(fl[1]), 1, 3); notes.push(`${found.floors} floor(s)`); }
+  else if (/\b(g\+1|ground \+ 1|duplex)\b/.test(t)) { found.floors = 2; notes.push("2 floors (G+1)"); }
+  else if (/\b(single storey|single floor|ground floor only|g\+0)\b/.test(t)) { found.floors = 1; notes.push("1 floor"); }
+
+  // where, which decides both the rate card and the bylaws
+  for (const name of Object.keys(REGIONS)) {
+    const key = name.split(" ")[0].toLowerCase();
+    if (t.includes(" " + key)) { found.region = name; notes.push(`Region ${name}`); break; }
+  }
+  if (!found.region && /\b(tamil nadu|tn|chennai|madras)\b/.test(t)) found.region = "Chennai";
+  // "nothing coastal applies" is not a coastal site. A negation, or the word
+  // inland, vetoes it — the coastal extra is real money on the estimate.
+  const coastalSaid = /\b(coastal|sea facing|beach|ecr|shoreline|near the sea)\b/.test(t);
+  const coastalDenied = /\b(inland|not coastal|nothing coastal|non-coastal)\b/.test(t)
+                     || /\b(not|nothing|no)\b[^.]{0,24}\bcoastal\b/.test(t);
+  if (coastalSaid && !coastalDenied)
+    { found.coastal = "coastal"; notes.push("Coastal site — the PWD coastal extra applies"); }
+  else if (coastalDenied) { found.coastal = "inland"; notes.push("Inland site"); }
+
+  // which way the road runs: everything about sun and vastu hangs off it
+  const face = t.match(/\b(north|south|east|west|north[- ]east|north[- ]west|south[- ]east|south[- ]west)\s*(?:facing|face|frontage|road)/)
+            || t.match(/\broad (?:is (?:on|to) the |on the |to the )(north|south|east|west)/);
+  if (face) {
+    const deg = { north:0, "north-east":45, northeast:45, east:90, "south-east":135, southeast:135,
+                  south:180, "south-west":225, southwest:225, west:270, "north-west":315, northwest:315 };
+    const key = face[1].replace(/\s/g, "-");
+    if (deg[key] !== undefined) { found.facing = deg[key]; notes.push(`Road faces ${face[1]}`); }
+  }
+
+  // rooms asked for by name, beyond the default set
+  found.extras = [];
+  for (const [type, words] of [["pooja", ["pooja", "puja", "prayer room"]],
+                               ["office", ["study", "home office", "work from home"]],
+                               ["utility", ["utility", "wash area", "laundry"]],
+                               ["balcony", ["balcony", "sit out", "sitout"]],
+                               ["parking", ["car park", "parking", "garage", "porch"]]])
+    if (words.some(w => t.includes(" " + w))) found.extras.push(type);
+  if (found.extras.length) notes.push("Also asked for: " + found.extras.join(", "));
+
+  // who lives there — it drives the suggestions, not the geometry
+  const fam = t.match(/(?:family of|household of)\s*(\d|one|two|three|four|five|six|seven|eight)/);
+  if (fam) found.family = numAt(fam[1]);
+  if (/\b(elderly|parents|grandparent|senior)\b/.test(t)) found.elderly = 1;
+  if (/\b(children|kids|daughter|son)\b/.test(t)) found.children = 2;
+
+  return { found, notes };
+}
+
+/* What the parse could not find, said plainly. */
+function briefGaps(found) {
+  const gaps = [];
+  if (!found.plot_w) gaps.push("plot size — keeping the current " + state.plot.w + " × " + state.plot.h + " ft");
+  if (!found.bedrooms) gaps.push("number of bedrooms — assuming 3");
+  if (!found.budget) gaps.push("budget — keeping ₹" + state.budget + "L");
+  if (found.facing === undefined) gaps.push("road direction — left unset, so sun and vastu advice stays off");
+  if (!found.region) gaps.push("location — staying on " + state.brief.region + " rates");
+  return gaps;
+}
+
+/* ---------- the panel ---------- */
+function briefUploadUI() {
+  const input = $("briefFile");
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) { promptOut(`<div class="who">Too big</div>
+      <div class="note">${escH(file.name)} is ${(file.size / 1048576).toFixed(1)} MB. Keep it under 25 MB.</div>`); return; }
+
+    const step = msg => promptOut(`<div class="who">Reading ${escH(file.name)}</div>
+      <div class="note"><span class="thinking"></span> ${escH(msg)}</div>`);
+    step("Opening the file…");
+
+    let doc;
+    try { doc = await readDocument(file, step); }
+    catch (e) {
+      promptOut(`<div class="who">Could not read it</div><div class="bad">${escH(e.message)}</div>`);
+      return;
+    }
+    const { found, notes } = parseBrief(doc.text);
+    const gaps = briefGaps(found);
+    if (!notes.length) {
+      promptOut(`<div class="who">Nothing usable in ${escH(file.name)}</div>
+        <div class="note">Read it as ${escH(doc.how)}, but found no plot size, bedroom count or budget.
+        ${doc.text.trim().length < 30 ? "Almost no text came out — if it is a photo, a sharper one reads better."
+          : "Check it says something like “40 × 60 ft plot, 3 BHK, ₹65 lakhs”."}</div>`);
+      return;
+    }
+    pendingBrief = found;
+    promptOut(
+      `<div class="who">Read ${escH(file.name)} · ${escH(doc.how)}</div>
+       <ul>${notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul>
+       ${gaps.length ? `<div class="note">Not stated, so unchanged: ${escH(gaps.join("; "))}.</div>` : ""}
+       <div class="note">Applying this replaces the rooms on the plan. Undo puts them back.</div>
+       <div class="acts"><button class="btn primary" id="briefApply">Build this</button>
+         <button class="btn" id="briefOnly">Only the numbers</button></div>`);
+    $("briefApply").addEventListener("click", () => applyBrief(pendingBrief, true));
+    $("briefOnly").addEventListener("click", () => applyBrief(pendingBrief, false));
+  });
+}
+let pendingBrief = null;
+
+function applyBrief(b, rebuild) {
+  const before = snapshotMetrics();
+  if (b.region) { state.brief.region = b.region; setRegion(b.region); }
+  if (b.coastal) state.brief.coastal = b.coastal;
+  if (b.budget) state.budget = clamp(b.budget, 10, 500);
+  if (b.family) state.brief.family_members = b.family;
+  if (b.elderly) state.brief.elderly_residents = b.elderly;
+  if (b.children) state.brief.children = b.children;
+
+  if (rebuild) {
+    const model = E.layoutFromBrief({
+      plot_w: b.plot_w || state.plot.w, plot_h: b.plot_h || state.plot.h,
+      facing: b.facing, region: b.region || state.brief.region,
+      bedrooms: b.bedrooms || 3, bathrooms: b.bathrooms || 2,
+      floors: b.floors || 1, budget: b.budget || state.budget,
+      parking: (b.extras || []).includes("parking")
+    });
+    state.rooms = model.rooms;
+    state.plot = model.plot;
+    state.interiors = {};
+    state.selected = null;
+    state.floor = 0;
+    // rooms the brief asked for that the standard layout does not include
+    for (const type of (b.extras || []).filter(x => x !== "parking")) addRoom(type);
+  } else {
+    if (b.plot_w) state.plot.w = clamp(b.plot_w, 15, 300);
+    if (b.plot_h) state.plot.h = clamp(b.plot_h, 15, 300);
+    if (b.facing !== undefined) state.plot.facing = b.facing;
+  }
+  renderBrief?.();
+  render(); commit(); pushToApi();
+  const after = snapshotMetrics();
+  promptOut(`<div class="who">Built from the brief</div>
+    <ul><li>${rebuild ? `${state.rooms.length} rooms laid out on a ${state.plot.w} × ${state.plot.h} ft plot`
+                      : "Numbers updated; the plan is untouched"}</li></ul>
+    ${impactRow(before, after)}
+    <div class="acts"><button class="btn" id="pUndo2">Undo</button></div>`);
+  $("pUndo2").addEventListener("click", () => { $("undoBtn").click(); $("promptOut").classList.remove("on"); });
+  speak("Read the brief and built it.");
+}
+
 let promptBusy = false;
 const runPromptClaude = text => runPrompt(text, true);
 async function runPrompt(raw, claudeOnly = false) {
@@ -4674,6 +4966,8 @@ addEventListener("load", () => {
 syncButtons();
 renderChips();
 renderBrief();
+briefUploadUI();
+$("briefBtn").addEventListener("click", () => $("briefFile").click());
 render();
 loadFromApi();
 </script>
