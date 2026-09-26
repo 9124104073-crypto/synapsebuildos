@@ -27,26 +27,22 @@ export type Model = {
   interiors: Record<string, string[]>; name: string; brief: Brief; rooms: Room[];
 };
 
+/* An empty model. No rooms, no plot, no budget — the plot reads 0 until
+   somebody states it, and every panel checks `isStarted` rather than
+   pretending a 40 x 50 site exists. */
 const START: Model = {
-  plot: { w: 40, h: 50, facing: null }, budget: 45, floor: 0, selected: null,
+  plot: { w: 0, h: 0, facing: null }, budget: 0, floor: 0, selected: null,
   interiors: {}, name: "Untitled house",
-  brief: { family_members: 4, elderly_residents: 0, children: 0, theme: "",
+  brief: { family_members: 0, elderly_residents: 0, children: 0, theme: "",
            region: "Chennai", coastal: "inland", notes: "",
            sbc: 150, concrete: "M25", steel: "Fe500" },
-  rooms: [
-    { id: "parking", name: "Parking", type: "parking", floor: 0, x: 4, y: 10, w: 16, h: 10 },
-    { id: "living", name: "Living room", type: "living", floor: 0, x: 4, y: 22, w: 18, h: 13 },
-    { id: "dining", name: "Dining", type: "dining", floor: 0, x: 4, y: 36, w: 13, h: 8 },
-    { id: "kitchen", name: "Kitchen", type: "kitchen", floor: 0, x: 18, y: 36, w: 10, h: 8 },
-    { id: "bed_1", name: "Master bedroom", type: "bedroom", floor: 0, x: 23, y: 10, w: 13, h: 13 },
-    { id: "bath_1", name: "Bathroom 1", type: "bath", floor: 0, x: 23, y: 24, w: 7, h: 7 },
-    { id: "stair_1", name: "Stairs", type: "stairs", floor: 0, x: 31, y: 33, w: 4, h: 11 },
-    { id: "bed_2", name: "Bedroom 2", type: "bedroom", floor: 1, x: 4, y: 10, w: 13, h: 12 },
-    { id: "bed_3", name: "Bedroom 3", type: "bedroom", floor: 1, x: 18, y: 10, w: 13, h: 12 },
-    { id: "bath_2", name: "Bathroom 2", type: "bath", floor: 1, x: 4, y: 23, w: 7, h: 7 },
-    { id: "stair_2", name: "Stairs", type: "stairs", floor: 1, x: 31, y: 33, w: 4, h: 11 },
-  ],
+  rooms: [],
 };
+
+/** Has anyone said anything yet? Until they have, the numbers are not zero —
+ *  they are unknown, and the difference matters. */
+export const isStarted = (m: Model) => m.plot.w > 0 && m.plot.h > 0;
+export const hasRooms = (m: Model) => m.rooms.length > 0;
 
 const KEY = "synapse.model";
 function load(): Model {
@@ -161,6 +157,7 @@ export function uniqueName(type: string, rooms: Room[]) {
  *  a brief that says 12 × 14 should produce a 12 × 14 room. */
 export function addRoom(type: string, size?: [number, number]): string | null {
   const m = getModel();
+  if (!isStarted(m)) return null;             // no plot, nowhere to put it
   const [dw, dh] = size || (DEFAULT_SIZE[type] as [number, number]) || [10, 10];
   const R = rules(m);
   let spot: { x: number; y: number } | null = null;

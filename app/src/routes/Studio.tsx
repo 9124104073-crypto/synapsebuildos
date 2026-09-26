@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PlanCanvas from "../components/PlanCanvas";
 import BriefDrop from "../components/BriefDrop";
+import StartPanel from "../components/StartPanel";
 import { ask } from "../assistant";
 import { useSession } from "../api";
 import {
-  addRoom, canRedo, canUndo, clamp, compliance, cost, DEFAULT_SIZE, FINISH, finishOf, LABEL,
-  lakh, measure, readiness, redo, removeRoom, undo, update, useModel, type Room,
+  addRoom, canRedo, canUndo, clamp, compliance, cost, DEFAULT_SIZE, FINISH, finishOf, hasRooms,
+  isStarted, LABEL, lakh, measure, readiness, redo, removeRoom, undo, update, useModel, type Room,
 } from "../model";
 
 const TYPES = ["bedroom", "bath", "living", "kitchen", "dining", "office", "pooja",
@@ -26,6 +27,8 @@ export default function Studio() {
   const rd = useMemo(() => readiness(m, t, c, f), [m, t, c, f]);
   const bad = useMemo(() => new Set<string>([...t.overlaps.flat(), ...t.outside]), [t]);
   const selected = m.rooms.find(r => r.id === m.selected) || null;
+  const started = isStarted(m);
+  const ready = started && hasRooms(m);        // numbers are unknown until both
   const readOnly = role === "client" || role === "contractor";
 
   useEffect(() => { localStorage.setItem("synapse.side", tab); }, [tab]);
@@ -75,10 +78,11 @@ export default function Studio() {
       <div className="studio-main">
         <aside className="rail">
           <BriefDrop onDone={msg => setOut({ title: "Read the brief", lines: [msg] })} />
-          {!readOnly && <AddRoom />}
-          <div className="group">
+          {!started && !readOnly && <StartPanel />}
+          {started && !readOnly && <AddRoom />}
+          {started && <div className="group">
             <span className="eyebrow">Floors</span>
-            {[...new Set(m.rooms.map(r => r.floor))].sort().map(fl => (
+            {[...new Set([0, ...m.rooms.map(r => r.floor)])].sort().map(fl => (
               <button key={fl} className="btn" aria-pressed={m.floor === fl}
                       onClick={() => update(mm => { mm.floor = fl; }, false)}>
                 {fl === 0 ? "Ground" : `Floor ${fl}`}
@@ -87,8 +91,8 @@ export default function Studio() {
                 </span>
               </button>
             ))}
-          </div>
-          <div className="group">
+          </div>}
+          {started && <div className="group">
             <span className="eyebrow">Plot</span>
             <div className="fields">
               <div className="field"><label htmlFor="pw">Width ft</label>
@@ -98,11 +102,30 @@ export default function Studio() {
                 <input id="ph" className="num" type="number" min={15} max={300} value={m.plot.h}
                        onChange={e => update(mm => { mm.plot = { ...mm.plot, h: clamp(+e.target.value || 15, 15, 300) }; })} /></div>
             </div>
-          </div>
+          </div>}
         </aside>
 
         <div className="stage">
-          <PlanCanvas m={m} bad={bad} />
+          {started
+            ? <PlanCanvas m={m} bad={bad} />
+            : <div className="blank">
+                <h2>Nothing here yet</h2>
+                <p>
+                  Drop the client's brief into the panel on the left and this builds what it
+                  describes — or type the plot size and start drawing.
+                </p>
+                <p className="hint">
+                  There is no starter house on purpose. A room this tool invented would look
+                  exactly like a room your client asked for, and every number here is supposed
+                  to be traceable to something somebody actually said.
+                </p>
+              </div>}
+          {started && !hasRooms(m) && (
+            <div className="blank-hint">
+              {m.plot.w} × {m.plot.h} ft site. Add a room on the left, or ask for one —
+              “add a living room 18 by 12”.
+            </div>
+          )}
           <div className="promptbar">
             <form className="prompt-in" onSubmit={e => { e.preventDefault(); run(said); }}>
               <input value={said} onChange={e => setSaid(e.target.value)} spellCheck={false}
@@ -121,9 +144,10 @@ export default function Studio() {
 
         <aside className="side">
           <div className="glance">
-            <div><b>{Math.round(t.built).toLocaleString("en-IN")} sf</b><span>built-up</span></div>
-            <div><b className={rd.over > 0 ? "over" : "ok"}>{lakh(c.total)}</b><span>cost</span></div>
-            <div><b className={rd.composite >= 80 ? "ok" : rd.composite >= 55 ? "" : "over"}>{rd.composite}</b><span>ready</span></div>
+            <div><b>{ready ? Math.round(t.built).toLocaleString("en-IN") + " sf" : "—"}</b><span>built-up</span></div>
+            <div><b className={!ready ? "" : rd.over > 0 ? "over" : "ok"}>{ready ? lakh(c.total) : "—"}</b><span>cost</span></div>
+            <div><b className={!ready ? "" : rd.composite >= 80 ? "ok" : rd.composite >= 55 ? "" : "over"}>
+              {ready ? rd.composite : "—"}</b><span>ready</span></div>
           </div>
           <div className="sidetabs" role="tablist">
             {(["design", "cost", "checks"] as const).map(k => {
@@ -149,17 +173,18 @@ export default function Studio() {
 /* Sizes are typed, not assumed. The defaults fill the boxes so a quick add is
    still one click, but every one of them can be overwritten before adding —
    which is the whole difference between a tool and a template. */
+/* Sizes are typed, never assumed. The usual size for a room is offered as a
+   suggestion you can click — which is a different thing from a box that
+   arrives filled in and gets accepted without anyone reading it. */
 function AddRoom() {
   const [type, setType] = useState("bedroom");
-  const [w, setW] = useState(DEFAULT_SIZE.bedroom[0]);
-  const [h, setH] = useState(DEFAULT_SIZE.bedroom[1]);
+  const [w, setW] = useState("");
+  const [h, setH] = useState("");
   const [err, setErr] = useState("");
+  const usual = (DEFAULT_SIZE[type] as [number, number]) || [10, 10];
+  const size: [number, number] | null = Number(w) && Number(h) ? [Number(w), Number(h)] : null;
 
-  function pick(next: string) {
-    setType(next);
-    const [dw, dh] = DEFAULT_SIZE[next] || [10, 10];
-    setW(dw); setH(dh);
-  }
+  function pick(next: string) { setType(next); setW(""); setH(""); setErr(""); }
 
   return (
     <div className="group">
@@ -171,21 +196,29 @@ function AddRoom() {
       </div>
       <div className="fields">
         <div className="field"><label htmlFor="rw">Width ft</label>
-          <input id="rw" className="num" type="number" min={3} max={60} step={0.5}
-                 value={w} onChange={e => setW(+e.target.value)} /></div>
+          <input id="rw" className="num" type="number" min={3} max={60} step={0.5} placeholder="—"
+                 value={w} onChange={e => setW(e.target.value)} /></div>
         <div className="field"><label htmlFor="rh">Depth ft</label>
-          <input id="rh" className="num" type="number" min={3} max={60} step={0.5}
-                 value={h} onChange={e => setH(+e.target.value)} /></div>
+          <input id="rh" className="num" type="number" min={3} max={60} step={0.5} placeholder="—"
+                 value={h} onChange={e => setH(e.target.value)} /></div>
       </div>
-      <button className="btn primary" style={{ justifyContent: "center" }}
+      <button className="btn primary" style={{ justifyContent: "center" }} disabled={!size}
               onClick={() => {
-                const id = addRoom(type, [w, h]);
+                const id = addRoom(type, size!);
                 setErr(id ? "" : "No free space on this floor at that size. Make it smaller, or add a floor.");
+                if (id) { setW(""); setH(""); }
               }}>
-        Add {LABEL[type].toLowerCase()} · {w} × {h} ft
+        {size ? `Add ${LABEL[type].toLowerCase()} · ${size[0]} × ${size[1]} ft` : "Enter a size"}
       </button>
       {err && <div className="bad">{err}</div>}
-      <p className="hint">{Math.round(w * h)} sq ft. Drag the corners on the plan to adjust it afterwards.</p>
+      <p className="hint">
+        {size
+          ? `${Math.round(size[0] * size[1])} sq ft. Drag the corners on the plan to adjust it afterwards.`
+          : <>No size is filled in for you. A common {LABEL[type].toLowerCase()} is{" "}
+              <button className="linkish" onClick={() => { setW(String(usual[0])); setH(String(usual[1])); }}>
+                {usual[0]} × {usual[1]} ft
+              </button>, if that helps.</>}
+      </p>
     </div>
   );
 }

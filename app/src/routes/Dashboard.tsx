@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { myProjects, setProject, useSession, type ProjectRow } from "../api";
-import { useModel, measure, cost, compliance, readiness, lakh } from "../model";
+import { useModel, measure, cost, compliance, readiness, lakh, isStarted, hasRooms } from "../model";
 
 /* Projects, and the one you have open. Kept deliberately thin: the useful
    work is one click away, and a dashboard that makes you read it first is a
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const nav = useNavigate();
   const m = useModel();
   const t = measure(m), c = cost(m, t), f = compliance(m, t), rd = readiness(m, t, c, f);
+  const ready = isStarted(m) && hasRooms(m);
   const [rows, setRows] = useState<ProjectRow[] | null>(null);
   const [err, setErr] = useState("");
 
@@ -30,9 +31,10 @@ export default function Dashboard() {
       <div className="cards">
         <div className="card">
           <span className="eyebrow">Open in this browser</span>
-          <h3>{m.name}</h3>
-          <p>{Math.round(t.built).toLocaleString("en-IN")} sq ft · {t.bedrooms} bed · {lakh(c.total)}
-             {" · readiness "}{rd.composite}</p>
+          <h3>{ready ? m.name : "Nothing started yet"}</h3>
+          <p>{ready
+            ? <>{Math.round(t.built).toLocaleString("en-IN")} sq ft · {t.bedrooms} bed · {lakh(c.total)} · readiness {rd.composite}</>
+            : "The studio opens empty. Give it the plot size, or drop in the client's brief and it builds what that describes."}</p>
           <div style={{ display: "flex", gap: ".4rem", marginTop: ".6rem" }}>
             <Link className="btn primary" to="/studio">Open the studio</Link>
             <Link className="btn" to="/report">Report</Link>

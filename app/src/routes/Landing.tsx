@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { useModel, measure, cost, readiness, compliance, lakh } from "../model";
+import { useModel, measure, cost, readiness, compliance, lakh, isStarted, hasRooms } from "../model";
 
 /* What the tool is, said once, with the live numbers from whatever design is
    currently open — a landing page that is already doing the work is a better
    argument than a landing page describing it. */
 export default function Landing() {
   const m = useModel();
+  const ready = isStarted(m) && hasRooms(m);
   const t = measure(m), c = cost(m, t), f = compliance(m, t), rd = readiness(m, t, c, f);
 
   return (
@@ -36,23 +37,27 @@ export default function Landing() {
         </Link>
       </div>
 
-      <div className="cards" style={{ marginTop: "1rem" }}>
-        <div className="card">
-          <span className="eyebrow">Open design</span>
-          <h3>{Math.round(t.built).toLocaleString("en-IN")} sq ft</h3>
-          <p>{t.bedrooms} bed · {t.baths} bath · FSI {t.fsi.toFixed(2)}</p>
+      {ready && (
+        <div className="cards" style={{ marginTop: "1rem" }}>
+          <div className="card">
+            <span className="eyebrow">Open design</span>
+            <h3>{Math.round(t.built).toLocaleString("en-IN")} sq ft</h3>
+            <p>{t.bedrooms} bed · {t.baths} bath · FSI {t.fsi.toFixed(2)}</p>
+          </div>
+          <div className="card">
+            <span className="eyebrow">Cost</span>
+            <h3>{lakh(c.total)}</h3>
+            <p>{m.budget
+              ? <>Against a ₹{m.budget}L budget · {rd.over > 0 ? `over by ${lakh(rd.over)}` : `${lakh(-rd.over)} left`}</>
+              : "No budget set yet"}</p>
+          </div>
+          <div className="card">
+            <span className="eyebrow">Readiness</span>
+            <h3>{rd.composite}</h3>
+            <p>{rd.verdict}</p>
+          </div>
         </div>
-        <div className="card">
-          <span className="eyebrow">Cost</span>
-          <h3>{lakh(c.total)}</h3>
-          <p>Against a ₹{m.budget}L budget · {rd.over > 0 ? `over by ${lakh(rd.over)}` : `${lakh(-rd.over)} left`}</p>
-        </div>
-        <div className="card">
-          <span className="eyebrow">Readiness</span>
-          <h3>{rd.composite}</h3>
-          <p>{rd.verdict}</p>
-        </div>
-      </div>
+      )}
 
       <h2 style={{ marginTop: "3rem", fontSize: "var(--s-2)" }}>What the numbers rest on</h2>
       <p className="lede" style={{ marginTop: ".6rem" }}>

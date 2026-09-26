@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  compliance, cost, costLines, inr, lakh, measure, rates, readiness, useModel,
+  compliance, cost, costLines, hasRooms, inr, isStarted, lakh, measure, rates, readiness, useModel,
 } from "../model";
 
 /* The report is the thing that leaves the building: what it costs, what it
@@ -9,6 +9,18 @@ import {
 export default function Report() {
   const m = useModel();
   const t = measure(m), c = cost(m, t), f = compliance(m, t), rd = readiness(m, t, c, f);
+
+  // A report of nothing is not an empty report, it is a wrong one.
+  if (!isStarted(m) || !hasRooms(m)) return (
+    <div className="page">
+      <h1>Nothing to report yet</h1>
+      <p className="lede">
+        A report is a statement about a specific design — what it costs, what it rests on, what
+        might stop it. There is no design open, so there is nothing here that would be true.
+      </p>
+      <Link className="btn primary" to="/studio" style={{ marginTop: "1.4rem" }}>Open the studio</Link>
+    </div>
+  );
   const lines = costLines(m, t).filter((l: any) => l.amount > 0);
   const R = rates(m);
 

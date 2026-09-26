@@ -101,9 +101,21 @@ export default function Login() {
       </div>
       <p className="hint">
         All three share one demo project, so what each role can and cannot do is something you
-        can watch rather than take on trust. The password is public and the project resets when
-        the server restarts.
+        can watch rather than take on trust. Sign in as the client and the editing tools are
+        genuinely gone, not greyed out.
       </p>
+      <div className="finding" style={{ marginTop: ".8rem" }}>
+        <div className="t">Demo credentials</div>
+        <div className="e">
+          Typed in by hand, if you would rather: <code>architect@demo.synapse</code>,{" "}
+          <code>client@demo.synapse</code> or <code>contractor@demo.synapse</code>, password{" "}
+          <code>{DEMO_PASSWORD}</code>.
+        </div>
+        <div className="e" style={{ marginTop: ".35rem" }}>
+          Public on purpose: the accounts hold nothing, and the project they share is rebuilt
+          whenever the server restarts.
+        </div>
+      </div>
     </div>
   );
 }
