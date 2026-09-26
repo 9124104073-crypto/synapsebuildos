@@ -60,21 +60,52 @@ app.include_router(cortex.router)
 
 
 def _mount_web() -> None:
-    """Serve the two pages from the API when they sit next to it.
+    """Serve the front end from the API when it sits next to it.
 
-    In development you can run them on their own static server; in the Docker
-    image `web/` is copied in and served here, which makes the deployment
-    single-origin: the browser never makes a cross-origin call, so no CORS,
-    and the studio's `?api=` argument can be left off.
+    Two things are mounted. `app/dist` is the React build — routed pages, so
+    a deep link like /studio has to fall back to index.html rather than 404.
+    `web/` is the original single-file studio, kept reachable at /legacy while
+    the 3D view, the exports and the drawing sheets are ported; it is still
+    where those live, and removing it before they move would be a regression
+    sold as progress.
+
+    Serving both from the API makes the deployment single-origin: the browser
+    never makes a cross-origin call, so there is no CORS to configure.
     """
     from pathlib import Path
 
+    from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
 
-    root = Path(settings().static_dir) if settings().static_dir else Path(__file__).resolve().parents[2] / "web"
-    if (root / "studio.html").exists():
-        app.mount("/", StaticFiles(directory=str(root), html=True), name="web")
-        logging.info("Serving the studio from %s", root)
+    base = Path(__file__).resolve().parents[2]
+    legacy = Path(settings().static_dir) if settings().static_dir else base / "web"
+    dist = base / "app" / "dist"
+
+    if (legacy / "studio.html").exists():
+        app.mount("/legacy", StaticFiles(directory=str(legacy), html=True), name="legacy")
+        logging.info("Serving the original pages from %s at /legacy", legacy)
+
+    if (dist / "index.html").exists():
+        app.mount("/assets", StaticFiles(directory=str(dist / "assets")), name="assets")
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def spa(path: str):
+            """Any path that is not an API route is a route inside the app.
+
+            A file that exists is served as itself; everything else gets
+            index.html, because /studio and /report are the router's business,
+            not the server's.
+            """
+            candidate = (dist / path).resolve()
+            if path and candidate.is_file() and str(candidate).startswith(str(dist.resolve())):
+                return FileResponse(candidate)
+            return FileResponse(dist / "index.html")
+
+        logging.info("Serving the app from %s", dist)
+    elif (legacy / "studio.html").exists():
+        # No build yet — fall back to the original pages at the root rather
+        # than serving nothing at all.
+        app.mount("/", StaticFiles(directory=str(legacy), html=True), name="web")
 
 
 @app.get("/health", tags=["meta"])
