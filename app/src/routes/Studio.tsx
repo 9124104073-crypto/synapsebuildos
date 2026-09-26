@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import PlanCanvas from "../components/PlanCanvas";
 import BriefDrop from "../components/BriefDrop";
 import StartPanel from "../components/StartPanel";
+import View3D from "../components/View3D";
+import { exporters } from "../exports";
 import { ask } from "../assistant";
 import { useSession } from "../api";
 import {
@@ -18,6 +20,10 @@ export default function Studio() {
   const { account, role } = useSession();
   const [tab, setTab] = useState<"design" | "cost" | "checks">(
     () => (localStorage.getItem("synapse.side") as any) || "design");
+  const [view, setView] = useState<"plan" | "3d">("plan");
+  const [furniture, setFurniture] = useState(true);
+  const [roof, setRoof] = useState(false);
+  const [hour, setHour] = useState(12);
   const [said, setSaid] = useState("");
   const [out, setOut] = useState<{ title: string; lines: string[]; note?: string } | null>(null);
 
@@ -65,10 +71,31 @@ export default function Studio() {
         <Link className="navlink" to="/dashboard">Projects</Link>
         <Link className="navlink" to="/report">Report</Link>
         <div className="sp" />
+        <div className="seg">
+          <button aria-pressed={view === "plan"} onClick={() => setView("plan")}>Plan</button>
+          <button aria-pressed={view === "3d"} onClick={() => setView("3d")} disabled={!ready}>3D</button>
+        </div>
+        {view === "3d" && ready && (
+          <div className="threeonly">
+            <label className="chk"><input type="checkbox" checked={furniture}
+              onChange={e => setFurniture(e.target.checked)} /> Furniture</label>
+            <label className="chk"><input type="checkbox" checked={roof}
+              onChange={e => setRoof(e.target.checked)} /> Roof</label>
+            <label className="chk" title="Where the sun is, from the road direction you set">
+              <input type="range" min={6} max={18} step={0.5} value={hour}
+                     onChange={e => setHour(+e.target.value)} />
+              <span className="num">{String(Math.floor(hour)).padStart(2, "0")}:{hour % 1 ? "30" : "00"}</span>
+            </label>
+          </div>
+        )}
         <button className="btn" onClick={undo} disabled={!canUndo()}>Undo</button>
         <button className="btn" onClick={redo} disabled={!canRedo()}>Redo</button>
-        <a className="btn" href="/studio.html" title="3D, exports and the drawing sheets are still on the original page while they are ported">
-          3D &amp; exports
+        {exporters.map(x => (
+          <button key={x.id} className="btn" title={x.title} disabled={!ready}
+                  onClick={() => x.run(m)}>{x.label}</button>
+        ))}
+        <a className="btn" href="/legacy/studio.html" title="The original page: walkthrough, drawing sheets and the printable report">
+          Legacy
         </a>
         {account
           ? <span className="hint" style={{ margin: 0 }}>{account.email.split("@")[0]}{role ? ` · ${role}` : ""}</span>
@@ -107,7 +134,9 @@ export default function Studio() {
 
         <div className="stage">
           {started
-            ? <PlanCanvas m={m} bad={bad} />
+            ? (view === "3d" && ready
+                ? <View3D m={m} furniture={furniture} roof={roof} hour={hour} />
+                : <PlanCanvas m={m} bad={bad} />)
             : <div className="blank">
                 <h2>Nothing here yet</h2>
                 <p>

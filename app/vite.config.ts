@@ -9,7 +9,11 @@ import { resolve } from "node:path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@engine": resolve(__dirname, "../web/engine.js") },
+    alias: {
+      "@engine": resolve(__dirname, "../web/engine.js"),
+      "@scene3d": resolve(__dirname, "../web/scene3d.js"),
+      "@exports": resolve(__dirname, "../web/exports.js"),
+    },
   },
   server: {
     fs: { allow: [resolve(__dirname), resolve(__dirname, "../web")] },

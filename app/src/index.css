@@ -196,3 +196,19 @@ table.data td.n,table.data th.n{text-align:right;font-family:var(--mono);
   font-size:var(--s--1);color:var(--muted-foreground);pointer-events:none}
 .linkish{background:none;border:0;padding:0;font:inherit;color:var(--primary);
   text-decoration:underline;cursor:pointer}
+
+/* ---------- the view switch and its toggles ---------- */
+.seg{display:flex;border:1px solid var(--border)}
+.seg button{font-size:var(--s--1);padding:.42rem .9rem;background:transparent;border:0;
+  border-right:1px solid var(--border);color:var(--muted-foreground)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--primary);color:var(--primary-foreground)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.threeonly{display:flex;align-items:center;gap:.9rem}
+.chk{display:flex;align-items:center;gap:.4rem;font-size:var(--s--1);
+  color:var(--muted-foreground);white-space:nowrap}
+.chk input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px}
+.chk input[type=range]{-webkit-appearance:none;appearance:none;width:104px;height:3px;
+  background:var(--border-strong);cursor:pointer}
+.chk input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  background:var(--warning);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--warning)}
