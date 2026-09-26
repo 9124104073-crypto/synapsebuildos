@@ -376,6 +376,7 @@ export function instruct(raw: string): Did {
     const d = feetFrom(s), pair = findTwoRooms(s);
     if (d && pair && pair[0] !== pair[1]) {
       const out = setGap(pair[0], pair[1], d.ft);
+      if (!out.bad) chat.saw(pair[1]);        // "it" now means the room that moved
       return { summary: [out.bad || `Moved ${pair[1].name} to sit ${d.said} (${d.ft.toFixed(1)} ft) `
                                   + `clear of ${pair[0].name}, ${(out as any).axis}.`] };
     }
@@ -399,6 +400,7 @@ export function instruct(raw: string): Did {
     const after = s.split(/\binto\b/)[1] || "";
     const t = after ? findType(" " + after + " ") : null;
     const out = splitRoom(room, n, t && t !== room.type ? t : null);
+    if (!out.bad) chat.saw(room);             // the room that was divided
     return { summary: [out.bad || out.summary!] };
   }
 

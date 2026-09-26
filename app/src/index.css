@@ -212,3 +212,9 @@ table.data td.n,table.data th.n{text-align:right;font-family:var(--mono);
   background:var(--border-strong);cursor:pointer}
 .chk input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
   background:var(--warning);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--warning)}
+
+/* ---------- the microphone ---------- */
+.mic.rec{color:var(--error);border-color:var(--error);animation:pulse 1s infinite}
+.prompt-in .lang{font:inherit;font-size:var(--s--1);background:var(--background);color:inherit;
+  border:1px solid var(--border);padding:0 .35rem}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}

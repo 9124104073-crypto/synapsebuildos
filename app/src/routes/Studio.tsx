@@ -6,6 +6,7 @@ import StartPanel from "../components/StartPanel";
 import View3D from "../components/View3D";
 import { exporters } from "../exports";
 import { ask } from "../assistant";
+import { LANGUAGES, speak, useVoice } from "../voice";
 import { useSession } from "../api";
 import {
   addRoom, canRedo, canUndo, clamp, compliance, cost, DEFAULT_SIZE, FINISH, finishOf, hasRooms,
@@ -24,6 +25,8 @@ export default function Studio() {
   const [furniture, setFurniture] = useState(true);
   const [roof, setRoof] = useState(false);
   const [hour, setHour] = useState(12);
+  const [lang, setLang] = useState("en-IN");
+  const [speakBack, setSpeakBack] = useState(true);
   const [said, setSaid] = useState("");
   const [out, setOut] = useState<{ title: string; lines: string[]; note?: string } | null>(null);
 
@@ -53,16 +56,27 @@ export default function Studio() {
     return () => removeEventListener("keydown", onKey);
   }, [m.selected, readOnly]);
 
-  function run(text: string) {
+  function run(text: string, spoken = false) {
     if (!text.trim()) return;
     const res = ask(text);
     setSaid("");
-    if (res.kind === "answer") setOut({ ...res.answer, note: [res.answer.note, res.aside].filter(Boolean).join(" · ") });
-    else if (res.kind === "did") setOut({ title: "Done", lines: res.summary, note: res.aside });
+    const sayIt = (line: string) => { if (spoken) speak(line, lang, speakBack); };
+    if (res.kind === "answer") {
+      setOut({ ...res.answer, note: [res.answer.note, res.aside].filter(Boolean).join(" · ") });
+      sayIt(res.answer.title);
+    }
+    else if (res.kind === "did") {
+      setOut({ title: "Done", lines: res.summary, note: res.aside });
+      sayIt(res.summary.join(". "));
+    }
     else setOut({ title: "Not understood",
       lines: ["It handles rooms, sizes, distances, finishes, furnishing, the plot and the budget."],
       note: "Try “add a bedroom 12 by 14”, “keep the bedroom 5 m from the living room”, or ask “what does it cost?”" });
   }
+
+  // English goes to the rules engine; another language is transcribed and
+  // tried anyway, and says so plainly when it cannot be read.
+  const voice = useVoice(lang, text => run(text, true));
 
   return (
     <div className="studio">
@@ -157,10 +171,37 @@ export default function Studio() {
           )}
           <div className="promptbar">
             <form className="prompt-in" onSubmit={e => { e.preventDefault(); run(said); }}>
-              <input value={said} onChange={e => setSaid(e.target.value)} spellCheck={false}
-                     placeholder="Describe a change — “add a bedroom 12 by 14”, “keep the bedroom 5 m from the living room” — or ask a question" />
+              {voice.supported && (
+                <>
+                  <button type="button" className={"btn mic" + (voice.listening ? " rec" : "")}
+                          aria-pressed={voice.listening} onClick={voice.toggle}
+                          title="Speak the change. Chrome and Edge; the browser sends the audio to its own speech service to transcribe it.">
+                    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none"
+                         stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="9" y="3" width="6" height="11" rx="3" />
+                      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                    </svg>
+                    <span className="sr-only">{voice.listening ? "Stop listening" : "Speak"}</span>
+                  </button>
+                  <select value={lang} onChange={e => setLang(e.target.value)} aria-label="Voice language"
+                          className="lang">
+                    {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                  </select>
+                  <button type="button" className="btn" aria-pressed={speakBack}
+                          onClick={() => setSpeakBack(v => !v)}
+                          title={speakBack ? "Answers are read back" : "Answers stay on screen"}>
+                    {speakBack ? "🔊" : "🔇"}
+                  </button>
+                </>
+              )}
+              <input value={voice.listening && voice.heard ? voice.heard : said}
+                     onChange={e => setSaid(e.target.value)} spellCheck={false}
+                     placeholder={voice.listening
+                       ? "Listening… say what you want changed, or ask a question"
+                       : "Describe a change — “add a bedroom 12 by 14”, “keep the bedroom 5 m from the living room” — or ask a question"} />
               <button className="btn primary" type="submit">Design</button>
             </form>
+            {voice.error && <div className="prompt-out"><div className="note">{voice.error}</div></div>}
             {out && (
               <div className="prompt-out">
                 <div className="who">{out.title}</div>

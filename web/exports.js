@@ -35,7 +35,7 @@ const interiorLines = M => {
     const where = key === "exterior" ? "Exterior"
                 : (M.rooms.find(r => r.id === key)?.name || key);
     for (const id of ids || []) {
-      const item = E.catalogById(id);
+      const item = E.catalogById[id];   // a lookup table, not a function
       if (item) out.push({ id, name: item.name, where, price: item.price });
     }
   }
