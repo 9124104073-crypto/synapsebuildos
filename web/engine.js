@@ -12,6 +12,12 @@ export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ---------- constants mirrored from geometry.py ---------- */
 export const FLOOR_H = 10, OPENING = 0.12, SNAP = 0.5;
+/* Wall thicknesses and opening sizes, in feet. They belong here rather than
+   inside the 3D builder because the plan draws the same doors the model
+   builds and the IFC writes the same widths — one set of numbers, three
+   readers. */
+export const WALL_EXT = .75, WALL_INT = .5, DOOR_W = 3.2, DOOR_H = 7,
+             SILL = 3, HEAD = 7, EYE = 5.6;
 export const POINTS = {
   bedroom:[1,2,8], living:[1,3,10], kitchen:[1,2,12], bath:[1,1,3], dining:[0,2,6],
   office:[1,1,8], pooja:[1,0,3], parking:[0,0,2], utility:[1,1,4],

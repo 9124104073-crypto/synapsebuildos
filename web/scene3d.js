@@ -122,7 +122,7 @@ export function createBuilder(THREE, E) {
   const groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
   const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-  const WALL_EXT = .75, WALL_INT = .5, DOOR_W = 3.2, DOOR_H = 7, SILL = 3, HEAD = 7, EYE = 5.6;
+  const { WALL_EXT, WALL_INT, DOOR_W, DOOR_H, SILL, HEAD, EYE } = E;
   let colliders = [];     // wall AABBs for the walkthrough
   let stairZones = [];    // ramp volumes the player can climb
   let spinners = [];      // ceiling fans, turned by the render loop
@@ -1097,8 +1097,18 @@ export function createBuilder(THREE, E) {
     return { group: shell, colliders, stairZones, spinners };
   }
 
-  /* The same wall segments the 3D view draws — openings included — so a DXF
-     or an IFC file describes the building that was on screen, not a second
-     guess at it. */
-  return { build, wallPlan };
+  /* What a host needs besides the building itself.
+
+     wallPlan and placeItems are here because the 2D plan draws the same doors,
+     windows and furniture footprints the 3D view does — one set of openings,
+     drawn twice, rather than two sets that can disagree. clearTextures exists
+     because the procedural finishes bake the theme's colours in, so switching
+     between light and dark has to throw them away. */
+  return {
+    build,
+    wallPlan,
+    placeItems: (M, room) => { CUR = M; return placeItems(room); },
+    WALLED,
+    clearTextures: () => texCache.clear(),
+  };
 }

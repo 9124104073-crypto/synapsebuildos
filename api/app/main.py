@@ -81,8 +81,28 @@ def _mount_web() -> None:
     legacy = Path(settings().static_dir) if settings().static_dir else base / "web"
     dist = base / "app" / "dist"
 
+    class Revalidating(StaticFiles):
+        """Static files that must be checked before they are reused.
+
+        The original pages import engine.js and scene3d.js by a fixed name, so
+        a browser that has cached an older copy will keep running it after a
+        deploy — which showed up as a page silently missing the doors, because
+        it held a version of the engine from before the door width moved into
+        it. `no-cache` still allows a 304; it only forbids using the copy
+        without asking. The React build uses hashed filenames and does not
+        need this.
+        """
+
+        def is_not_modified(self, response_headers, request_headers) -> bool:
+            return super().is_not_modified(response_headers, request_headers)
+
+        async def get_response(self, path, scope):
+            response = await super().get_response(path, scope)
+            response.headers["Cache-Control"] = "no-cache"
+            return response
+
     if (legacy / "studio.html").exists():
-        app.mount("/legacy", StaticFiles(directory=str(legacy), html=True), name="legacy")
+        app.mount("/legacy", Revalidating(directory=str(legacy), html=True), name="legacy")
         logging.info("Serving the original pages from %s at /legacy", legacy)
 
     if (dist / "index.html").exists():
