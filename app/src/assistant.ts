@@ -302,6 +302,9 @@ const QUESTION = /^(what|whats|what's|how|why|which|where|when|is|are|can|do|doe
 export function answerQuestion(raw: string): Answer | null {
   const s = norm(raw), m = getModel();
   if (ORDER.test(s) && !/\?\s*$/.test(s)) return null;
+  // "budget 80 lakhs" contains the word budget and is plainly not a question.
+  // A bare noun asks; a noun with a number tells.
+  if (!QUESTION.test(s.trim()) && /\d/.test(s)) return null;
   if (!QUESTION.test(s.trim()) && !/\b(cost|budget|score|help)\b/.test(s)) return null;
 
   const t = measure(m), c = cost(m, t), f = compliance(m, t), rd = readiness(m, t, c, f);
@@ -416,19 +419,25 @@ export function instruct(raw: string): Did {
     const type = findType(s);
     if (type) {
       const size = sizeFrom(s);
+      const startedOn = getModel().floor;
       const id = addRoom(type, size || undefined);
-      if (!id) return { summary: [`No free space on this floor for a ${LABEL[type].toLowerCase()}. `
-                                + `Move something first, or add a floor.`] };
+      if (!id) return { summary: [`No room for a ${LABEL[type].toLowerCase()} on any floor at that size. `
+                                + `Make it smaller, or add a floor.`] };
       const room = getModel().rooms.find(r => r.id === id)!;
       chat.saw(room);
+      // Say where it actually landed, rather than assuming which floor was full.
+      const where = room.floor === 0 ? "the ground floor" : `floor ${room.floor}`;
+      const elsewhere = room.floor !== startedOn ? ` — it went on ${where}, the one you were on had no room` : "";
       return { summary: [`Added ${room.name}, ${room.w} × ${room.h} ft`
-                       + `${size ? " as asked" : " at the usual size — say a size to change it"}.`] };
+                       + `${size ? " as asked" : " at the usual size — say a size to change it"}${elsewhere}.`] };
     }
   }
 
   if (/\b(remove|delete|drop|get rid of|take out)\b/.test(s)) {
     const room = findRoom(s);
     if (room) { removeRoom(room.id); return { summary: [`Removed ${room.name}.`] }; }
+    const asked = findType(s);
+    if (asked) return { summary: [`There is no ${LABEL[asked].toLowerCase()} to remove.`] };
   }
 
   // resize: "make the kitchen 3 ft wider", "kitchen 12 by 14"
@@ -514,6 +523,39 @@ export function instruct(raw: string): Did {
   return null;
 }
 
+/* People give two instructions in one breath: "add a bedroom 12 by 14 and
+   make the kitchen 2 ft wider". Doing the first and silently dropping the
+   second is worse than refusing both, because it reports success.
+
+   Splitting is only attempted when every part looks like an instruction on
+   its own — "merge the dining and the kitchen" is one instruction containing
+   the word "and", and must not be cut in half. If any part turns out not to
+   be understood, the whole lot is rolled back and the sentence is tried
+   as one. */
+const VERB = /\b(add|remove|delete|drop|make|move|keep|put|set|split|divide|separate|merge|combine|join|furnish|use|apply|change|resize|widen|budget|plot|location)\b/;
+const JOINER = /\s*(?:,|;|\band then\b|\bthen\b|\band\b)\s*/i;
+
+function runClauses(text: string): Did {
+  const parts = text.split(JOINER).map(p => p.trim())
+                    .filter(p => p.split(/\s+/).length >= 2);
+
+  if (parts.length > 1 && parts.every(p => VERB.test(" " + p.toLowerCase() + " "))) {
+    const m = getModel();
+    const before = JSON.stringify({ r: m.rooms, p: m.plot, b: m.budget, i: m.interiors });
+    const lines: string[] = [];
+    let all = true;
+    for (const part of parts) {
+      const got = instruct(part);
+      if (!got) { all = false; break; }
+      lines.push(...got.summary);
+    }
+    if (all) return { summary: lines };
+    const o = JSON.parse(before);              // put back what the partial run changed
+    update(mm => { mm.rooms = o.r; mm.plot = o.p; mm.budget = o.b; mm.interiors = o.i; }, false);
+  }
+  return instruct(text);
+}
+
 /** One line in, one thing done or answered. The order matters: a question is
  *  answered rather than acted on, and a typo is fixed before either. */
 export function ask(raw: string) {
@@ -529,7 +571,7 @@ export function ask(raw: string) {
     chat.say("synapse", answer.title);
     return { kind: "answer" as const, answer, aside };
   }
-  const did = instruct(ctx.text);
+  const did = runClauses(ctx.text);
   if (did) {
     chat.last = ctx.text;
     chat.say("synapse", did.summary.join(". "));

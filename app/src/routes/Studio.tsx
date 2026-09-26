@@ -46,7 +46,8 @@ export default function Studio() {
     const onKey = (e: KeyboardEvent) => {
       if (/input|select|textarea/i.test((e.target as HTMLElement).tagName)) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault(); e.shiftKey ? redo() : undo();
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
       }
       if ((e.key === "Delete" || e.key === "Backspace") && m.selected && !readOnly) {
         e.preventDefault(); removeRoom(m.selected);

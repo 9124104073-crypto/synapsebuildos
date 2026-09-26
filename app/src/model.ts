@@ -160,20 +160,35 @@ export function addRoom(type: string, size?: [number, number]): string | null {
   if (!isStarted(m)) return null;             // no plot, nowhere to put it
   const [dw, dh] = size || (DEFAULT_SIZE[type] as [number, number]) || [10, 10];
   const R = rules(m);
+
+  /** The first place on a given floor where the room fits inside the setbacks
+   *  and touches nothing else. */
+  const freeSpotOn = (floor: number) => {
+    for (let y = R.front; y + dh <= m.plot.h - R.rear; y += 1)
+      for (let x = R.side; x + dw <= m.plot.w - R.side; x += 1) {
+        const hit = m.rooms.some(r => r.floor === floor &&
+          !(x + dw <= r.x + .05 || r.x + r.w <= x + .05 || y + dh <= r.y + .05 || r.y + r.h <= y + .05));
+        if (!hit) return { x, y };
+      }
+    return null;
+  };
+
+  // The floor you are looking at first, then the others — a full ground floor
+  // is a reason to go upstairs, not a reason to refuse.
+  const floors = [m.floor, ...[...new Set(m.rooms.map(r => r.floor))].filter(f => f !== m.floor).sort()];
   let spot: { x: number; y: number } | null = null;
-  outer:
-  for (let y = R.front; y + dh <= m.plot.h - R.rear; y += 1)
-    for (let x = R.side; x + dw <= m.plot.w - R.side; x += 1) {
-      const hit = m.rooms.some(r => r.floor === m.floor &&
-        !(x + dw <= r.x + .05 || r.x + r.w <= x + .05 || y + dh <= r.y + .05 || r.y + r.h <= y + .05));
-      if (!hit) { spot = { x, y }; break outer; }
-    }
+  let floor = m.floor;
+  for (const f of floors) {
+    spot = freeSpotOn(f);
+    if (spot) { floor = f; break; }
+  }
   if (!spot) return null;
   const id = `${type}_${seq++}`;
   update(mm => {
-    mm.rooms = [...mm.rooms, { id, type, floor: mm.floor, name: uniqueName(type, mm.rooms),
+    mm.rooms = [...mm.rooms, { id, type, floor, name: uniqueName(type, mm.rooms),
                                x: spot!.x, y: spot!.y, w: dw, h: dh }];
     mm.selected = id;
+    mm.floor = floor;                       // show the floor it landed on
   });
   return id;
 }
