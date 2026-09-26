@@ -141,7 +141,8 @@ export function findRoom(s: string): Room | null {
   if (!type) return null;
   const pool = m.rooms.filter(r => r.type === type);
   if (!pool.length) return null;
-  const n = s.match(/\b(\d)\b/);
+  // same rule: a bare number picks the nth room, a number with a unit is a size
+  const n = s.match(/\b(\d)\b(?!\s*(m|ft|feet|foot|metre|meter)\b)/);
   if (n && pool[Number(n[1]) - 1]) return chat.saw(pool[Number(n[1]) - 1]) as Room;
   return chat.saw(pool[0]) as Room;
 }
@@ -158,7 +159,10 @@ export function findTwoRooms(s: string): [Room, Room] | null {
     for (const w of words) {
       const at = s.indexOf(" " + w);
       if (at < 0) continue;
-      const after = s.slice(at + w.length + 1, at + w.length + 4).match(/\s*(\d)/);
+      // "bedroom 2" is the second bedroom; "kitchen 2 m" is a distance. The
+      // unit is what tells them apart.
+      const tail = s.slice(at + w.length + 1, at + w.length + 8);
+      const after = /^\s*(\d)(?!\s*(m|ft|feet|foot|metre|meter)\b)/.exec(tail);
       const pool = m.rooms.filter(r => r.type === type);
       claim(after && pool[Number(after[1]) - 1]
         ? pool[Number(after[1]) - 1]
@@ -379,7 +383,17 @@ export function instruct(raw: string): Did {
 
   if (/\b(split|divide|separate|partition|halve|into two|into three)\b/.test(s)
       && !/\b(merge|combine|join)\b/.test(s) && !feetFrom(s)) {
-    const room = findRoom(s) || chat.subject();
+    // The remembered room stands in for a pronoun — "split it" — and nothing
+    // else. If a room was named and not found, say so: dividing whatever was
+    // mentioned last would look exactly like success.
+    const named = findRoom(s);
+    const asked = findType(s);
+    if (!named) {
+      if (asked) return { summary: [`There is no ${LABEL[asked].toLowerCase()} in this design to divide.`] };
+      if (!PRONOUN.test(s)) return { summary: [
+        "I could not tell which room to divide. Name it — “split the living room” — or select it first."] };
+    }
+    const room = named || chat.subject();
     if (!room) return null;
     const n = /\bthree\b/.test(s) ? 3 : 2;
     const after = s.split(/\binto\b/)[1] || "";
@@ -464,9 +478,13 @@ export function instruct(raw: string): Did {
     }
 
   // finishes: "marble floor in the living room"
-  const kinds: ("wall" | "floor" | "ceiling")[] = ["floor", "wall", "ceiling"];
-  for (const kind of kinds) {
-    if (!new RegExp(`\\b${kind}${kind === "wall" ? "s?" : "ing?"}?\\b`).test(s)) continue;
+  const SURFACE: [("wall" | "floor" | "ceiling"), RegExp][] = [
+    ["floor", /\b(floor|floors|flooring|tiles|tiling)\b/],
+    ["wall", /\b(wall|walls|paint|painting)\b/],
+    ["ceiling", /\b(ceiling|ceilings|false ceiling|soffit)\b/],
+  ];
+  for (const [kind, said] of SURFACE) {
+    if (!said.test(s)) continue;
     const option = (FINISH[kind] as any[]).find(o => s.includes(" " + o.name.toLowerCase()));
     if (option && room) {
       update(mm => {

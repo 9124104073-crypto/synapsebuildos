@@ -43,9 +43,25 @@ const interiorLines = M => {
 };
 
 /* An indicative programme: the same stages the report shows, in weeks. */
-/* An indicative programme. The engine does not own one, so the BOQ carries
-   the stages it needs rather than inventing a date. */
-const schedule = (t, c) => ({ months: Math.max(6, Math.round(t.built / 180)), rows: [] });
+/* An indicative programme, moved with the exporters rather than stubbed:
+   the BOQ prints a payment schedule, and a schedule of nothing is a header
+   over an empty table. Stage shares are a stated convention, not a
+   prediction — the contractor's own programme replaces it. */
+const STAGES = [["Mobilisation and foundation", .15], ["Plinth and columns", .15],
+                ["Structure and roof slab", .25], ["Masonry and plaster", .15],
+                ["Electrical and plumbing", .10], ["Finishes", .15],
+                ["Handover and snagging", .05]];
+const schedule = (t, c) => {
+  const months = Math.round(E.clamp(5 + t.built / 450 + (t.floors - 1) * 2, 5, 24));
+  const construction = c.total - c.interiors;
+  const weeks = months * 4.3;
+  let wk = 0;
+  return { months, rows: STAGES.map(([name, share]) => {
+    const from = Math.round(wk) + 1;
+    wk += weeks * share;
+    return { name, share, amount: construction * share, from, to: Math.round(wk) };
+  }) };
+};
 
 const itemsFor = (M, key) => E.itemsFor(M, key);
 /* A filename the operating system will not argue with. */
