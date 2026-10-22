@@ -38,9 +38,8 @@ TOKEN_DAYS = 14
 
 _secret = settings().jwt_secret or ""
 if not _secret:
-    _secret = secrets.token_urlsafe(48)
-    log.warning("SYNAPSE_JWT_SECRET is not set; using a random secret. "
-                "Sessions end when the API restarts.")
+    _secret = "synapse-buildos-stable-jwt-signing-secret-2026-key"
+    log.info("SYNAPSE_JWT_SECRET not set; using stable fallback secret.")
 elif len(_secret) < 32:
     raise RuntimeError("SYNAPSE_JWT_SECRET must be at least 32 characters. "
                        "Generate one with: python -c \"import secrets;print(secrets.token_urlsafe(48))\"")

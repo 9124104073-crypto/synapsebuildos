@@ -52,11 +52,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(projects.router)
-app.include_router(plans.router)
-app.include_router(reference.router)
-app.include_router(cortex.router)
+for _router in (auth.router, projects.router, plans.router, reference.router, cortex.router):
+    app.include_router(_router)
+    app.include_router(_router, prefix="/api")
 
 
 def _mount_web() -> None:
@@ -129,6 +127,7 @@ def _mount_web() -> None:
 
 
 @app.get("/health", tags=["meta"])
+@app.get("/api/health", tags=["meta"])
 def health() -> dict:
     cfg = settings()
     return {
