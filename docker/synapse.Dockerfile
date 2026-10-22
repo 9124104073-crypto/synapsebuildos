@@ -8,6 +8,15 @@
 # for a demo and wrong for anything shared: point SYNAPSE_DATABASE_URL at
 # Postgres and the same image is a real deployment.
 
+# Stage 1: Build the React frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /build
+COPY app/package*.json ./
+RUN npm ci
+COPY app/ ./
+RUN npm run build
+
+# Stage 2: Python backend + built React frontend + legacy studio
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -24,6 +33,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY api/app ./app
 COPY web ./web
+COPY --from=frontend-builder /build/dist ./app/dist
 
 # Not root, and not writable by the app: the only thing that needs to be
 # writable is the SQLite file, which lives in /data.
