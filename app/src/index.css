@@ -218,3 +218,27 @@ table.data td.n,table.data th.n{text-align:right;font-family:var(--mono);
 .prompt-in .lang{font:inherit;font-size:var(--s--1);background:var(--background);color:inherit;
   border:1px solid var(--border);padding:0 .35rem}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- furniture & exterior chips ---------- */
+.sets{margin-bottom:.5rem}
+.sets button{flex:1;padding:.38rem .3rem}
+.items{display:flex;flex-wrap:wrap;gap:.35rem;margin:.3rem 0 .6rem}
+.item{font:inherit;font-size:var(--s--1);padding:.38rem .6rem;border:1px solid var(--border);
+  background:transparent;color:inherit;cursor:pointer;display:flex;gap:.45rem;align-items:baseline}
+.item small{opacity:.65;font-variant-numeric:tabular-nums}
+.item[aria-pressed=true]{border-color:var(--primary);
+  background:color-mix(in srgb,var(--primary) 14%,transparent)}
+.item:disabled{opacity:.5;cursor:not-allowed}
+.swlabel{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;margin-top:.9rem}
+
+/* ---------- the walkthrough ---------- */
+.crosshair{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;
+  pointer-events:none}
+.crosshair::before,.crosshair::after{content:"";position:absolute;background:#fff;opacity:.85;
+  box-shadow:0 0 2px #0008}
+.crosshair::before{left:6px;top:0;width:2px;height:14px}
+.crosshair::after{top:6px;left:0;height:2px;width:14px}
+.walkhud{position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);
+  background:color-mix(in srgb,var(--background) 82%,transparent);
+  border:1px solid var(--border);padding:.45rem .9rem;font-size:var(--s--1);
+  color:var(--muted-foreground);pointer-events:none;white-space:nowrap}

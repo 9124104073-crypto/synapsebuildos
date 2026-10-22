@@ -99,7 +99,7 @@ export default function BriefDrop({ onDone }: { onDone: (message: string) => voi
           : "PDF, Word, text or a photo of a page. Scans go through OCR. Nothing leaves this machine."}</span>
       </div>
       <input ref={input} type="file" hidden
-             accept=".pdf,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp"
+             accept=".pdf,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.bmp"
              onChange={e => { take(e.target.files?.[0]); e.target.value = ""; }} />
 
       {err && <div className="bad">{err}</div>}

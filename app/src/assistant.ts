@@ -520,6 +520,32 @@ export function instruct(raw: string): Did {
     return { summary: [target ? `Furnished ${target.name} to ${want}.` : `Furnished every room to ${want}.`] };
   }
 
+  // exterior items & architectural features
+  const EXT_MAP: [RegExp, string, string][] = [
+    [/\b(solar|solar panel|solar panels)\b/, "x-solar", "Solar panels"],
+    [/\b(porch|car porch|carport)\b/, "x-porch", "Car porch"],
+    [/\b(sloping roof|gable roof|pitched roof)\b/, "x-roof-gable", "Sloping gable roof"],
+    [/\b(mangalore roof|tile roof|terracotta roof)\b/, "x-roof-mangalore", "Mangalore tile roof"],
+    [/\b(thinnai|sit out|verandah)\b/, "x-thinnai", "Traditional Thinnai sit-out"],
+    [/\b(garden|lawn|landscaping)\b/, "x-garden", "Front garden & landscaping"],
+    [/\b(water tank|overhead tank|tank)\b/, "x-tank", "Overhead water tank"],
+    [/\b(compound wall|gate|fence)\b/, "x-wall", "Compound wall & gate"],
+    [/\b(driveway|pavers|paved)\b/, "x-driveway", "Paved driveway"],
+    [/\b(grills|window grills|safety grills)\b/, "x-grills", "Safety window grills"],
+    [/\b(pergola|shade structure)\b/, "x-pergola", "Terrace pergola"],
+  ];
+  for (const [pattern, extId, label] of EXT_MAP) {
+    if (pattern.test(s)) {
+      update(mm => {
+        const cur = mm.interiors["exterior"] || [];
+        const has = cur.includes(extId);
+        mm.interiors["exterior"] = has ? cur.filter(x => x !== extId) : [...cur, extId];
+      });
+      const nowHas = (getModel().interiors["exterior"] || []).includes(extId);
+      return { summary: [`${nowHas ? "Added" : "Removed"} ${label}.`] };
+    }
+  }
+
   return null;
 }
 

@@ -468,32 +468,122 @@ export function layoutFromBrief(b) {
   const R = REGIONS[b.region] || REGIONS.Chennai;
   const rooms = [];
   const floors = Math.max(1, Math.min(3, b.floors || 1));
-  let cursor = [R.rule.side, R.rule.front, 0];        // x, y, floor
-  let rowH = 0;
-  const place = (type, id, name, size) => {
-    const [w, h] = size || DEFAULT_SIZE[type] || [10, 10];
-    let [x, y, f] = cursor;
-    if (x + w > plot.w - R.rule.side) { x = R.rule.side; y += rowH + 1; rowH = 0; }
-    if (y + h > plot.h - R.rule.rear) { f += 1; x = R.rule.side; y = R.rule.front; rowH = 0; }
-    if (f >= floors) return false;
-    rooms.push({ id, name, type, floor: f, x, y, w, h });
-    cursor = [x + w + 1, y, f];
-    rowH = Math.max(rowH, h);
-    return true;
-  };
-  if (b.parking) place("parking", "parking", "Parking", [15, 10]);
-  place("living", "living", "Living room", [b.living_w || 18, b.living_h || 12]);
-  place("kitchen", "kitchen", "Kitchen");
-  place("dining", "dining", "Dining");
-  for (let i = 0; i < (b.bedrooms || 3); i++)
-    place("bedroom", `bed_${i + 1}`, i === 0 ? "Master bedroom" : `Bedroom ${i + 1}`,
-          [b.bed_w || 13, b.bed_h || 10]);
-  for (let i = 0; i < (b.bathrooms || 2); i++)
-    place("bath", `bath_${i + 1}`, `Bathroom ${i + 1}`);
-  if (floors > 1)
-    for (let f = 0; f < floors; f++)
-      rooms.push({ id: `stair_${f}`, name: "Stairs", type: "stairs", floor: f,
-                   x: plot.w - R.rule.side - 4, y: plot.h - R.rule.rear - 11, w: 4, h: 11 });
+  const rule = R.rule || { front: 5, rear: 5, side: 5 };
+
+  const left = rule.side;
+  const right = Math.max(plot.w - rule.side, left + 20);
+  const top = rule.front;
+  const bottom = Math.max(plot.h - rule.rear, top + 25);
+  const buildW = right - left;
+
+  // Ground Floor Layout (floor = 0)
+  let curY = top;
+
+  // Row 1: Front Zone (Parking / Car Porch + Living Room)
+  const parkW = b.parking ? Math.min(15, buildW * 0.4) : 0;
+  if (b.parking) {
+    rooms.push({ id: "parking", name: "Car Porch", type: "parking", floor: 0, x: left, y: curY, w: parkW, h: 14 });
+  }
+  const livW = buildW - parkW;
+  const livH = b.living_h || 14;
+  rooms.push({ id: "living", name: "Living Room", type: "living", floor: 0, x: left + parkW, y: curY, w: livW, h: livH });
+
+  curY += livH;
+
+  // Row 2: Middle Zone (Dining + Kitchen + Utility)
+  const dinW = Math.round(buildW * 0.45);
+  const kitW = Math.round(buildW * 0.35);
+  const utilW = buildW - dinW - kitW;
+  const midH = 12;
+
+  rooms.push({ id: "dining", name: "Dining Room", type: "dining", floor: 0, x: left, y: curY, w: dinW, h: midH });
+  rooms.push({ id: "kitchen", name: "Kitchen", type: "kitchen", floor: 0, x: left + dinW, y: curY, w: kitW, h: midH });
+  if (utilW >= 4) {
+    rooms.push({ id: "utility", name: "Utility", type: "utility", floor: 0, x: left + dinW + kitW, y: curY, w: utilW, h: midH });
+  }
+
+  curY += midH;
+
+  // Stairs (Central Spine)
+  const stairW = 5;
+  const stairH = 12;
+  if (floors > 1) {
+    rooms.push({ id: "stair_0", name: "Stairs", type: "stairs", floor: 0, x: left, y: curY, w: stairW, h: stairH });
+  }
+
+  // Row 3: Rear Zone (Ground Master Bedroom + Attached Ensuite Bath)
+  const bed1X = floors > 1 ? left + stairW : left;
+  const bath1W = Math.min(8, buildW - stairW - 10);
+  const bed1W = (floors > 1 ? buildW - stairW : buildW) - bath1W;
+  const bed1H = Math.max(12, bottom - curY);
+
+  rooms.push({
+    id: "bed_1", name: "Master Bedroom 1", type: "bedroom", floor: 0,
+    x: bed1X, y: curY, w: bed1W, h: bed1H
+  });
+  rooms.push({
+    id: "bath_1", name: "Bathroom 1 (Ensuite)", type: "bath", floor: 0,
+    x: bed1X + bed1W, y: curY, w: bath1W, h: Math.min(8, bed1H)
+  });
+
+  // Upper floors (floor = 1, etc.)
+  const targetBeds = b.bedrooms || 3;
+  const targetBaths = b.bathrooms || 2;
+  let placedBeds = 1;
+  let placedBaths = 1;
+
+  for (let f = 1; f < floors; f++) {
+    let fY = top;
+    if (floors > 1) {
+      rooms.push({ id: `stair_${f}`, name: "Stairs", type: "stairs", floor: f, x: left, y: curY, w: stairW, h: stairH });
+    }
+
+    // Stacked Master Bedroom 2 (Structural Alignment over Ground Floor Bed)
+    if (placedBeds < targetBeds) {
+      placedBeds++;
+      rooms.push({
+        id: `bed_${placedBeds}`, name: `Master Bedroom ${placedBeds}`, type: "bedroom", floor: f,
+        x: bed1X, y: curY, w: bed1W, h: bed1H
+      });
+      if (placedBaths < targetBaths) {
+        placedBaths++;
+        rooms.push({
+          id: `bath_${placedBaths}`, name: `Bathroom ${placedBaths} (Ensuite)`, type: "bath", floor: f,
+          x: bed1X + bed1W, y: curY, w: bath1W, h: Math.min(8, bed1H)
+        });
+      }
+    }
+
+    // Additional Upper Bedroom & Bathroom
+    if (placedBeds < targetBeds) {
+      placedBeds++;
+      const uBedW = Math.round(buildW * 0.65);
+      const uBathW = buildW - uBedW;
+      rooms.push({
+        id: `bed_${placedBeds}`, name: `Bedroom ${placedBeds}`, type: "bedroom", floor: f,
+        x: left, y: fY, w: uBedW, h: 14
+      });
+      if (placedBaths < targetBaths) {
+        placedBaths++;
+        rooms.push({
+          id: `bath_${placedBaths}`, name: `Bathroom ${placedBaths}`, type: "bath", floor: f,
+          x: left + uBedW, y: fY, w: uBathW, h: 8
+        });
+      }
+      fY += 14;
+    }
+
+    // Upper Balcony & Home Office
+    rooms.push({
+      id: `balcony_${f}`, name: "Sit-out Balcony", type: "balcony", floor: f,
+      x: left, y: fY, w: Math.round(buildW * 0.5), h: 8
+    });
+    rooms.push({
+      id: `office_${f}`, name: "Home Office", type: "office", floor: f,
+      x: left + Math.round(buildW * 0.5), y: fY, w: buildW - Math.round(buildW * 0.5), h: 8
+    });
+  }
+
   return { rooms, plot, interiors: {}, budget: b.budget || 45,
            brief: { ...DEFAULT_BRIEF, ...(b.brief || {}), region: b.region || "Chennai" } };
 }

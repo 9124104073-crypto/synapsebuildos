@@ -384,6 +384,7 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
     </div>
     <button class="btn" id="undoBtn">Undo</button>
     <button class="btn" id="redoBtn">Redo</button>
+    <button class="btn" id="clearBtn" title="Clear layout and start a new design">Start New</button>
     <div class="sp"></div>
     <span class="status" id="apiStatus">local</span>
     <button class="btn" id="acctBtn" hidden>Sign in</button>
@@ -399,6 +400,14 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
     <button class="btn" id="exportIfc">.ifc</button>
     <button class="btn" id="exportObj">.obj</button>
     <button class="btn" id="exportJson">.json</button>
+    <select class="btn" id="sampleDownloadSelect" title="Download Sample Brief Files" onchange="if(this.value){const a=document.createElement('a');a.href=this.value;a.download=this.value.split('/').pop();a.click();this.value='';}">
+      <option value="">📥 Download Sample Briefs</option>
+      <option value="/brief_compact_2bhk_30x40.docx">📄 2 BHK Compact (30×40 ft · ₹45L)</option>
+      <option value="/brief_modern_3bhk_40x50.docx">📄 3 BHK Modern (40×50 ft · ₹70L)</option>
+      <option value="/brief_bungalow_3bhk_45x60.docx">📄 3 BHK Bungalow (45×60 ft · ₹60L)</option>
+      <option value="/brief_luxury_4bhk_50x80.docx">📄 4 BHK Luxury (50×80 ft · ₹1.5Cr)</option>
+      <option value="/sample_client_brief.docx">📄 Standard 3 BHK (40×60 ft · ₹85L)</option>
+    </select>
     <button class="btn" id="themeBtn" aria-label="Theme">◐</button>
     <a class="btn primary" href="index.html">Overview</a>
   </div>
@@ -474,7 +483,7 @@ body.readonly .main{grid-template-columns:1fr var(--side)}
               <path d="M14 3v5h5M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h5"/></svg>
             Brief
           </button>
-          <input type="file" id="briefFile" hidden accept=".pdf,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp">
+          <input type="file" id="briefFile" hidden accept=".pdf,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.bmp">
           <button class="btn primary" type="submit" id="promptGo">Design</button>
         </form>
         <div class="prompt-chips" id="promptChips"></div>
@@ -632,16 +641,16 @@ const state = {
   brief:{ family_members:4, elderly_residents:0, children:0, theme:"", region:"Chennai", coastal:"inland", notes:"",
           sbc:150, concrete:"M25", steel:"Fe500" },
   rooms:[
-    {id:"parking", name:"Parking",        type:"parking", floor:0, x:4,  y:10, w:16, h:10},
-    {id:"living",  name:"Living room",    type:"living",  floor:0, x:4,  y:22, w:18, h:13},
-    {id:"dining",  name:"Dining",         type:"dining",  floor:0, x:4,  y:36, w:13, h:8},
-    {id:"kitchen", name:"Kitchen",        type:"kitchen", floor:0, x:18, y:36, w:10, h:8},
-    {id:"bed_1",   name:"Master bedroom", type:"bedroom", floor:0, x:23, y:10, w:13, h:13},
-    {id:"bath_1",  name:"Bathroom 1",     type:"bath",    floor:0, x:23, y:24, w:7,  h:7},
+    {id:"parking", name:"Parking",        type:"parking", floor:0, x:5,  y:10, w:16, h:10},
+    {id:"living",  name:"Living room",    type:"living",  floor:0, x:5,  y:22, w:17, h:13},
+    {id:"dining",  name:"Dining",         type:"dining",  floor:0, x:5,  y:36, w:12, h:8},
+    {id:"kitchen", name:"Kitchen",        type:"kitchen", floor:0, x:17, y:36, w:10, h:8},
+    {id:"bed_1",   name:"Master bedroom", type:"bedroom", floor:0, x:22, y:10, w:13, h:13},
+    {id:"bath_1",  name:"Bathroom 1",     type:"bath",    floor:0, x:22, y:24, w:7,  h:7},
     {id:"stair_1", name:"Stairs",         type:"stairs",  floor:0, x:31, y:33, w:4,  h:11},
-    {id:"bed_2",   name:"Bedroom 2",      type:"bedroom", floor:1, x:4,  y:10, w:13, h:12},
-    {id:"bed_3",   name:"Bedroom 3",      type:"bedroom", floor:1, x:18, y:10, w:13, h:12},
-    {id:"bath_2",  name:"Bathroom 2",     type:"bath",    floor:1, x:4,  y:23, w:7,  h:7},
+    {id:"bed_2",   name:"Bedroom 2",      type:"bedroom", floor:1, x:5,  y:10, w:13, h:12},
+    {id:"bed_3",   name:"Bedroom 3",      type:"bedroom", floor:1, x:19, y:10, w:13, h:12},
+    {id:"bath_2",  name:"Bathroom 2",     type:"bath",    floor:1, x:5,  y:23, w:7,  h:7},
     {id:"stair_2", name:"Stairs",         type:"stairs",  floor:1, x:31, y:33, w:4,  h:11}
   ]
 };
@@ -1388,14 +1397,29 @@ let lock3d = true;
 function on3dDown(ev) {
   if (walking || !live) return;
   setPointer(ev);
-  const hit = ray.intersectObjects(shell.children, true)
-    .find(h => h.object.userData?.id || h.object.parent?.userData?.id);
-  if (!hit) return;
-  const id = hit.object.userData?.id || hit.object.parent?.userData?.id;
+  const hits = ray.intersectObjects(shell.children, true);
+  let id = null;
+  for (const h of hits) {
+    let o = h.object;
+    while (o && o !== shell) {
+      if (o.userData?.id) { id = o.userData.id; break; }
+      o = o.parent;
+    }
+    if (id) break;
+  }
+  if (!id) return;
   const room = state.rooms.find(r => r.id === id);
   if (!room) return;
-  if (lock3d) { state.selected = id; state.floor = room.floor; render(); return; }
-  state.selected = id; state.floor = room.floor;
+  state.selected = id;
+  state.floor = room.floor;
+  const side = $("side");
+  if (side) {
+    side.dataset.show = "design";
+    side.querySelectorAll(".sidetabs button").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.show === "design")));
+    try { localStorage.setItem("synapse.side", "design"); } catch {}
+  }
+  if (lock3d) { render(); return; }
   groundPlane.constant = -(room.floor * FLOOR_H);
   const p = new THREE.Vector3();
   if (ray.ray.intersectPlane(groundPlane, p)) {
@@ -2622,6 +2646,19 @@ function answerQuestion(raw) {
    first and require EVERY clause to parse; only fall back to treating it as one
    instruction if that fails, and to Claude if that fails too. */
 function runClauses(text) {
+  if (text.length > 40 && (/\b(bhk|bedrooms?|plot|budget|ground floor|first floor|project overview|requirement specification)\b/i.test(text))) {
+    const { found, notes } = parseBrief(text);
+    if (found.plot_w || found.bedrooms || found.budget) {
+      applyBrief(found, true);
+      return {
+        done: true,
+        summary: [
+          `Parsed client brief text: ${notes.join("; ")}`,
+          `Rebuilt ${state.rooms.length} rooms on a ${state.plot.w} × ${state.plot.h} ft plot with ₹${state.budget}L budget!`
+        ]
+      };
+    }
+  }
   const parts = text.split(/\s*(?:,|;|\band then\b|\bthen\b|\band\b)\s*/i)
                     .map(p => p.trim()).filter(p => p.split(/\s+/).length >= 2);
   if (parts.length > 1) {
@@ -2653,24 +2690,42 @@ function runClauses(text) {
    Everything happens in the browser: the document never leaves the machine,
    which matters when it is somebody's house and somebody's budget.
    ===================================================================== */
-const CDN = {
-  pdf:  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs",
-  pdfw: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs",
-  tess: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js",
-  zip:  "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+const OCR_ROOT = "/ocr-assets";
+const OCR_ASSETS = {
+  pdf: `${OCR_ROOT}/pdf.min.mjs`,
+  pdfw: `${OCR_ROOT}/pdf.worker.min.mjs`,
+  tess: `${OCR_ROOT}/tesseract.min.js`,
+  worker: `${OCR_ROOT}/worker.min.js`,
+  core: `${OCR_ROOT}/core`,
+  lang: `${OCR_ROOT}/lang`,
+  zip: `${OCR_ROOT}/jszip.min.js`
 };
-const loadScript = src => new Promise((ok, no) => {
-  if (document.querySelector(`script[src="${src}"]`)) return ok();
+const loadScript = (src, fallback) => new Promise((ok, no) => {
+  if (document.querySelector(`script[src="${src}"]`) || (fallback && document.querySelector(`script[src="${fallback}"]`))) return ok();
   const el = document.createElement("script");
-  el.src = src; el.onload = () => ok(); el.onerror = () => no(new Error("offline: " + src));
+  el.src = src; el.onload = () => ok();
+  el.onerror = () => {
+    if (fallback) {
+      const el2 = document.createElement("script");
+      el2.src = fallback; el2.onload = () => ok(); el2.onerror = () => no(new Error("Could not load " + src));
+      document.head.appendChild(el2);
+    } else {
+      no(new Error("offline: " + src));
+    }
+  };
   document.head.appendChild(el);
 });
 
 let pdfjs = null;
 async function pdfLib() {
   if (!pdfjs) {
-    pdfjs = await import(CDN.pdf);
-    pdfjs.GlobalWorkerOptions.workerSrc = CDN.pdfw;
+    try {
+      pdfjs = await import(OCR_ASSETS.pdf);
+      pdfjs.GlobalWorkerOptions.workerSrc = OCR_ASSETS.pdfw;
+    } catch {
+      pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.mjs";
+    }
   }
   return pdfjs;
 }
@@ -2682,7 +2737,12 @@ async function readDocument(file, onStep) {
   if (/\.docx$/.test(name)) return { text: await readDocx(file), how: "Word document" };
   if (/\.(png|jpe?g|webp|bmp)$/.test(name)) {
     onStep?.("Reading the image with OCR — this takes a few seconds.");
-    return { text: await ocrImage(URL.createObjectURL(file), onStep), how: "image, read by OCR" };
+    const src = URL.createObjectURL(file);
+    try {
+      return { text: await ocrImage(src, onStep), how: "image, read by OCR" };
+    } finally {
+      URL.revokeObjectURL(src);
+    }
   }
   if (/\.pdf$/.test(name)) return readPdf(file, onStep);
   if (/\.docx?$/.test(name))
@@ -2691,7 +2751,7 @@ async function readDocument(file, onStep) {
 }
 
 async function readDocx(file) {
-  await loadScript(CDN.zip);
+  await loadScript(OCR_ASSETS.zip, "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
   const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
   const xml = await zip.file("word/document.xml")?.async("string");
   if (!xml) throw new Error("That .docx has no document body.");
@@ -2712,28 +2772,54 @@ async function readPdf(file, onStep) {
   if (text.replace(/\s/g, "").length >= 40) return { text, how: `PDF, ${pdf.numPages} page(s)` };
 
   onStep?.("No text layer — this looks like a scan. Running OCR, which takes a few seconds per page.");
+  const pages = Math.min(pdf.numPages, 5);
+  const worker = await createOcrWorker(onStep);
   let ocr = "";
-  for (let p = 1; p <= Math.min(pdf.numPages, 5); p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 2 });      // OCR likes the pixels
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-    onStep?.(`Reading page ${p} of ${Math.min(pdf.numPages, 5)}…`);
-    ocr += await ocrImage(canvas.toDataURL("image/png"), onStep) + "\n";
+  try {
+    for (let p = 1; p <= pages; p++) {
+      const page = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      onStep?.(`Reading page ${p} of ${pages}…`);
+      ocr += await recognizeImage(worker, canvas, onStep) + "\n";
+    }
+  } finally {
+    await worker.terminate();
   }
   return { text: ocr, how: `scanned PDF, ${pdf.numPages} page(s), read by OCR` };
 }
 
-async function ocrImage(src, onStep) {
-  await loadScript(CDN.tess);
-  const worker = await window.Tesseract.createWorker("eng", 1, {
-    logger: m => m.status === "recognizing text" && onStep?.(`OCR ${Math.round(m.progress * 100)}%`)
-  });
+async function createOcrWorker(onStep) {
+  await loadScript(OCR_ASSETS.tess, "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
   try {
-    const { data } = await worker.recognize(src);
-    return data.text;
-  } finally { await worker.terminate(); }
+    return await window.Tesseract.createWorker("eng", 1, {
+      workerPath: OCR_ASSETS.worker,
+      corePath: OCR_ASSETS.core,
+      langPath: OCR_ASSETS.lang,
+      logger: m => m.status === "recognizing text" && onStep?.(`OCR ${Math.round(m.progress * 100)}%`)
+    });
+  } catch {
+    return await window.Tesseract.createWorker("eng", 1, {
+      logger: m => m.status === "recognizing text" && onStep?.(`OCR ${Math.round(m.progress * 100)}%`)
+    });
+  }
+}
+
+async function recognizeImage(worker, src, onStep) {
+  const { data } = await worker.recognize(src);
+  onStep?.("OCR complete.");
+  return data.text;
+}
+
+async function ocrImage(src, onStep) {
+  const worker = await createOcrWorker(onStep);
+  try {
+    return await recognizeImage(worker, src, onStep);
+  } finally {
+    await worker.terminate();
+  }
 }
 
 /* ---------- pulling a brief out of prose ----------
@@ -2905,7 +2991,7 @@ function applyBrief(b, rebuild) {
     state.rooms = model.rooms;
     state.plot = model.plot;
     state.interiors = {};
-    state.selected = null;
+    state.selected = state.rooms[0]?.id || null;
     state.floor = 0;
     // rooms the brief asked for that the standard layout does not include
     for (const type of (b.extras || []).filter(x => x !== "parking")) addRoom(type);
@@ -3937,6 +4023,19 @@ $("redoBtn").addEventListener("click", () => {
   if (!redo.length) return;
   undo.push(snapshot()); restore(redo.pop()); lastPushed = snapshot();
   syncButtons(); render(); pushToApi();
+});
+$("clearBtn").addEventListener("click", () => {
+  if (confirm("Are you sure you want to clear this plan and start a new design?")) {
+    state.rooms = [];
+    state.plot = { w: 0, h: 0, facing: null };
+    state.budget = 0;
+    state.interiors = {};
+    state.selected = null;
+    $("plotW").value = 0;
+    $("plotH").value = 0;
+    $("budget").value = 0;
+    commit(); render(); pushToApi();
+  }
 });
 
 $("viewSeg").addEventListener("click", ev => {

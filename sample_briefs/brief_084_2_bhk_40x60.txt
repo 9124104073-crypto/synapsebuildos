@@ -1,0 +1,45 @@
+SYNAPSE STUDIO - ARCHITECTURAL CLIENT BRIEF
+Document Reference: BRIEF-084
+City / Region: Jaipur
+Style Preference: Tropical Courtyard House
+
+1. PROJECT OVERVIEW
+-------------------
+Client Name: Sample Client #084
+Project Type: Residential Independent House (2 BHK)
+Location: Jaipur, India
+Total Stories / Floors: 1 Floor(s) (G + 0)
+
+2. PLOT & SITE DETAILS
+----------------------
+Plot Width: 40 feet
+Plot Depth: 60 feet
+Plot Total Area: 2400 sq ft
+Plot Facing Direction: West
+Target Budget: ₹40 Lakhs (₹4,000,000 INR)
+
+3. ROOM & SPATIAL REQUIREMENTS
+------------------------------
+Requested Spaces:
+ - Living Room
+ - Master Bedroom
+ - Bedroom 2
+ - Kitchen
+ - Dining Room
+ - Master Bathroom
+ - Common Bathroom
+
+4. VASTU & ARCHITECTURAL GUIDELINES
+-----------------------------------
+- Facing: Main Entrance should face West as per plot orientation.
+- Kitchen: Positioned in South-East (Agneya) corner preferred.
+- Master Bedroom: Located in South-West (Nairutya) corner on upper floor if applicable.
+- Puja Room: North-East (Ishan) corner alignment for maximum positive energy.
+- Ventilation: Minimum 15% window-to-floor area ratio for natural cross-ventilation.
+
+5. FINISHES & SPECIAL REQUESTS
+------------------------------
+- Flooring: Vitrified tiles in living/dining areas, anti-skid ceramic tiles in bathrooms.
+- Wall Finish: Premium emulsion paint with accent wall in Living Room.
+- Exterior: Weather-proof exterior paint with wooden louvers and balcony glass railings.
+- Special Notes: Client requests spacious layout, eco-friendly lighting fixtures, and maximum space efficiency within ₹40L budget.

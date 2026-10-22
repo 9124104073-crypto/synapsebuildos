@@ -1,0 +1,41 @@
+# Client Design Brief
+
+RESIDENTIAL DESIGN BRIEF & CLIENT REQUIREMENT SPECIFICATION
+
+PROJECT OVERVIEW:
+- Project Name: Villa Harmony - Chennai Residence
+- Location: ECR, Chennai, Tamil Nadu
+- Site Environment: Coastal site
+- Plot Dimensions: 40 ft x 60 ft (Total Plot Area: 2400 sq ft)
+- Road Frontage: East facing road
+- Building Type: G+1 (2 floors duplex)
+- Target Bedrooms: 3 BHK (3 bedrooms)
+- Target Bathrooms: 3 bathrooms
+- Total Target Budget: Rs 85 Lakhs
+
+FAMILY & OCCUPANTS:
+- Household: Family of 5 members
+- Residents: 2 Adults, 2 Children, and Elderly Parents
+
+GROUND FLOOR ROOM REQUIREMENTS:
+1. Living Room: 16 x 20 ft (Spacious drawing room with double height ceiling)
+2. Dining Area: 12 x 14 ft (Connected to kitchen)
+3. Kitchen: 10 x 12 ft (Modern layout)
+4. Bedroom 1: 14 x 16 ft (Ground floor master bedroom for elderly parents)
+5. Bathroom 1: 6 x 8 ft (Ensuite bathroom)
+6. Pooja Room: 6 x 8 ft (Northeast quadrant prayer room)
+7. Utility: 6 x 8 ft (Laundry and wash area)
+8. Car Parking: 12 x 18 ft (Front car porch)
+
+FIRST FLOOR ROOM REQUIREMENTS:
+1. Bedroom 2: 14 x 16 ft (First floor master bedroom with balcony)
+2. Bathroom 2: 6 x 8 ft (Attached bath)
+3. Bedroom 3: 12 x 14 ft (Children bedroom)
+4. Bathroom 3: 6 x 8 ft (Attached bath)
+5. Home Office: 10 x 12 ft (Study room)
+6. Sitout Balcony: 6 x 12 ft (Covered balcony sitout)
+
+EXTERIOR & SPECIAL FEATURES:
+- High quality plinth area finishes
+- Rainwater harvesting and underground sump
+- Teak wood doors and UPVC windows

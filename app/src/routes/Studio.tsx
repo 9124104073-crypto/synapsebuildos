@@ -4,13 +4,15 @@ import PlanCanvas from "../components/PlanCanvas";
 import BriefDrop from "../components/BriefDrop";
 import StartPanel from "../components/StartPanel";
 import View3D from "../components/View3D";
-import { exporters } from "../exports";
+import { exporters, placementFor } from "../exports";
 import { ask } from "../assistant";
 import { LANGUAGES, speak, useVoice } from "../voice";
 import { useSession } from "../api";
 import {
-  addRoom, canRedo, canUndo, clamp, compliance, cost, DEFAULT_SIZE, FINISH, finishOf, hasRooms,
-  isStarted, LABEL, lakh, measure, readiness, redo, removeRoom, undo, update, useModel, type Room,
+  addFloor, addRoom, canRedo, canUndo, CATALOG, catalogTotal, clamp, clearFurnish, clearPlan,
+  compliance, cost, DEFAULT_SIZE, FINISH, finishOf, furnishAll, furnishRoom, hasItem, hasRooms,
+  isStarted, itemsFor, LABEL, lakh, measure, readiness, redo, removeRoom, toggleItem, undo,
+  update, useModel, type Model, type Room,
 } from "../model";
 
 const TYPES = ["bedroom", "bath", "living", "kitchen", "dining", "office", "pooja",
@@ -24,6 +26,7 @@ export default function Studio() {
   const [view, setView] = useState<"plan" | "3d">("plan");
   const [furniture, setFurniture] = useState(true);
   const [roof, setRoof] = useState(false);
+  const [walking, setWalking] = useState(false);
   const [hour, setHour] = useState(12);
   const [lang, setLang] = useState("en-IN");
   const [speakBack, setSpeakBack] = useState(true);
@@ -41,6 +44,12 @@ export default function Studio() {
   const readOnly = role === "client" || role === "contractor";
 
   useEffect(() => { localStorage.setItem("synapse.side", tab); }, [tab]);
+
+  // leaving the 3D view ends the visit — pointer lock and all
+  const switchView = (v: "plan" | "3d") => {
+    setView(v);
+    if (v !== "3d") setWalking(false);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -87,14 +96,18 @@ export default function Studio() {
         <Link className="navlink" to="/report">Report</Link>
         <div className="sp" />
         <div className="seg">
-          <button aria-pressed={view === "plan"} onClick={() => setView("plan")}>Plan</button>
-          <button aria-pressed={view === "3d"} onClick={() => setView("3d")} disabled={!ready}>3D</button>
+          <button aria-pressed={view === "plan"} onClick={() => switchView("plan")}>Plan</button>
+          <button aria-pressed={view === "3d"} onClick={() => switchView("3d")} disabled={!ready}>3D</button>
         </div>
         {view === "3d" && ready && (
           <div className="threeonly">
-            <label className="chk"><input type="checkbox" checked={furniture}
+            <button className="btn" aria-pressed={walking} onClick={() => setWalking(w => !w)}
+                    title="First person: walk around inside, climb the stairs">
+              Walk inside
+            </button>
+            <label className="chk"><input type="checkbox" checked={furniture} disabled={walking}
               onChange={e => setFurniture(e.target.checked)} /> Furniture</label>
-            <label className="chk"><input type="checkbox" checked={roof}
+            <label className="chk"><input type="checkbox" checked={roof || walking} disabled={walking}
               onChange={e => setRoof(e.target.checked)} /> Roof</label>
             <label className="chk" title="Where the sun is, from the road direction you set">
               <input type="range" min={6} max={18} step={0.5} value={hour}
@@ -105,6 +118,11 @@ export default function Studio() {
         )}
         <button className="btn" onClick={undo} disabled={!canUndo()}>Undo</button>
         <button className="btn" onClick={redo} disabled={!canRedo()}>Redo</button>
+        <button className="btn" title="Clear current layout and start a new design" onClick={() => {
+          if (confirm("Are you sure you want to clear this layout and start a new design?")) {
+            clearPlan();
+          }
+        }}>Start New</button>
         {exporters.map(x => (
           <button key={x.id} className="btn" title={x.title} disabled={!ready}
                   onClick={() => x.run(m)}>{x.label}</button>
@@ -124,7 +142,7 @@ export default function Studio() {
           {started && !readOnly && <AddRoom />}
           {started && <div className="group">
             <span className="eyebrow">Floors</span>
-            {[...new Set([0, ...m.rooms.map(r => r.floor)])].sort().map(fl => (
+            {[...new Set([0, ...m.rooms.map(r => r.floor), m.floor])].sort().map(fl => (
               <button key={fl} className="btn" aria-pressed={m.floor === fl}
                       onClick={() => update(mm => { mm.floor = fl; }, false)}>
                 {fl === 0 ? "Ground" : `Floor ${fl}`}
@@ -133,6 +151,12 @@ export default function Studio() {
                 </span>
               </button>
             ))}
+            {!readOnly && (
+              <button className="btn" onClick={addFloor}
+                      title="Go up one storey — the next room added lands there">
+                Add floor<span style={{ marginLeft: "auto", opacity: .6 }}>+</span>
+              </button>
+            )}
           </div>}
           {started && <div className="group">
             <span className="eyebrow">Plot</span>
@@ -150,7 +174,8 @@ export default function Studio() {
         <div className="stage">
           {started
             ? (view === "3d" && ready
-                ? <View3D m={m} furniture={furniture} roof={roof} hour={hour} />
+                ? <View3D m={m} furniture={furniture} roof={roof} hour={hour}
+                          walking={walking} onWalking={setWalking} />
                 : <PlanCanvas m={m} bad={bad} />)
             : <div className="blank">
                 <h2>Nothing here yet</h2>
@@ -233,7 +258,10 @@ export default function Studio() {
           </div>
 
           {tab === "design" && <DesignTab room={selected} readOnly={readOnly} />}
-          {tab === "cost" && <CostTab m={m} c={c} rd={rd} />}
+          {tab === "cost" && <>
+            <CostTab m={m} c={c} rd={rd} />
+            <ExteriorPanel m={m} readOnly={readOnly} onPickRoof={() => setRoof(true)} />
+          </>}
           {tab === "checks" && <ChecksTab f={f} rd={rd} />}
         </aside>
       </div>
@@ -337,7 +365,101 @@ function DesignTab({ room, readOnly }: { room: Room | null; readOnly: boolean })
           </div>
         ))}
       </div>
+      <FurnishPanel room={room} readOnly={readOnly} />
     </>
+  );
+}
+
+/* The room's furniture, piece by piece, or as a set. Sets are a starting
+   point, not a bundle — every chip stays individually toggleable, and the
+   3D view draws exactly what is ticked. */
+function FurnishPanel({ room, readOnly }: { room: Room; readOnly: boolean }) {
+  const m = useModel();
+  const list = (CATALOG as any[]).filter(c => c.room === room.type);
+  if (!list.length) return null;
+  const mine = itemsFor(m, room.id);
+  const sum = mine.reduce((s: number, c: any) => s + c.price, 0);
+  const skipped = placementFor(m, room).skipped as any[];
+  const cats = [...new Set(list.map(c => c.cat))];
+  return (
+    <div className="panel">
+      <span className="eyebrow">Furniture &amp; fittings</span>
+      {!readOnly && (
+        <div className="seg sets">
+          {["essentials", "comfort", "premium"].map(l => (
+            <button key={l} type="button" onClick={() => furnishRoom(room.id, l)}>
+              {l[0].toUpperCase() + l.slice(1)}
+            </button>
+          ))}
+          <button key="none" type="button" onClick={() => clearFurnish(room.id)}>Clear</button>
+        </div>
+      )}
+      {cats.map(cat => (
+        <div key={cat}>
+          <div className="swlabel"><span className="eyebrow">{cat}</span></div>
+          <div className="items">
+            {list.filter(c => c.cat === cat).map(c => (
+              <button key={c.id} className="item" disabled={readOnly}
+                      aria-pressed={hasItem(m, room.id, c.id)}
+                      onClick={() => toggleItem(room.id, c.id)}>
+                {c.name}<small>{lakh(c.price)}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="hint">
+        {mine.length} item(s), {lakh(sum)} in this room.
+        {skipped.length > 0 && <> <b className="up">{skipped.map(s => s.name).join(", ")}
+          {" "}won't fit at this size</b> — still priced, not drawn.</>}
+      </p>
+    </div>
+  );
+}
+
+/* Whole-house choices: furnish everything at once, and the exterior catalogue
+   — roof, facade, shading, site and services. Roof and facade picks show in
+   3D; the rest are indicative lump sums. */
+function ExteriorPanel({ m, readOnly, onPickRoof }: { m: Model; readOnly: boolean;
+                       onPickRoof: () => void }) {
+  const list = (CATALOG as any[]).filter(c => c.room === "exterior");
+  const cats = [...new Set(list.map(c => c.cat))];
+  return (
+    <div className="panel">
+      <span className="eyebrow">Exterior &amp; whole house</span>
+      {!readOnly && (
+        <div className="seg sets">
+          {["essentials", "comfort", "premium"].map(l => (
+            <button key={l} type="button" onClick={() => furnishAll(l)}>
+              {l[0].toUpperCase() + l.slice(1)} everywhere
+            </button>
+          ))}
+        </div>
+      )}
+      {cats.map(cat => (
+        <div key={cat}>
+          <div className="swlabel"><span className="eyebrow">{cat}</span></div>
+          <div className="items">
+            {list.filter(c => c.cat === cat).map(c => (
+              <button key={c.id} className="item" disabled={readOnly}
+                      aria-pressed={hasItem(m, "exterior", c.id)}
+                      onClick={() => {
+                        toggleItem("exterior", c.id);
+                        if (c.id.startsWith("x-roof") && hasItem(m, "exterior", c.id))
+                          onPickRoof();               // you picked a roof; show it
+                      }}>
+                {c.name}<small>{lakh(c.price)}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="row" style={{ marginTop: ".7rem" }}>
+        <span>Furniture &amp; exterior</span><b>{lakh(catalogTotal(m))}</b>
+      </div>
+      <p className="hint">Exterior items are indicative lump sums for a house of
+        this size, not measured quantities. Sloped roofs and facades show in 3D.</p>
+    </div>
   );
 }
 

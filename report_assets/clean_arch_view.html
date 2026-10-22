@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px; background: #1a1a18; display: flex; justify-content: center; align-items: center; }
+  svg { width: 100%; max-width: 1600px; height: auto; border: 1px solid #33332f; border-radius: 8px; }
+</style>
+</head>
+<body>
+<!-- SVG will be injected here -->
+<script>
+fetch('../docs/architecture-flow.svg')
+  .then(r => r.text())
+  .then(txt => {
+    document.body.innerHTML = txt;
+    const s = document.querySelector('svg');
+    s.style.width = '100%';
+    s.style.height = 'auto';
+    s.style.display = 'block';
+  });
+</script>
+</body>
+</html>

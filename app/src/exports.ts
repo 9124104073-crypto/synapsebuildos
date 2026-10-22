@@ -25,6 +25,11 @@ export function download(name: string, text: string, mime = "text/plain") {
 /** The wall segments the 3D view draws, openings included. */
 const walls = (m: Model) => createBuilder(THREE, E).wallPlan(m);
 
+/** Which catalogue items physically fit in a room — the same placement the 3D
+ *  view draws, so "won't fit" warnings cannot disagree with the picture. */
+export const placementFor = (m: Model, room: any) =>
+  createBuilder(THREE, E).placeItems(m, room);
+
 export const buildIfc = (m: Model) => W.buildIfc(m, walls);
 export const buildDxf = (m: Model) => W.buildDxf(m, walls);
 export const buildBoq = (m: Model) => W.buildBoq(m, walls);

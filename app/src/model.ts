@@ -110,6 +110,17 @@ export function replaceModel(next: Partial<Model>) {
   update(m => { Object.assign(m, next); });
 }
 
+export function clearPlan() {
+  update(m => {
+    m.rooms = [];
+    m.plot = { w: 0, h: 0, facing: null };
+    m.budget = 0;
+    m.floor = 0;
+    m.selected = null;
+    m.interiors = {};
+  });
+}
+
 export function useModel(): Model {
   return useSyncExternalStore(
     cb => { listeners.add(cb); return () => listeners.delete(cb); },
@@ -133,6 +144,7 @@ export const MIN_SIZE: Record<string, [number, number]> = E.MIN_SIZE;
 export const FINISH = E.FINISH;
 export const REGIONS = E.REGIONS;
 export const CATALOG = E.CATALOG;
+export const catalogById = E.catalogById;
 export const finishOf = E.finishOf;
 export const finishById = E.finishById;
 export const clamp = E.clamp;
@@ -142,9 +154,18 @@ export const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 export const lakh = (n: number) => "₹" + (n / 100000).toFixed(1) + "L";
 
 /* ---------- room operations, shared by the rail and the assistant ---------- */
-let seq = 100;
 export const minFor = (type: string): [number, number] =>
   (MIN_SIZE[type] as [number, number]) || (MIN_SIZE.default as [number, number]);
+
+/** The next `type_n` id that no existing room already has. A loaded model can
+ *  contain any ids at all — colliding with one means two rooms share a React
+ *  key and the assistant confirms the wrong room. */
+function nextId(type: string, rooms: Room[]) {
+  const taken = new Set(rooms.map(r => r.id));
+  let n = 100;
+  while (taken.has(`${type}_${n}`)) n++;
+  return `${type}_${n}`;
+}
 
 export function uniqueName(type: string, rooms: Room[]) {
   const base = LABEL[type];
@@ -163,30 +184,46 @@ export function addRoom(type: string, size?: [number, number]): string | null {
 
   /** The first place on a given floor where the room fits inside the setbacks
    *  and touches nothing else. */
-  const freeSpotOn = (floor: number) => {
-    for (let y = R.front; y + dh <= m.plot.h - R.rear; y += 1)
-      for (let x = R.side; x + dw <= m.plot.w - R.side; x += 1) {
+  const freeSpotOn = (floor: number, w: number, h: number) => {
+    for (let y = R.front; y + h <= m.plot.h - R.rear; y += 1)
+      for (let x = R.side; x + w <= m.plot.w - R.side; x += 1) {
         const hit = m.rooms.some(r => r.floor === floor &&
-          !(x + dw <= r.x + .05 || r.x + r.w <= x + .05 || y + dh <= r.y + .05 || r.y + r.h <= y + .05));
+          !(x + w <= r.x + .05 || r.x + r.w <= x + .05 || y + h <= r.y + .05 || r.y + r.h <= y + .05));
         if (!hit) return { x, y };
       }
     return null;
   };
 
-  // The floor you are looking at first, then the others — a full ground floor
-  // is a reason to go upstairs, not a reason to refuse.
-  const floors = [m.floor, ...[...new Set(m.rooms.map(r => r.floor))].filter(f => f !== m.floor).sort()];
+  // Include existing floors AND potential upper storey floors (up to floor 3)
+  const maxFloor = m.rooms.length ? Math.max(...m.rooms.map(r => r.floor)) : 0;
+  const potentialFloors = [
+    m.floor,
+    ...[...new Set(m.rooms.map(r => r.floor))].filter(f => f !== m.floor).sort(),
+    ...(maxFloor < 3 ? [maxFloor + 1] : [])
+  ];
+
   let spot: { x: number; y: number } | null = null;
   let floor = m.floor;
-  for (const f of floors) {
-    spot = freeSpotOn(f);
+  let actualW = dw;
+  let actualH = dh;
+
+  for (const f of potentialFloors) {
+    spot = freeSpotOn(f, dw, dh);
     if (spot) { floor = f; break; }
+
+    // If standard size doesn't fit on this floor, try compact dimensions
+    const [minW, minH] = minFor(type);
+    if (dw > minW || dh > minH) {
+      spot = freeSpotOn(f, minW, minH);
+      if (spot) { floor = f; actualW = minW; actualH = minH; break; }
+    }
   }
+
   if (!spot) return null;
-  const id = `${type}_${seq++}`;
+  const id = nextId(type, m.rooms);
   update(mm => {
     mm.rooms = [...mm.rooms, { id, type, floor, name: uniqueName(type, mm.rooms),
-                               x: spot!.x, y: spot!.y, w: dw, h: dh }];
+                               x: spot!.x, y: spot!.y, w: actualW, h: actualH }];
     mm.selected = id;
     mm.floor = floor;                       // show the floor it landed on
   });
@@ -200,4 +237,41 @@ export function removeRoom(id: string) {
     m.interiors = rest;
     if (m.selected === id) m.selected = null;
   });
+}
+
+/** Floors are derived from the rooms on them — "adding" one means going to the
+ *  next (empty) storey so the next room added lands there. The storey appears
+ *  in the floor list once it holds a room. */
+export function addFloor() {
+  const m = getModel();
+  const next = Math.min(Math.max(0, ...m.rooms.map(r => r.floor)) + 1, 3);
+  update(mm => { mm.floor = next; }, false);
+}
+
+/* ---------- furniture, fittings and exterior, straight from the engine ----------
+   The engine owns the catalogue and its rules (one roof, one facade…); these
+   wrappers only route its mutations through the store so undo and React see
+   them. */
+export const itemsFor = (m: Model, key: string) => E.itemsFor(m, key);
+export const hasItem = (m: Model, key: string, id: string) => E.hasItem(m, key, id);
+export const catalogTotal = (m: Model) => E.catalogTotal(m);
+export const FURNISH_SETS = E.FURNISH_SETS;
+
+export function toggleItem(key: string, id: string) {
+  update(m => { E.toggleItem(m, key, id); });
+}
+export function furnishRoom(roomId: string, level: string) {
+  update(m => {
+    const r = m.rooms.find(x => x.id === roomId);
+    if (r) E.furnishRoom(m, r, level);
+  });
+}
+export function clearFurnish(roomId: string) {
+  update(m => {
+    const { [roomId]: _drop, ...rest } = m.interiors;
+    m.interiors = rest;
+  });
+}
+export function furnishAll(level: string) {
+  update(m => { for (const r of m.rooms) E.furnishRoom(m, r, level); });
 }

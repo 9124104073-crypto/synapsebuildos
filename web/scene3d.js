@@ -955,11 +955,43 @@ export function createBuilder(THREE, E) {
       g.add(tank);
     }
     if (ext("x-lights")) {
-      const post = mat(0x3f3f3f), glow = new THREE.MeshBasicMaterial({ color:0xffe9b0 });
+      const postMat = mat(0x2a2a2c), sconceMat = mat(0x1a1a1c);
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0xffeaab });
+      const RULE = (E.ruleFor ? E.ruleFor(CUR) : (E.ratesFor ? E.ratesFor(CUR).rule : null)) || { front: 5, rear: 5, side: 5 };
+
+      // 1. Perimeter Garden Post Lamps with real PointLights
       for (const [x, z] of [[2, RULE.front - 2], [P.w - 2, RULE.front - 2], [2, P.h - 2], [P.w - 2, P.h - 2]]) {
-        g.add(box(.25, 6, .25, x - cx, 3, z - cz, post, false));
-        const b = new THREE.Mesh(new THREE.SphereGeometry(.45, 10, 8), glow);
-        b.position.set(x - cx, 6.4, z - cz); g.add(b);
+        g.add(box(.3, 6, .3, x - cx, 3, z - cz, postMat, false));
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 10), glowMat);
+        bulb.position.set(x - cx, 6.3, z - cz);
+        g.add(bulb);
+
+        const pLight = new THREE.PointLight(0xffda9e, 14.0, 35);
+        pLight.position.set(x - cx, 6.5, z - cz);
+        g.add(pLight);
+      }
+
+      // 2. Exterior Facade Wall Up/Down Sconces
+      for (const s of wallPlan()) {
+        if (s.kind !== "ext") continue;
+        const base = s.floor * FLOOR_H;
+        const mid = (s.a + s.b) / 2;
+        const posX = s.horiz ? mid - cx : s.coord + (s.side === "w" ? -0.4 : 0.4) - cx;
+        const posZ = s.horiz ? s.coord + (s.side === "n" ? -0.4 : 0.4) - cz : mid - cz;
+
+        const sconce = box(s.horiz ? 0.4 : 0.25, 1.2, s.horiz ? 0.25 : 0.4, posX, base + 5.5, posZ, sconceMat, false);
+        g.add(sconce);
+
+        const topLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8), glowMat);
+        topLens.position.set(posX, base + 6.15, posZ);
+        g.add(topLens);
+        const botLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8), glowMat);
+        botLens.position.set(posX, base + 4.85, posZ);
+        g.add(botLens);
+
+        const fLight = new THREE.PointLight(0xffd89e, 9.0, 22);
+        fLight.position.set(posX, base + 5.5, posZ);
+        g.add(fLight);
       }
     }
     if (ext("x-gate") || ext("x-wall")) {
@@ -978,6 +1010,7 @@ export function createBuilder(THREE, E) {
     }
     if (ext("x-garden")) {
       const grass = mat(0x6e8f55), trunk = mat(0x6b4f36), crown = mat(0x4f7a43);
+      const RULE = (E.ruleFor ? E.ruleFor(CUR) : (E.ratesFor ? E.ratesFor(CUR).rule : null)) || { front: 5, rear: 5, side: 5 };
       g.add(box(P.w - 2, .12, RULE.front - 2, 0, .06, -cz + RULE.front/2, grass, false));
       for (const x of [2.5, P.w - 2.5]) {
         g.add(box(.7, 5, .7, x - cx, 2.5, 3 - cz, trunk));
@@ -1003,8 +1036,8 @@ export function createBuilder(THREE, E) {
 
     const darkUi = (getComputedStyle(document.body).backgroundColor.match(/\d+/g)?.[0] | 0) < 100;
     const SITE = new THREE.MeshLambertMaterial({ color: darkUi ? 0x4a5245 : 0xbfc8b5 });
-    const SEL  = new THREE.MeshLambertMaterial({ color:0x8a9a82 });
-    const BAD  = new THREE.MeshLambertMaterial({ color:0xc46355 });
+    const SEL  = new THREE.MeshLambertMaterial({ color: 0x2563eb });
+    const BAD  = new THREE.MeshLambertMaterial({ color: 0xc46355 });
 
     const P = M.plot, cx = P.w/2, cz = P.h/2;
     const t = E.measure(M);
@@ -1033,6 +1066,18 @@ export function createBuilder(THREE, E) {
                        mats.get(r.id).floor, false);
       slab.userData = { id:r.id, floor:r.floor, pickable:true };
       g.add(slab);
+      if (r.id === M.selected) {
+        // Highlighting floor slab overlay
+        const selMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 });
+        g.add(box(r.w, .45, r.h, r.x + r.w/2 - cx, r.floor*FLOOR_H + .23, r.y + r.h/2 - cz, selMat, false));
+        // Bounding wireframe outline box around room boundaries
+        const bboxGeo = new THREE.BoxGeometry(r.w + 0.1, FLOOR_H + 0.1, r.h + 0.1);
+        const edges = new THREE.EdgesGeometry(bboxGeo);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x2563eb, linewidth: 3 });
+        const line = new THREE.LineSegments(edges, lineMat);
+        line.position.set(r.x + r.w/2 - cx, r.floor*FLOOR_H + FLOOR_H/2, r.y + r.h/2 - cz);
+        g.add(line);
+      }
       if (WALLED(r.type)) {                      // skirting — the detail rooms always have
         const sk = new THREE.MeshLambertMaterial({ color:0x6f6558 }), y = r.floor * FLOOR_H + .7;
         for (const [w, d, dx, dz] of [[r.w, .18, 0, -r.h / 2], [r.w, .18, 0, r.h / 2],

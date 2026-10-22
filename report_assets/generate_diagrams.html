@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Synapse BuildOS Report Diagrams</title>
+<style>
+  body {
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 20px;
+    color: #111827;
+  }
+  .diagram-container {
+    width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  }
+  h2 {
+    text-align: center;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #1e293b;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- FIGURE 1.1: OVERVIEW -->
+<div id="fig1" class="diagram-container">
+  <h2>Figure 1.1: Synapse BuildOS Platform Overview</h2>
+  <svg viewBox="0 0 760 380" width="100%" height="380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1e3a8a"/>
+        <stop offset="1%" stop-color="#2563eb"/>
+      </linearGradient>
+      <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f8fafc"/>
+        <stop offset="1%" stop-color="#f1f5f9"/>
+      </linearGradient>
+      <filter id="drop" x="-5%" y="-5%" width="110%" height="110%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+      </filter>
+    </defs>
+
+    <!-- Center Hub -->
+    <rect x="250" y="130" width="260" height="110" rx="12" fill="url(#blueGrad)" filter="url(#drop)"/>
+    <text x="380" y="165" text-anchor="middle" fill="#ffffff" font-weight="bold" font-size="16">SYNAPSE BUILDOS</text>
+    <text x="380" y="188" text-anchor="middle" fill="#93c5fd" font-size="12">Deterministic Geometry Kernel</text>
+    <text x="380" y="208" text-anchor="middle" fill="#ffffff" font-size="11">Single Source of Truth (SVG / Feet)</text>
+
+    <!-- Top Left: Brief Ingestion -->
+    <rect x="40" y="30" width="180" height="85" rx="8" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#drop)"/>
+    <text x="130" y="58" text-anchor="middle" fill="#0f172a" font-weight="bold" font-size="13">Client Brief Ingestion</text>
+    <text x="130" y="78" text-anchor="middle" fill="#475569" font-size="11">OCR / Docx / Natural Text</text>
+    <text x="130" y="96" text-anchor="middle" fill="#2563eb" font-size="10">Kochi & Tamil Nadu Typologies</text>
+
+    <!-- Top Right: 2D & 3D Studio -->
+    <rect x="540" y="30" width="180" height="85" rx="8" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#drop)"/>
+    <text x="630" y="58" text-anchor="middle" fill="#0f172a" font-weight="bold" font-size="13">Visual CAD Studio</text>
+    <text x="630" y="78" text-anchor="middle" fill="#475569" font-size="11">2D SVG Interactive Layout</text>
+    <text x="630" y="96" text-anchor="middle" fill="#2563eb" font-size="10">Three.js r160 3D Walkthrough</text>
+
+    <!-- Bottom Left: Automated Compliance & Cost -->
+    <rect x="40" y="260" width="180" height="85" rx="8" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#drop)"/>
+    <text x="130" y="288" text-anchor="middle" fill="#0f172a" font-weight="bold" font-size="13">Rule & Cost Engines</text>
+    <text x="130" y="308" text-anchor="middle" fill="#475569" font-size="11">TNCDBR 2019 Bylaw Checks</text>
+    <text x="130" y="326" text-anchor="middle" fill="#16a34a" font-size="10">TN PWD 2025-26 Plinth Rates</text>
+
+    <!-- Bottom Right: Cortex AI & Exports -->
+    <rect x="540" y="260" width="180" height="85" rx="8" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="1.5" filter="url(#drop)"/>
+    <text x="630" y="288" text-anchor="middle" fill="#0f172a" font-weight="bold" font-size="13">Cortex AI & Multi-Export</text>
+    <text x="630" y="308" text-anchor="middle" fill="#475569" font-size="11">Multi-lingual Prompt Copilot</text>
+    <text x="630" y="326" text-anchor="middle" fill="#7c3aed" font-size="10">IFC4, DXF, OBJ, BOQ & PDF</text>
+
+    <!-- Connectors -->
+    <path d="M 180 115 L 260 145" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 580 115 L 500 145" fill="none" stroke="#64748b" stroke-width="2"/>
+    <path d="M 260 225 L 180 260" fill="none" stroke="#64748b" stroke-width="2"/>
+    <path d="M 500 225 L 580 260" fill="none" stroke="#64748b" stroke-width="2"/>
+  </svg>
+</div>
+
+<!-- FIGURE 3.2: SYSTEM FLOW DIAGRAM -->
+<div id="fig3_2" class="diagram-container">
+  <h2>Figure 3.2: System Flow Diagram</h2>
+  <svg viewBox="0 0 760 780" width="100%" height="780" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155"/>
+      </marker>
+    </defs>
+
+    <!-- 1. Start -->
+    <rect x="290" y="15" width="180" height="36" rx="18" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="38" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f172a">1. Start Application</text>
+    <line x1="380" y1="51" x2="380" y2="70" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 2. Brief Input -->
+    <rect x="250" y="70" width="260" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="96" text-anchor="middle" font-size="12" fill="#0f172a">2. Ingest Brief / Set Plot & Budget</text>
+    <line x1="380" y1="112" x2="380" y2="132" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 3. Recommend Layout -->
+    <rect x="250" y="132" width="260" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="158" text-anchor="middle" font-size="12" fill="#0f172a">3. Recommend Architectural Plan</text>
+    <line x1="380" y1="174" x2="380" y2="194" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 4. Render 2D SVG -->
+    <rect x="240" y="194" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="220" text-anchor="middle" font-size="12" fill="#0f172a">4. Render Interactive 2D SVG Floor Plan</text>
+    <line x1="380" y1="236" x2="380" y2="256" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 5. 3D Massing -->
+    <rect x="240" y="256" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="282" text-anchor="middle" font-size="12" fill="#0f172a">5. Extrude 3D Spatial Walkthrough</text>
+    <line x1="380" y1="298" x2="380" y2="318" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 6. Geometry Takeoff -->
+    <rect x="230" y="318" width="300" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="344" text-anchor="middle" font-size="12" fill="#0f172a">6. Compute Takeoff (Area, Walls, Openings)</text>
+    <line x1="380" y1="360" x2="380" y2="380" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 7. TNCDBR Compliance & Cost -->
+    <rect x="220" y="380" width="320" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="406" text-anchor="middle" font-size="12" fill="#0f172a">7. Run TNCDBR 2019 & TN PWD Cost Engine</text>
+    <line x1="380" y1="422" x2="380" y2="445" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- Decision Diamond 1 -->
+    <polygon points="380,445 480,490 380,535 280,490" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+    <text x="380" y="486" text-anchor="middle" font-size="11" font-weight="bold" fill="#78350f">Compliant &</text>
+    <text x="380" y="501" text-anchor="middle" font-size="11" font-weight="bold" fill="#78350f">Within Budget?</text>
+
+    <!-- No feedback loop -->
+    <line x1="280" y1="490" x2="140" y2="490" stroke="#b45309" stroke-width="1.5"/>
+    <line x1="140" y1="490" x2="140" y2="215" stroke="#b45309" stroke-width="1.5"/>
+    <line x1="140" y1="215" x2="235" y2="215" stroke="#b45309" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <rect x="70" y="325" width="130" height="38" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="135" y="342" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Show Violations &</text>
+    <text x="135" y="354" text-anchor="middle" font-size="10" fill="#991b1b">Cortex AI Guidance</text>
+    <text x="210" y="482" font-size="11" font-weight="bold" fill="#b45309">No</text>
+
+    <!-- Yes branch -->
+    <line x1="380" y1="535" x2="380" y2="560" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="390" y="550" font-size="11" font-weight="bold" fill="#15803d">Yes</text>
+
+    <!-- 8. Score -->
+    <rect x="240" y="560" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="586" text-anchor="middle" font-size="12" fill="#0f172a">8. Calculate Construction Readiness Score</text>
+    <line x1="380" y1="602" x2="380" y2="625" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- Decision Diamond 2 -->
+    <polygon points="380,625 470,660 380,695 290,660" fill="#f1f5f9" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="664" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Finalize Design?</text>
+
+    <!-- No loop -->
+    <line x1="470" y1="660" x2="580" y2="660" stroke="#475569" stroke-width="1.5"/>
+    <line x1="580" y1="660" x2="580" y2="215" stroke="#475569" stroke-width="1.5"/>
+    <line x1="580" y1="215" x2="525" y2="215" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="500" y="652" font-size="11" fill="#475569">No (Edit/Prompt)</text>
+
+    <!-- Yes branch -->
+    <line x1="380" y1="695" x2="380" y2="720" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="390" y="710" font-size="11" font-weight="bold" fill="#15803d">Yes</text>
+
+    <!-- 9. Report & Export -->
+    <rect x="220" y="720" width="320" height="42" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="380" y="746" text-anchor="middle" font-size="12" font-weight="bold" fill="#0369a1">9. Generate Dossier & Export IFC / DXF / PDF</text>
+  </svg>
+</div>
+
+<!-- FIGURE 3.3: DATA FLOW DIAGRAM (LEVEL 0 & LEVEL 1) -->
+<div id="fig3_3" class="diagram-container">
+  <h2>Figure 3.3: Data Flow Diagram (Level 0 & Level 1)</h2>
+  <svg viewBox="0 0 760 620" width="100%" height="620" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="dfdArr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#1e293b"/>
+      </marker>
+    </defs>
+
+    <!-- LEVEL 0 -->
+    <text x="20" y="25" font-size="12" font-weight="bold" fill="#475569">LEVEL 0: CONTEXT DIAGRAM</text>
+    
+    <rect x="30" y="55" width="130" height="60" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+    <text x="95" y="82" text-anchor="middle" font-size="11" font-weight="bold">User</text>
+    <text x="95" y="98" text-anchor="middle" font-size="9" fill="#64748b">(Architect / Client)</text>
+
+    <line x1="160" y1="72" x2="320" y2="72" stroke="#1e293b" stroke-width="1.5" marker-end="url(#dfdArr)"/>
+    <text x="240" y="65" text-anchor="middle" font-size="9">Brief, Plot dims, Edits, Prompts</text>
+
+    <circle cx="380" cy="85" r="45" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+    <text x="380" y="80" text-anchor="middle" font-size="11" font-weight="bold">0</text>
+    <text x="380" y="93" text-anchor="middle" font-size="10" font-weight="bold">Synapse BuildOS</text>
+    <text x="380" y="105" text-anchor="middle" font-size="8" fill="#64748b">Engine</text>
+
+    <line x1="320" y1="98" x2="160" y2="98" stroke="#1e293b" stroke-width="1.5" marker-end="url(#dfdArr)"/>
+    <text x="240" y="112" text-anchor="middle" font-size="9">2D/3D Plan, Bylaw Check, BOQ, Report</text>
+
+    <rect x="580" y="55" width="140" height="60" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+    <text x="650" y="82" text-anchor="middle" font-size="11" font-weight="bold">AEC Stakeholders</text>
+    <text x="650" y="98" text-anchor="middle" font-size="9" fill="#64748b">(Contractor / Approver)</text>
+
+    <line x1="425" y1="85" x2="575" y2="85" stroke="#1e293b" stroke-width="1.5" marker-end="url(#dfdArr)"/>
+    <text x="500" y="78" text-anchor="middle" font-size="9">Exports (IFC, DXF, BOQ)</text>
+
+    <line x1="20" y1="150" x2="740" y2="150" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4 4"/>
+
+    <!-- LEVEL 1 -->
+    <text x="20" y="175" font-size="12" font-weight="bold" fill="#475569">LEVEL 1: DETAILED DATA FLOW DIAGRAM</text>
+
+    <!-- User entity -->
+    <rect x="20" y="230" width="100" height="240" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+    <text x="70" y="340" text-anchor="middle" font-size="12" font-weight="bold">User</text>
+    <text x="70" y="360" text-anchor="middle" font-size="9" fill="#64748b">(Interactions)</text>
+
+    <!-- Process 1.0 -->
+    <rect x="180" y="200" width="120" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="240" y="222" text-anchor="middle" font-size="10" font-weight="bold">1.0 Brief Ingestion</text>
+    <text x="240" y="236" text-anchor="middle" font-size="9" fill="#64748b">& Recommendation</text>
+
+    <!-- Process 2.0 -->
+    <rect x="180" y="280" width="120" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="240" y="302" text-anchor="middle" font-size="10" font-weight="bold">2.0 2D Plan Engine</text>
+    <text x="240" y="316" text-anchor="middle" font-size="9" fill="#64748b">(SVG Model)</text>
+
+    <!-- Process 3.0 -->
+    <rect x="360" y="280" width="120" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="420" y="302" text-anchor="middle" font-size="10" font-weight="bold">3.0 3D Massing</text>
+    <text x="420" y="316" text-anchor="middle" font-size="9" fill="#64748b">(Three.js r160)</text>
+
+    <!-- Process 4.0 -->
+    <rect x="180" y="360" width="120" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="240" y="382" text-anchor="middle" font-size="10" font-weight="bold">4.0 Compliance</text>
+    <text x="240" y="396" text-anchor="middle" font-size="9" fill="#64748b">(TNCDBR 2019)</text>
+
+    <!-- Process 5.0 -->
+    <rect x="360" y="360" width="120" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="420" y="382" text-anchor="middle" font-size="10" font-weight="bold">5.0 Cost Estimator</text>
+    <text x="420" y="396" text-anchor="middle" font-size="9" fill="#64748b">(PWD Rates 25-26)</text>
+
+    <!-- Process 6.0 -->
+    <rect x="540" y="320" width="130" height="50" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+    <text x="605" y="342" text-anchor="middle" font-size="10" font-weight="bold">6.0 Readiness Scorer</text>
+    <text x="605" y="356" text-anchor="middle" font-size="9" fill="#64748b">& Dossier Exporter</text>
+
+    <!-- Data Stores -->
+    <!-- D1 Project Database -->
+    <path d="M 200 470 L 320 470 M 200 495 L 320 495" stroke="#1e293b" stroke-width="1.5"/>
+    <text x="260" y="487" text-anchor="middle" font-size="10" font-weight="bold">D1: Live Project DB</text>
+
+    <!-- D2 PWD & Bylaw Store -->
+    <path d="M 380 470 L 520 470 M 380 495 L 520 495" stroke="#1e293b" stroke-width="1.5"/>
+    <text x="450" y="487" text-anchor="middle" font-size="10" font-weight="bold">D2: PWD & TNCDBR Rules</text>
+
+    <!-- D3 Plan Library -->
+    <path d="M 200 540 L 320 540 M 200 565 L 320 565" stroke="#1e293b" stroke-width="1.5"/>
+    <text x="260" y="557" text-anchor="middle" font-size="10" font-weight="bold">D3: Plan Library</text>
+
+    <!-- Flow Arrows in DFD -->
+    <line x1="120" y1="225" x2="175" y2="225" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="120" y1="305" x2="175" y2="305" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="300" y1="305" x2="355" y2="305" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="240" y1="330" x2="240" y2="355" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="300" y1="385" x2="355" y2="385" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="480" y1="385" x2="535" y2="350" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="480" y1="305" x2="535" y2="335" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+
+    <line x1="240" y1="410" x2="240" y2="465" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="450" y1="465" x2="450" y2="415" stroke="#1e293b" stroke-width="1.2" marker-end="url(#dfdArr)"/>
+    <line x1="260" y1="535" x2="260" y2="255" stroke="#1e293b" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#dfdArr)"/>
+  </svg>
+</div>
+
+<!-- FIGURE 3.5: USE CASE DIAGRAM -->
+<div id="fig3_5" class="diagram-container">
+  <h2>Figure 3.5: UML Use Case Diagram</h2>
+  <svg viewBox="0 0 760 520" width="100%" height="520" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="soft" x="-5%" y="-5%" width="110%" height="110%">
+        <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+      </filter>
+    </defs>
+
+    <!-- Boundary System Box -->
+    <rect x="220" y="30" width="340" height="460" rx="10" fill="#fafaf9" stroke="#94a3b8" stroke-width="2"/>
+    <text x="390" y="55" text-anchor="middle" font-size="13" font-weight="bold" fill="#0f172a">Synapse BuildOS Boundary</text>
+
+    <!-- Left Actor: Client / Homeowner -->
+    <!-- Head -->
+    <circle cx="80" cy="120" r="14" fill="#ffffff" stroke="#1e293b" stroke-width="2"/>
+    <!-- Body -->
+    <line x1="80" y1="134" x2="80" y2="175" stroke="#1e293b" stroke-width="2"/>
+    <!-- Arms -->
+    <line x1="55" y1="148" x2="105" y2="148" stroke="#1e293b" stroke-width="2"/>
+    <!-- Legs -->
+    <line x1="80" y1="175" x2="60" y2="210" stroke="#1e293b" stroke-width="2"/>
+    <line x1="80" y1="175" x2="100" y2="210" stroke="#1e293b" stroke-width="2"/>
+    <text x="80" y="235" text-anchor="middle" font-size="11" font-weight="bold">Homeowner</text>
+    <text x="80" y="248" text-anchor="middle" font-size="9" fill="#64748b">(Client)</text>
+
+    <!-- Left Actor: Architect / Designer -->
+    <circle cx="80" cy="330" r="14" fill="#ffffff" stroke="#1e293b" stroke-width="2"/>
+    <line x1="80" y1="344" x2="80" y2="385" stroke="#1e293b" stroke-width="2"/>
+    <line x1="55" y1="358" x2="105" y2="358" stroke="#1e293b" stroke-width="2"/>
+    <line x1="80" y1="385" x2="60" y2="420" stroke="#1e293b" stroke-width="2"/>
+    <line x1="80" y1="385" x2="100" y2="420" stroke="#1e293b" stroke-width="2"/>
+    <text x="80" y="445" text-anchor="middle" font-size="11" font-weight="bold">Architect</text>
+    <text x="80" y="458" text-anchor="middle" font-size="9" fill="#64748b">(Designer / Modeler)</text>
+
+    <!-- Right Actor: Contractor / Engineer -->
+    <circle cx="680" cy="230" r="14" fill="#ffffff" stroke="#1e293b" stroke-width="2"/>
+    <line x1="680" y1="244" x2="680" y2="285" stroke="#1e293b" stroke-width="2"/>
+    <line x1="655" y1="258" x2="705" y2="258" stroke="#1e293b" stroke-width="2"/>
+    <line x1="680" y1="285" x2="660" y2="320" stroke="#1e293b" stroke-width="2"/>
+    <line x1="680" y1="285" x2="700" y2="320" stroke="#1e293b" stroke-width="2"/>
+    <text x="680" y="345" text-anchor="middle" font-size="11" font-weight="bold">Contractor</text>
+    <text x="680" y="358" text-anchor="middle" font-size="9" fill="#64748b">(Estimator / Builder)</text>
+
+    <!-- Use Cases Ovals -->
+    <!-- UC1 -->
+    <ellipse cx="390" cy="85" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="89" text-anchor="middle" font-size="10">Submit Client Brief & Plot</text>
+
+    <!-- UC2 -->
+    <ellipse cx="390" cy="135" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="139" text-anchor="middle" font-size="10">Select / Recommend Plan</text>
+
+    <!-- UC3 -->
+    <ellipse cx="390" cy="185" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="189" text-anchor="middle" font-size="10">Edit 2D Rooms & Partitions</text>
+
+    <!-- UC4 -->
+    <ellipse cx="390" cy="235" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="239" text-anchor="middle" font-size="10">View 3D Spatial Walkthrough</text>
+
+    <!-- UC5 -->
+    <ellipse cx="390" cy="285" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="289" text-anchor="middle" font-size="10">Inspect TNCDBR 2019 Bylaws</text>
+
+    <!-- UC6 -->
+    <ellipse cx="390" cy="335" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="339" text-anchor="middle" font-size="10">Audit PWD Plinth-Area Cost</text>
+
+    <!-- UC7 -->
+    <ellipse cx="390" cy="385" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="389" text-anchor="middle" font-size="10">Execute Cortex AI Prompts</text>
+
+    <!-- UC8 -->
+    <ellipse cx="390" cy="435" rx="100" ry="20" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#soft)"/>
+    <text x="390" y="439" text-anchor="middle" font-size="10">Export IFC / DXF / PDF Dossier</text>
+
+    <!-- Connections Homeowner -->
+    <line x1="115" y1="140" x2="295" y2="88" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="150" x2="295" y2="135" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="165" x2="295" y2="235" stroke="#64748b" stroke-width="1.2"/>
+
+    <!-- Connections Architect -->
+    <line x1="115" y1="360" x2="295" y2="185" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="370" x2="295" y2="240" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="380" x2="295" y2="285" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="390" x2="295" y2="385" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="115" y1="400" x2="295" y2="435" stroke="#64748b" stroke-width="1.2"/>
+
+    <!-- Connections Contractor -->
+    <line x1="645" y1="270" x2="485" y2="290" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="645" y1="280" x2="485" y2="340" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="645" y1="290" x2="485" y2="435" stroke="#64748b" stroke-width="1.2"/>
+  </svg>
+</div>
+
+</body>
+</html>

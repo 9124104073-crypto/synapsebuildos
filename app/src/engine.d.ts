@@ -10,6 +10,7 @@ declare module "@scene3d" {
   export function createBuilder(THREE: any, E: any): {
     build(model: any, opts?: any): { group: any; colliders: any[]; stairZones: any[]; spinners: any[] };
     wallPlan(model: any): any[];
+    placeItems(M: any, room: any): { placed: any[]; skipped: any[] };
   };
 }
 

@@ -10,10 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "@types/three": "^0.186.0",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
+    "tesseract.js": "^7.0.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

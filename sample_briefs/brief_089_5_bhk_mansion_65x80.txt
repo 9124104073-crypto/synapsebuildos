@@ -1,0 +1,55 @@
+SYNAPSE STUDIO - ARCHITECTURAL CLIENT BRIEF
+Document Reference: BRIEF-089
+City / Region: Coimbatore
+Style Preference: Traditional Vastu-Compliant
+
+1. PROJECT OVERVIEW
+-------------------
+Client Name: Sample Client #089
+Project Type: Residential Independent House (5 BHK Mansion)
+Location: Coimbatore, India
+Total Stories / Floors: 3 Floor(s) (G + 2)
+
+2. PLOT & SITE DETAILS
+----------------------
+Plot Width: 65 feet
+Plot Depth: 80 feet
+Plot Total Area: 5200 sq ft
+Plot Facing Direction: North
+Target Budget: ₹210 Lakhs (₹21,000,000 INR)
+
+3. ROOM & SPATIAL REQUIREMENTS
+------------------------------
+Requested Spaces:
+ - Grand Living Room
+ - Master Suite
+ - Bedroom 2
+ - Bedroom 3
+ - Bedroom 4
+ - Guest Suite
+ - Modular Kitchen
+ - Dining Hall
+ - Puja Room
+ - Home Theater
+ - Home Gym
+ - Master Bathroom
+ - Attached Bathroom 2
+ - Attached Bathroom 3
+ - Common Bathroom
+ - Double Balcony
+ - Terrace Garden
+
+4. VASTU & ARCHITECTURAL GUIDELINES
+-----------------------------------
+- Facing: Main Entrance should face North as per plot orientation.
+- Kitchen: Positioned in South-East (Agneya) corner preferred.
+- Master Bedroom: Located in South-West (Nairutya) corner on upper floor if applicable.
+- Puja Room: North-East (Ishan) corner alignment for maximum positive energy.
+- Ventilation: Minimum 15% window-to-floor area ratio for natural cross-ventilation.
+
+5. FINISHES & SPECIAL REQUESTS
+------------------------------
+- Flooring: Vitrified tiles in living/dining areas, anti-skid ceramic tiles in bathrooms.
+- Wall Finish: Premium emulsion paint with accent wall in Living Room.
+- Exterior: Weather-proof exterior paint with wooden louvers and balcony glass railings.
+- Special Notes: Client requests spacious layout, eco-friendly lighting fixtures, and maximum space efficiency within ₹210L budget.

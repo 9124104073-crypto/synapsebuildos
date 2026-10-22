@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:#ffffff; display:flex; justify-content:center; align-items:center; }
+  svg { width: 100%; max-width: 820px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 760 780" width="100%" height="780" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155"/>
+      </marker>
+    </defs>
+
+    <!-- 1. Start -->
+    <rect x="290" y="15" width="180" height="36" rx="18" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="38" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f172a">1. Start Application</text>
+    <line x1="380" y1="51" x2="380" y2="70" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 2. Brief Input -->
+    <rect x="250" y="70" width="260" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="96" text-anchor="middle" font-size="12" fill="#0f172a">2. Ingest Brief / Set Plot & Budget</text>
+    <line x1="380" y1="112" x2="380" y2="132" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 3. Recommend Layout -->
+    <rect x="250" y="132" width="260" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="158" text-anchor="middle" font-size="12" fill="#0f172a">3. Recommend Architectural Plan</text>
+    <line x1="380" y1="174" x2="380" y2="194" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 4. Render 2D SVG -->
+    <rect x="240" y="194" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="220" text-anchor="middle" font-size="12" fill="#0f172a">4. Render Interactive 2D SVG Floor Plan</text>
+    <line x1="380" y1="236" x2="380" y2="256" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 5. 3D Massing -->
+    <rect x="240" y="256" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="282" text-anchor="middle" font-size="12" fill="#0f172a">5. Extrude 3D Spatial Walkthrough</text>
+    <line x1="380" y1="298" x2="380" y2="318" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 6. Geometry Takeoff -->
+    <rect x="230" y="318" width="300" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="344" text-anchor="middle" font-size="12" fill="#0f172a">6. Compute Takeoff (Area, Walls, Openings)</text>
+    <line x1="380" y1="360" x2="380" y2="380" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 7. TNCDBR Compliance & Cost -->
+    <rect x="220" y="380" width="320" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="406" text-anchor="middle" font-size="12" fill="#0f172a">7. Run TNCDBR 2019 & TN PWD Cost Engine</text>
+    <line x1="380" y1="422" x2="380" y2="445" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- Decision Diamond 1 -->
+    <polygon points="380,445 480,490 380,535 280,490" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+    <text x="380" y="486" text-anchor="middle" font-size="11" font-weight="bold" fill="#78350f">Compliant &</text>
+    <text x="380" y="501" text-anchor="middle" font-size="11" font-weight="bold" fill="#78350f">Within Budget?</text>
+
+    <!-- No feedback loop -->
+    <line x1="280" y1="490" x2="140" y2="490" stroke="#b45309" stroke-width="1.5"/>
+    <line x1="140" y1="490" x2="140" y2="215" stroke="#b45309" stroke-width="1.5"/>
+    <line x1="140" y1="215" x2="235" y2="215" stroke="#b45309" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <rect x="70" y="325" width="130" height="38" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="135" y="342" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Show Violations &</text>
+    <text x="135" y="354" text-anchor="middle" font-size="10" fill="#991b1b">Cortex AI Guidance</text>
+    <text x="210" y="482" font-size="11" font-weight="bold" fill="#b45309">No</text>
+
+    <!-- Yes branch -->
+    <line x1="380" y1="535" x2="380" y2="560" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="390" y="550" font-size="11" font-weight="bold" fill="#15803d">Yes</text>
+
+    <!-- 8. Score -->
+    <rect x="240" y="560" width="280" height="42" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="586" text-anchor="middle" font-size="12" fill="#0f172a">8. Calculate Construction Readiness Score</text>
+    <line x1="380" y1="602" x2="380" y2="625" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- Decision Diamond 2 -->
+    <polygon points="380,625 470,660 380,695 290,660" fill="#f1f5f9" stroke="#475569" stroke-width="1.5"/>
+    <text x="380" y="664" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Finalize Design?</text>
+
+    <!-- No loop -->
+    <line x1="470" y1="660" x2="580" y2="660" stroke="#475569" stroke-width="1.5"/>
+    <line x1="580" y1="660" x2="580" y2="215" stroke="#475569" stroke-width="1.5"/>
+    <line x1="580" y1="215" x2="525" y2="215" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="500" y="652" font-size="11" fill="#475569">No (Edit/Prompt)</text>
+
+    <!-- Yes branch -->
+    <line x1="380" y1="695" x2="380" y2="720" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="390" y="710" font-size="11" font-weight="bold" fill="#15803d">Yes</text>
+
+    <!-- 9. Report & Export -->
+    <rect x="220" y="720" width="320" height="42" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="380" y="746" text-anchor="middle" font-size="12" font-weight="bold" fill="#0369a1">9. Generate Dossier & Export IFC / DXF / PDF</text>
+  </svg>
+</body>
+</html>

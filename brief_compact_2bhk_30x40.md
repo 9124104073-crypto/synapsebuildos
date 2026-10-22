@@ -1,0 +1,18 @@
+# Compact Urban House Brief (2 BHK - 30x40 ft Plot)
+
+CLIENT REQUIREMENT BRIEF - COMPACT URBAN RESIDENCE
+
+PROJECT SPECIFICATIONS:
+- Project Name: City Nest 2BHK
+- Location: Madurai, Tamil Nadu
+- Site Dimensions: 30 ft x 40 ft (Total Area: 1200 sq ft)
+- Road Frontage: North facing road
+- Building Type: Single Floor (Ground floor only G+0)
+- Bedrooms: 2 BHK (2 bedrooms)
+- Bathrooms: 2 bathrooms
+- Target Budget: Rs 45 Lakhs
+
+FAMILY & REQUIREMENTS:
+- Family: Family of 4 members
+- Rooms required: Living room 14 x 16 ft, Kitchen 9 x 10 ft, Dining 10 x 12 ft, Master Bedroom 12 x 14 ft, Bedroom 2 10 x 12 ft, Pooja room 5 x 6 ft, Car parking 10 x 15 ft
+- Finishes: Vitrified tile flooring, warm wall paint

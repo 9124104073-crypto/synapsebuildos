@@ -138,6 +138,29 @@ def full_analysis(p: Project = Depends(get_project), db: Session = Depends(get_d
     return out
 
 
+# What each change type needs to be computable at all. A change missing its
+# required fields is a malformed request, not a server failure — apply_change
+# would otherwise die on a KeyError and call it a 500.
+_CHANGE_REQUIRES = {
+    "add_room": ("room",),
+    "remove_room": ("room_id",),
+    "resize_room": ("room_id",),
+    "scale_type": ("room_type", "factor"),
+    "set_budget": ("budget_max",),
+}
+
+
+def _validated_change(body: WhatIfRequest) -> dict:
+    change = body.model_dump(exclude_none=True)
+    if body.room is not None:
+        change["room"] = body.room.model_dump()
+    missing = [k for k in _CHANGE_REQUIRES.get(change.get("type"), ()) if k not in change]
+    if missing:
+        raise HTTPException(
+            422, f"A '{change.get('type')}' change needs: {', '.join(missing)}.")
+    return change
+
+
 @router.post("/{project_id}/what-if")
 def what_if(
     body: WhatIfRequest,
@@ -146,9 +169,7 @@ def what_if(
 ) -> dict:
     """Step 12. Computes the consequence without committing it."""
     card, rule = rate_card_for(db, p.region), rule_for(db, p.region)
-    change = body.model_dump(exclude_none=True)
-    if body.room is not None:
-        change["room"] = body.room.model_dump()
+    change = _validated_change(body)
 
     ghost = analysis_engine.apply_change(p, change)
     before = analysis_engine.analyse(p, card, rule)
@@ -168,9 +189,7 @@ def commit_what_if(
     p: Project = Depends(get_project_write),
     db: Session = Depends(get_db),
 ) -> Project:
-    change = body.model_dump(exclude_none=True)
-    if body.room is not None:
-        change["room"] = body.room.model_dump()
+    change = _validated_change(body)
 
     ghost = analysis_engine.apply_change(p, change)
     p.rooms, p.plot = ghost.rooms, ghost.plot

@@ -9,11 +9,15 @@
    rendered and put through OCR, which is slower and worth saying out loud. */
 import { clamp, REGIONS } from "./model";
 
-const CDN = {
-  pdf: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs",
-  pdfWorker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs",
-  tesseract: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js",
-  jszip: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+const OCR_ROOT = "/ocr-assets";
+const ASSETS = {
+  pdf: `${OCR_ROOT}/pdf.min.mjs`,
+  pdfWorker: `${OCR_ROOT}/pdf.worker.min.mjs`,
+  tesseract: `${OCR_ROOT}/tesseract.min.js`,
+  worker: `${OCR_ROOT}/worker.min.js`,
+  core: `${OCR_ROOT}/core`,
+  lang: `${OCR_ROOT}/lang`,
+  jszip: `${OCR_ROOT}/jszip.min.js`,
 };
 
 type Step = (message: string) => void;
@@ -30,8 +34,8 @@ const loadScript = (src: string) => new Promise<void>((ok, no) => {
 let pdfjs: any = null;
 async function pdfLib() {
   if (!pdfjs) {
-    pdfjs = await import(/* @vite-ignore */ CDN.pdf);
-    pdfjs.GlobalWorkerOptions.workerSrc = CDN.pdfWorker;
+    pdfjs = await import(/* @vite-ignore */ ASSETS.pdf);
+    pdfjs.GlobalWorkerOptions.workerSrc = ASSETS.pdfWorker;
   }
   return pdfjs;
 }
@@ -44,7 +48,12 @@ export async function readDocument(file: File, onStep?: Step): Promise<ReadResul
   if (/\.docx$/.test(name)) return { text: await readDocx(file), how: "Word document" };
   if (/\.(png|jpe?g|webp|bmp)$/.test(name)) {
     onStep?.("Reading the image with OCR — this takes a few seconds.");
-    return { text: await ocr(URL.createObjectURL(file), onStep), how: "image, read by OCR" };
+    const src = URL.createObjectURL(file);
+    try {
+      return { text: await ocr(src, onStep), how: "image, read by OCR" };
+    } finally {
+      URL.revokeObjectURL(src);
+    }
   }
   if (/\.pdf$/.test(name)) return readPdf(file, onStep);
   if (/\.doc$/.test(name))
@@ -53,7 +62,7 @@ export async function readDocument(file: File, onStep?: Step): Promise<ReadResul
 }
 
 async function readDocx(file: File) {
-  await loadScript(CDN.jszip);
+  await loadScript(ASSETS.jszip);
   const zip = await (window as any).JSZip.loadAsync(await file.arrayBuffer());
   const xml: string | undefined = await zip.file("word/document.xml")?.async("string");
   if (!xml) throw new Error("That .docx has no document body.");
@@ -76,29 +85,48 @@ async function readPdf(file: File, onStep?: Step): Promise<ReadResult> {
 
   onStep?.("No text layer — this looks like a scan. Running OCR, a few seconds per page.");
   const pages = Math.min(pdf.numPages, 5);
+  const worker = await createOcrWorker(onStep);
   let out = "";
-  for (let p = 1; p <= pages; p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 2 });          // OCR likes the pixels
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
-    onStep?.(`Reading page ${p} of ${pages}…`);
-    out += await ocr(canvas.toDataURL("image/png"), onStep) + "\n";
+  try {
+    for (let p = 1; p <= pages; p++) {
+      const page = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
+      onStep?.(`Reading page ${p} of ${pages}…`);
+      out += await recognize(worker, canvas, onStep) + "\n";
+    }
+  } finally {
+    await worker.terminate();
   }
   return { text: out, how: `scanned PDF, ${pdf.numPages} page(s), read by OCR` };
 }
 
-async function ocr(src: string, onStep?: Step) {
-  await loadScript(CDN.tesseract);
-  const worker = await (window as any).Tesseract.createWorker("eng", 1, {
+async function createOcrWorker(onStep?: Step) {
+  await loadScript(ASSETS.tesseract);
+  return (window as any).Tesseract.createWorker("eng", 1, {
+    workerPath: ASSETS.worker,
+    corePath: ASSETS.core,
+    langPath: ASSETS.lang,
     logger: (msg: any) => msg.status === "recognizing text"
       && onStep?.(`OCR ${Math.round(msg.progress * 100)}%`),
   });
+}
+
+async function recognize(worker: any, src: string | HTMLCanvasElement, onStep?: Step) {
+  const { data } = await worker.recognize(src);
+  onStep?.("OCR complete.");
+  return data.text as string;
+}
+
+async function ocr(src: string, onStep?: Step) {
+  const worker = await createOcrWorker(onStep);
   try {
-    const { data } = await worker.recognize(src);
-    return data.text as string;
-  } finally { await worker.terminate(); }
+    return await recognize(worker, src, onStep);
+  } finally {
+    await worker.terminate();
+  }
 }
 
 /* ---------- pulling a brief out of prose ----------

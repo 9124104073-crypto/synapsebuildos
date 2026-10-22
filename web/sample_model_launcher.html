@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Launch Villa Harmony Sample Brief</title>
+</head>
+<body>
+<h2>Building Villa Harmony 3BHK Duplex from Client Brief...</h2>
+<script type="module">
+import * as E from "./engine.js";
+
+const model = E.layoutFromBrief({
+  plot_w: 40,
+  plot_h: 60,
+  facing: 90,
+  region: "Chennai",
+  coastal: "under10",
+  bedrooms: 3,
+  bathrooms: 3,
+  floors: 2,
+  budget: 85,
+  parking: true
+});
+
+// Add finishes and catalog furniture
+const interiors = {};
+// Furnish bedrooms
+interiors["bed_1"] = ["bed_double", "wardrobe_wood", "nightstand"];
+interiors["bed_2"] = ["bed_double", "wardrobe_wood"];
+interiors["bed_3"] = ["bed_single", "study_desk"];
+interiors["living"] = ["sofa_3seater", "coffee_table", "tv_unit"];
+interiors["dining"] = ["dining_6seater"];
+interiors["kitchen"] = ["counter_granite", "chimney_hood"];
+interiors["office_1"] = ["study_desk", "bookshelf"];
+interiors["balcony_1"] = ["plant_pot", "chair_rattan"];
+
+const handoff = {
+  at: Date.now(),
+  name: "Villa Harmony (3BHK Duplex Residence - ECR Chennai)",
+  rooms: model.rooms,
+  plot: model.plot,
+  interiors: interiors,
+  budget: 85,
+  brief: {
+    ...E.DEFAULT_BRIEF,
+    region: "Chennai",
+    coastal: "under10",
+    family_members: 5,
+    elderly_residents: 1,
+    children: 2,
+    theme: "Modern Coastal Villa"
+  }
+};
+
+localStorage.setItem("synapse.handoff", JSON.stringify(handoff));
+
+const targetView = new URLSearchParams(location.search).get("view") || "3d";
+location.href = `studio.html?from=configurator&view=${targetView}`;
+</script>
+</body>
+</html>

@@ -1,0 +1,1035 @@
+
+
+=== PAGE 1 ===
+
+Confidential — NIRMAN AI Engineering Documentation
+Page 1
+SYSTEM SPECIFICATION & ENGINEERING REFERENCE
+NIRMAN AI
+Detailed Technical Stack & Architecture
+Comprehensive inventory of frameworks, libraries, ML pipelines, geospatial
+toolchains, database topologies, and deployment infrastructure.
+Platform: NIRMAN AI — Decision Support System
+Document Type: Technical Stack & Engineering Specification
+Release / Date: October 2026 (Production POC Ready)
+Target Region: Chennai Metropolitan Area, Tamil Nadu, India
+Frontend Stack: React 19.2 + Vite 8.2 + Tailwind 4.3 + Three.js + Leaflet
+Backend Stack: FastAPI 0.115 + Pydantic 2.10 + SQLAlchemy 2.0
+Intelligence Layer: XGBoost 3.2 + SHAP 0.51 + Scikit-Learn (TF-IDF/SVD RAG)
+Geospatial Layer: GeoPandas 1.1 + Shapely 2.1 + PostGIS 3.4
+Deployment Target: Docker Compose / Render Cloud (Singapore)
+Prepared by: NIRMAN AI Core Engineering Team
+Status: Verified against Active Codebase & Lockfiles
+
+
+=== PAGE 2 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 2
+Table of Contents
+Architecture Overview & Tier Diagram
+Section 1: Frontend Stack (React 19, Vite 8, UI Components, Page Inventory)
+Section 2: Backend Stack (FastAPI, Middleware Pipeline, Engine Architecture)
+Section 3: Data Processing & ML Stack (XGBoost, SHAP Explainability, RAG Engine)
+Section 4: Geospatial Stack (GeoPandas, Dual-CRS Strategy, Spatial Solvers)
+Section 5: Database Stack (Dual SQLite/PostgreSQL Topology, Migrations)
+Section 6: IoT & Telemetry Stack (ESP32, MQTT Broker & Wire Protocol)
+Section 7: PDF Generation Engine (ReportLab & jsPDF-AutoTable)
+Section 8: Infrastructure & Deployment (Docker Compose, Render Blueprint, Env Vars)
+Section 9: Testing & Quality Assurance (Pytest 106+, Vitest 23, Coverage)
+Section 10: Complete Version Matrix (34+ Core Packages & Libraries)
+
+
+=== PAGE 3 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 3
+Architecture Overview
+graph TD
+    subgraph Client["■■ Client Layer"]
+        REACT["React 19.2"]
+        VITE["Vite 8.2"]
+        TAILWIND["Tailwind CSS 4.3"]
+        LEAFLET["Leaflet 1.9 + React-Leaflet 5.0"]
+        RECHARTS["Recharts 3.10"]
+        THREEJS["Three.js 0.185"]
+        AXIOS["Axios 1.20"]
+        JSPDF["jsPDF 4.2"]
+        LUCIDE["Lucide React 1.42"]
+        ROUTER["React Router DOM 7.18"]
+    end
+    subgraph Server["■■ Server Layer"]
+        FASTAPI["FastAPI 0.115"]
+        PYDANTIC["Pydantic 2.10"]
+        SQLA["SQLAlchemy 2.0"]
+        UVICORN["Uvicorn 0.34"]
+    end
+    subgraph Intelligence["■ Intelligence Layer"]
+        SKLEARN["scikit-learn 1.9"]
+        XGBOOST["XGBoost 3.2"]
+        SHAP["SHAP 0.51"]
+        PANDAS["Pandas 3.0"]
+        NUMPY["NumPy 2.4"]
+    end
+    subgraph Spatial["■ Geospatial Layer"]
+        GEOPANDAS["GeoPandas 1.1"]
+        SHAPELY["Shapely 2.1"]
+        POSTGIS["PostGIS 3.4"]
+    end
+    subgraph Data["■■ Data Layer"]
+        PG["PostgreSQL 16"]
+        SQLITE["SQLite"]
+        PGVECTOR["pgvector"]
+        MQTT["paho-mqtt 2.1"]
+    end
+    subgraph Infra["■■ Infrastructure"]
+        DOCKER["Docker"]
+        NGINX["nginx"]
+        RENDER["Render"]
+        MOSQUITTO["Mosquitto 2"]
+    end
+    Client -->|HTTP/JSON| Server
+    Server --> Intelligence
+    Server --> Spatial
+    Server --> Data
+    Data --> Infra
+
+
+=== PAGE 4 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 4
+1. Frontend Stack
+Core Framework
+Technology
+Version
+Role
+Why This Choice
+React
+19.2.8
+UI framework
+Component model, hooks, concurrent
+features, massive ecosystem
+Vite
+8.2.2
+Build tool & dev server
+Sub-second HMR, native ES modules,
+10–100× faster than webpack
+React Router DOM
+7.18.3
+Client-side routing
+File-based routing patterns, nested layouts,
+data loading
+Styling & Design
+Technology
+Version
+Role
+Why This Choice
+Tailwind CSS
+4.3.3
+Utility-first CSS framework
+Rapid prototyping, design consistency, zero
+unused CSS in production
+Lucide React
+1.42.0
+Icon library
+Tree-shakeable, consistent stroke icons,
+1000+ icons
+Data Visualisation
+Technology
+Version
+Role
+Why This Choice
+Recharts
+3.10.1
+Charts & graphs
+React-native, composable, built on D3.js
+primitives
+Leaflet
+1.9.4
+Interactive maps
+Lightweight (42 KB), OpenStreetMap, plugin
+ecosystem
+React-Leaflet
+5.0.0
+React bindings for Leaflet
+Declarative map components, hooks API
+Three.js
+0.185.1
+3D visualisation
+WebGL-powered 3D city visualisations
+Utilities
+
+
+=== PAGE 5 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 5
+Technology
+Version
+Role
+Why This Choice
+Axios
+1.20.0
+HTTP client
+Interceptors, request/response transforms,
+automatic JSON
+jsPDF
+4.2.1
+Client-side PDF
+Browser-native PDF generation without
+server round-trip
+jsPDF-AutoTable
+5.0.8
+PDF tables
+Structured table rendering in client PDFs
+Testing (Frontend)
+Technology
+Version
+Role
+Vitest
+5.0.0
+Test runner (Vite-native, Jest-compatible API)
+@testing-library/react
+16.3.3
+Component testing (user-centric queries)
+@testing-library/jest-dom
+7.0.1
+DOM assertion matchers
+@testing-library/user-event
+14.6.7
+User interaction simulation
+jsdom
+29.1.1
+Browser environment for Node.js
+@vitest/coverage-v8
+5.0.0
+Code coverage via V8
+Build Tooling
+Technology
+Version
+Role
+@vitejs/plugin-react
+6.1.0
+React Fast Refresh, JSX transform
+@tailwindcss/vite
+4.3.3
+Tailwind CSS integration for Vite
+oxlint
+1.79.0
+Linter (Rust-based, 50–100× faster than ESLint)
+Frontend File Structure
+frontend/src/
+■■■ api/             # Axios client with base URL config and interceptors
+■   ■■■ client.js
+■■■ assets/          # Static assets (images, fonts)
+■■■ components/      # Reusable UI components
+■   ■■■ journey/     # Multi-step workflow components
+■   ■■■ CityScape3D.jsx   # Three.js 3D city visualisation
+■   ■■■ uikit.jsx         # Shared design system components
+■■■ context/         # React Context providers
+■   ■■■ ProjectContext.jsx
+■■■ data/            # Client-side reference data
+
+
+=== PAGE 6 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 6
+■■■ pages/           # 24 feature pages
+■   ■■■ Dashboard.jsx         # Portfolio rollup
+■   ■■■ SiteStudio.jsx        # Deep-dive site assessment (70 KB)
+■   ■■■ DecisionStudio.jsx    # Integrated decision workspace (41 KB)
+■   ■■■ Demand.jsx            # Population & demand analysis (34 KB)
+■   ■■■ DeliveryStudio.jsx    # Construction planning (32 KB)
+■   ■■■ Copilot.jsx           # Natural-language AI assistant (30 KB)
+■   ■■■ Explorer.jsx          # Infrastructure inventory (28 KB)
+■   ■■■ Recommendation.jsx    # Site ranking engine (26 KB)
+■   ■■■ Priority.jsx          # Project prioritisation (24 KB)
+■   ■■■ WhatIf.jsx            # Scenario simulator (21 KB)
+■   ■■■ Dashboard.jsx         # Portfolio overview (22 KB)
+■   ■■■ OperationsHub.jsx     # Operations management (18 KB)
+■   ■■■ Dpr.jsx               # Detailed Project Report (15 KB)
+■   ■■■ Cost.jsx              # Cost estimation (14 KB)
+■   ■■■ MapPage.jsx           # Infrastructure map (12 KB)
+■   ■■■ Iot.jsx               # IoT monitoring (11 KB)
+■   ■■■ Schemes.jsx           # Government schemes (11 KB)
+■   ■■■ Knowledge.jsx         # Knowledge base (10 KB)
+■   ■■■ Landing.jsx           # Landing page (9 KB)
+■   ■■■ Risk.jsx              # Risk classification (9 KB)
+■   ■■■ Settings.jsx          # App settings (8 KB)
+■   ■■■ Reports.jsx           # Reporting (8 KB)
+■   ■■■ Plan.jsx              # Project planning (7 KB)
+■   ■■■ DataLineage.jsx       # Data provenance (7 KB)
+■   ■■■ Login.jsx             # Authentication (6 KB)
+■■■ test/            # 23 component tests
+■■■ index.css        # Global styles (20 KB)
+■■■ theme.js         # Design tokens
+■■■ main.jsx         # App entry point
+■■■ App.jsx          # Root component with routing
+2. Backend Stack
+Web Framework
+Technology
+Version
+Role
+Why This Choice
+FastAPI
+0.115.6
+REST API framework
+Async-native, auto-generated OpenAPI
+docs, Pydantic integration, type safety
+Uvicorn
+0.34.0
+ASGI server
+High-performance, HTTP/2, WebSocket
+support
+Pydantic
+2.10.4
+Data validation
+Type-safe request/response contracts,
+serialisation, settings management
+Pydantic Settings
+2.7.0
+Configuration
+Environment variable parsing with type
+coercion and defaults
+httpx
+0.28.1
+Async HTTP client
+For outbound calls to LLM providers
+
+
+=== PAGE 7 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 7
+Middleware Stack
+Request → GZip Compression → CORS → ETag → Timing → Router → Response
+Middleware
+Purpose
+GZipMiddleware
+Compress responses > 500 bytes
+CORSMiddleware
+Cross-origin access control (configurable origins)
+ETagMiddleware
+Cache validation via content hashing
+TimingMiddleware
+Request duration tracking for observability
+ORM & Database
+Technology
+Version
+Role
+Why This Choice
+SQLAlchemy
+2.0.36
+ORM
+Mature, supports both sync/async, dialect
+abstraction (SQLite ↔ PostgreSQL)
+Alembic
+1.14.0
+Migrations
+Schema versioning, auto-generation from
+models
+psycopg
+3.2.3
+PostgreSQL driver
+Native async, binary protocol, modern
+Python
+python-dotenv
+1.0.1
+Environment loading
+.env file parsing
+Backend File Structure
+backend/app/
+■■■ api/v1/              # REST routers (all endpoints)
+■■■ core/                # Configuration, database, constants, migrations, observability
+■   ■■■ config.py        # Pydantic Settings (env vars)
+■   ■■■ database.py      # SQLAlchemy engine, session, health check
+■   ■■■ constants.py     # Disclaimer text, data status enums
+■   ■■■ migrations.py    # PostGIS/pgvector column promotion
+■   ■■■ observability.py # ETag, Timing middleware, metrics
+■■■ engines/             # All scoring, ranking, and costing logic
+■   ■■■ suitability.py   # 9-factor site scoring (16 KB)
+■   ■■■ ml.py            # XGBoost + SHAP pipeline (16 KB)
+■   ■■■ ml_training.py   # Model training utilities (8 KB)
+■   ■■■ cost.py          # Planning-level cost estimation (8 KB)
+■   ■■■ priority.py      # Multi-factor project ranking (7 KB)
+■   ■■■ risk.py          # Flood/terrain/access classification (6 KB)
+■   ■■■ schemes.py       # Government scheme matching (6 KB)
+■   ■■■ whatif.py         # Scenario simulation (5 KB)
+■   ■■■ explain.py        # Factor attribution (4 KB)
+■   ■■■ demand.py         # Population growth & demand (4 KB)
+■   ■■■ weights.py        # Weight validation (must total 100) (3 KB)
+■   ■■■ normalize.py      # Score normalisation modes (3 KB)
+
+
+=== PAGE 8 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 8
+■■■ models/              # SQLAlchemy ORM models
+■   ■■■ planning.py      # Sites, projects, schemes, priorities (8 KB)
+■   ■■■ spatial.py       # GIS layers, coordinates, boundaries (9 KB)
+■   ■■■ documents.py     # RAG documents, chunks, embeddings (4 KB)
+■   ■■■ iot.py           # Devices, readings, thresholds (3 KB)
+■   ■■■ registry.py      # Data sources, lineage (2 KB)
+■   ■■■ users.py         # User accounts (1 KB)
+■■■ providers/
+■   ■■■ ai/              # MockAIProvider, LocalLLMProvider, HostedLLMProvider
+■   ■■■ data/            # DemoDataProvider + declared GCC/CMDA/OSM/Bhuvan/IMD/Census
+■   ■■■ recommendation/  # MCDA (default) and ML+SHAP scoring strategies
+■■■ repositories/        # The ONLY place SQL happens
+■■■ schemas/             # Pydantic request/response contracts
+■■■ seed/                # CSV/JSON seed data loader
+■■■ services/            # Orchestration layer
+■   ■■■ copilot_service.py     # Intent detection → engine → explanation (15 KB)
+■   ■■■ dpr_service.py         # Detailed Project Report generator (21 KB)
+■   ■■■ rag_service.py         # TF-IDF + SVD retrieval pipeline (17 KB)
+■   ■■■ gis_service.py         # GeoPandas spatial analysis (12 KB)
+■   ■■■ grievance_service.py   # Public grievance handling (11 KB)
+■   ■■■ project_service.py     # Project lifecycle management (10 KB)
+■   ■■■ site_service.py        # Site assessment orchestration (9 KB)
+■   ■■■ mqtt_service.py        # MQTT subscriber + ingestion (7 KB)
+■   ■■■ iot_service.py         # Device management + simulation (6 KB)
+■   ■■■ persistence_service.py # Score/audit persistence (5 KB)
+■   ■■■ supabase_service.py    # Cloud storage integration (4 KB)
+■■■ utils/               # Shared utilities
+3. Data Processing & ML Stack
+Data Processing
+Technology
+Version
+Role
+Why This Choice
+Pandas
+3.0.5
+Tabular data processing
+Industry standard, DataFrame API,
+CSV/JSON I/O
+NumPy
+2.4.6
+Numerical computation
+Array operations, linear algebra, statistical
+functions
+Machine Learning
+Technology
+Version
+Role
+Why This Choice
+scikit-learn
+1.9.0
+ML utilities
+Preprocessing, cross-validation, TF-IDF
+vectorisation, truncated SVD
+
+
+=== PAGE 9 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 9
+Technology
+Version
+Role
+Why This Choice
+XGBoost
+3.2.0
+Gradient boosted trees
+High accuracy, handles mixed feature types,
+fast inference
+SHAP
+0.51.0
+Model explainability
+Exact additive attributions via TreeExplainer,
+regulatory transparency
+ML Pipeline Detail
+graph LR
+    subgraph Training
+        DATA["40 Labelled Sites"] --> FEAT["15 Features Extracted"]
+        FEAT --> XGB["XGBRegressor (depth=2, n=220)"]
+        XGB --> CV["5-Fold Cross Validation"]
+        CV --> METRICS["R²≈0.79, MAE≈1.0"]
+    end
+    subgraph Inference
+        SITE["New Site"] --> SCORE["XGBoost Prediction"]
+        SCORE --> SHAP_EXP["SHAP TreeExplainer"]
+        SHAP_EXP --> ATTR["Additive Attributions"]
+        ATTR --> VERIFY["base + Σcontributions = prediction"]
+    end
+    subgraph Fallback
+        FAIL["Model Failure"] --> MCDA["Deterministic MCDA"]
+        MCDA --> NOTE["Response includes degradation note"]
+    end
+RAG Pipeline (Knowledge Base)
+Component
+Technology
+Detail
+Vectorisation
+scikit-learn TfidfVectorizer
+Deterministic, no API key needed
+Dimensionality Reduction
+scikit-learn TruncatedSVD
+Compress TF-IDF to dense vectors
+Similarity
+Cosine similarity
+Top-k passage retrieval
+Storage (PostgreSQL)
+pgvector
+vector(N) column with HNSW index
+Storage (SQLite)
+JSON column
+Similarity computed in Python
+Corpus
+Platform methodology,
+scheme reference, data
+registry
+Only what the platform can vouch for
+
+
+=== PAGE 10 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 10
+4. Geospatial Stack
+Technology
+Version
+Role
+Why This Choice
+GeoPandas
+1.1.4
+Geospatial DataFrames
+Spatial joins, projections, buffer analysis
+Shapely
+2.1.2
+Geometric operations
+Point, polygon, distance, area computations
+PostGIS
+3.4
+Spatial database
+extension
+GiST indexes, geometry columns, spatial
+queries
+Projection Strategy
+Layer
+CRS
+Reason
+Storage
+WGS 84 (EPSG:4326)
+Portable lat/lng — works on SQLite
+Analysis
+UTM 44N (EPSG:32644)
+Metric distances and areas — "5 km" is genuinely 5
+km
+Display
+WGS 84 (EPSG:4326)
+Leaflet/OpenStreetMap standard
+Spatial Analyses Performed
+Analysis
+Method
+Output
+Nearest neighbours
+Projected distance matrix
+Site separation in kilometres
+Catchment overlap
+5 km buffer intersection
+Sites competing for same population
+Coverage gaps
+Set difference against site
+buffers
+Underserved localities (e.g., Nemmeli at 10.6 km)
+Convex hull
+Shapely convex_hull
+Study area extent and area
+5. Database Stack
+Dual-Database Strategy
+
+
+=== PAGE 11 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 11
+graph LR
+    subgraph Development
+        APP_DEV["FastAPI"] --> SQLITE["SQLite"]
+        SQLITE --> NOTE_DEV["Zero config, git clone to working demo"]
+    end
+    subgraph Production
+        APP_PROD["FastAPI"] --> PG["PostgreSQL 16"]
+        PG --> POSTGIS_EXT["PostGIS 3.4"]
+        PG --> PGVEC["pgvector"]
+        POSTGIS_EXT --> GEOM["geometry(Point, 4326) + GiST indexes"]
+        PGVEC --> VEC["vector(N) + HNSW index"]
+    end
+Database Models
+Model File
+Tables
+Purpose
+planning.py
+Sites, Projects, Schemes,
+Priorities, Scores
+Core planning entities
+spatial.py
+GIS Layers, Coordinates,
+Boundaries, Catchments
+Geospatial features
+documents.py
+Sources, Documents,
+DocumentChunks,
+Embeddings
+RAG knowledge base
+iot.py
+Devices, Readings,
+Thresholds, Alerts
+IoT sensor data
+registry.py
+DataSources, Lineage,
+Providers
+Data governance
+users.py
+Users, Sessions
+Authentication
+Migration Strategy
+Migration
+File
+Purpose
+001
+Schema creation
+Base.metadata.create_all() at startup
+002
+002_spatial_and_indexe
+s.sql
+Promote lat/lng to geometry(Point, 4326), add
+GiST indexes
+003
+003_vector_columns.sql
+Promote JSON embeddings to vector(N), add
+HNSW index
+[NOTE] Migrations 002 and 003 run at application startup (not Docker init) because they need the tables to exist
+first. On SQLite they are skipped gracefully.
+
+
+=== PAGE 12 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 12
+6. IoT Stack
+Technology
+Version
+Role
+Why This Choice
+ESP32
+—
+Microcontroller
+Wi-Fi + BLE, low power, widely available,
+Arduino/MicroPython support
+paho-mqtt
+2.1.0
+Python MQTT client
+Standard MQTT library, QoS levels, TLS
+support
+Eclipse Mosquitto
+2
+MQTT broker
+Lightweight, Docker image, production-ready
+Message Contract
+Topic: nirman/sensors/{device_id}/{sensor_type}
+Payload:
+{
+  "device_id": "ESP32-WL-001",
+  "sensor_type": "water_level",
+  "value": 2.4,
+  "unit": "meters",
+  "latitude": 12.9352,
+  "longitude": 80.2190,
+  "timestamp": "2026-10-12T14:00:00Z"
+}
+Ingestion Path
+Source
+Endpoint
+is_demo_data
+Real ESP32 via MQTT
+nirman/sensors/#
+subscriber
+false
+HTTP ingest
+POST
+/api/v1/iot/ingest
+false
+Simulator
+POST
+/api/v1/iot/simulate
+true (always)
+7. PDF Generation Stack
+
+
+=== PAGE 13 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 13
+Layer
+Technology
+Version
+Use Case
+Server-side
+ReportLab
+4.2.5
+DPR PDF generation with structured layouts,
+tables, and disclaimers
+Client-side
+jsPDF
+4.2.1
+Browser-native PDF export for reports and
+summaries
+Client-side
+jsPDF-AutoTabl
+e
+5.0.8
+Structured table rendering in client PDFs
+8. Infrastructure & Deployment
+Containerisation
+Technology
+Purpose
+Configuration
+Docker
+Container runtime
+Multi-stage builds for frontend and backend
+Docker Compose
+Multi-service orchestration
+4 services: db, backend, frontend, mqtt (optional)
+nginx
+Reverse proxy
+Frontend serving + /api proxying to backend
+Docker Compose Services
+■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+■  docker-compose.yml                         ■
+■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+■ PostGIS     ■ Backend   ■ nginx ■ Mosquitto ■
+■ :5432       ■ :8000     ■ :8080 ■ :1883     ■
+■ pg16+postgis■ FastAPI   ■ React ■ MQTT      ■
+■ + pgvector  ■ + uvicorn ■ SPA   ■ (optional)■
+■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+Render Deployment (Cloud)
+Setting
+Value
+Runtime
+Docker (all-in-one Dockerfile)
+Plan
+Free tier
+
+
+=== PAGE 14 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 14
+Setting
+Value
+Region
+Singapore
+Health check
+/health
+Auto-deploy
+On git push
+Database
+Ephemeral SQLite (rebuilt from seed on each start)
+Single origin
+Frontend + API on same URL
+Environment Variables
+Variable
+Default
+Purpose
+DATABASE_URL
+SQLite file
+PostgreSQL connection string for production
+CORS_ORIGINS
+localhost:5173
+Comma-separated allowed origins
+DEMO_MODE
+true
+Enable seeded demo data and simulated IoT
+AUTO_SEED
+true
+Seed database on startup if empty
+AI_PROVIDER
+mock
+mock / local / hosted
+LLM_BASE_URL
+unset
+OpenAI-compatible LLM endpoint
+LLM_MODEL
+unset
+Model name for LLM provider
+LLM_API_KEY
+unset
+API key (environment only, never in source)
+MQTT_BROKER_URL
+unset
+MQTT broker for IoT (optional)
+JWT_SECRET
+placeholder
+JWT signing key (auto-generated on Render)
+9. Testing Stack
+Backend (Python)
+Tool
+Purpose
+Count
+pytest
+Test runner and framework
+106+ tests across 7 test files
+
+
+=== PAGE 15 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 15
+Tool
+Purpose
+Count
+conftest.py
+Shared fixtures (test
+database, client)
+Test DB with in-memory SQLite
+Frontend (JavaScript)
+Tool
+Purpose
+Count
+Vitest
+Vite-native test runner
+23 component tests
+React Testing Library
+User-centric component
+testing
+DOM queries, user events
+jsdom
+Browser environment
+simulation
+Node.js-based DOM
+Test Coverage Areas
+Area
+What's Tested
+Engines
+Weight validation, scoring, ranking, cost estimation, SHAP additivity
+API
+All REST endpoints, error codes, response envelopes
+Deployment
+Dockerfile existence, render.yaml validity, static file serving
+Observability
+ETag generation, timing headers, metrics counters
+Data Integrity
+Coimbatore/Chennai separation, seed completeness
+10. Complete Version Matrix
+Component
+Package
+Version
+Category
+React
+react
+19.2.8
+Frontend Core
+React DOM
+react-dom
+19.2.8
+Frontend Core
+Vite
+vite
+8.2.2
+Frontend Build
+Tailwind CSS
+tailwindcss
+4.3.3
+Frontend Styling
+
+
+=== PAGE 16 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 16
+Component
+Package
+Version
+Category
+React Router DOM
+react-router-
+dom
+7.18.3
+Frontend Routing
+Axios
+axios
+1.20.0
+Frontend HTTP
+Leaflet
+leaflet
+1.9.4
+Frontend Map
+React-Leaflet
+react-leaflet
+5.0.0
+Frontend Map
+Recharts
+recharts
+3.10.1
+Frontend Charts
+Three.js
+three
+0.185.1
+Frontend 3D
+Lucide React
+lucide-react
+1.42.0
+Frontend Icons
+jsPDF
+jspdf
+4.2.1
+Frontend PDF
+jsPDF AutoTable
+jspdf-autotab
+le
+5.0.8
+Frontend PDF
+Vitest
+vitest
+5.0.0
+Frontend Testing
+oxlint
+oxlint
+1.79.0
+Frontend Linting
+FastAPI
+fastapi
+0.115.6
+Backend Core
+Uvicorn
+uvicorn
+0.34.0
+Backend Server
+Pydantic
+pydantic
+2.10.4
+Backend Validation
+Pydantic Settings
+pydantic-sett
+ings
+2.7.0
+Backend Config
+SQLAlchemy
+sqlalchemy
+2.0.36
+Backend ORM
+Alembic
+alembic
+1.14.0
+Backend Migrations
+psycopg
+psycopg
+3.2.3
+Backend DB Driver
+httpx
+httpx
+0.28.1
+Backend HTTP
+python-dotenv
+python-dotenv
+1.0.1
+Backend Config
+Pandas
+pandas
+3.0.5
+Data Processing
+NumPy
+numpy
+2.4.6
+Data Processing
+scikit-learn
+scikit-learn
+1.9.0
+Machine Learning
+XGBoost
+xgboost
+3.2.0
+Machine Learning
+SHAP
+shap
+0.51.0
+Explainability
+GeoPandas
+geopandas
+1.1.4
+Geospatial
+Shapely
+shapely
+2.1.2
+Geospatial
+
+
+=== PAGE 17 ===
+
+NIRMAN AI — Technical Stack Specification
+Architecture & Dependencies
+Confidential — NIRMAN AI Engineering Documentation
+Page 17
+Component
+Package
+Version
+Category
+ReportLab
+reportlab
+4.2.5
+PDF Generation
+paho-mqtt
+paho-mqtt
+2.1.0
+IoT
+PostgreSQL
+—
+16
+Database
+PostGIS
+—
+3.4
+Database Extension
+pgvector
+—
+latest
+Database Extension
+Docker
+—
+latest
+Infrastructure
+nginx
+—
+latest
+Infrastructure
+Mosquitto
+—
+2
+Infrastructure
+Total Dependencies: 19 frontend + 15 backend + 4 infrastructure services
+All open source or free tier — no proprietary dependencies.
+ [END OF NIRMAN AI TECHNICAL STACK SPECIFICATION]
