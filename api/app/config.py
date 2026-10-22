@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SYNAPSE_", extra="ignore",
                                       env_file=(".env", "api/.env", "../.env"))
 
-    database_url: str = "sqlite:///./synapse.db"
+    database_url: str = "sqlite:////tmp/synapse.db" if os.environ.get("VERCEL") else "sqlite:///./synapse.db"
     redis_url: str | None = None
 
     # Claude. The SDK resolves ANTHROPIC_API_KEY itself; we only carry the
