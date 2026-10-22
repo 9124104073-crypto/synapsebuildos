@@ -1,5 +1,15 @@
 {
   "version": 2,
+  "build": {
+    "env": {
+      "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
+      "UNSAFE_PYO3_SKIP_VERSION_CHECK": "1"
+    }
+  },
+  "env": {
+    "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
+    "UNSAFE_PYO3_SKIP_VERSION_CHECK": "1"
+  },
   "buildCommand": "cd app && npm install && npm run build",
   "outputDirectory": "app/dist",
   "rewrites": [
